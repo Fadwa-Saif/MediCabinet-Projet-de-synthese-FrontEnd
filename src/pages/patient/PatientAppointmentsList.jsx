@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../../context/LanguageContext.jsx";
 import { Navbar } from "../../components/Navbar";
 
 export function PatientAppointmentsList() {
+  const navigate = useNavigate();
   const { language } = useLanguage();
   const [statusFilter, setStatusFilter] = useState("tous");
   const [dateFilter, setDateFilter] = useState("");
@@ -49,25 +51,23 @@ export function PatientAppointmentsList() {
   const pageContent = (
     <div className="bg-gray-50">
       {/* Top Bar */}
-      <div className="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">
+      <div className="bg-white border-b border-gray-200 px-4 lg:px-8 py-4 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 lg:gap-0">
+        <h1 className="text-xl lg:text-2xl font-bold text-gray-800">
           📅 {language === "ar" ? "مواعيدي" : "Mes Rendez-vous"}
         </h1>
         <button
-          onClick={() => {
-            /* Navigate to new appointment page if needed */
-          }}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold text-sm"
+          onClick={() => navigate("/patient/rendezvous/nouveau")}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold text-sm w-full lg:w-auto"
         >
           + {language === "ar" ? "موعد جديد" : "Nouveau Rendez-vous"}
         </button>
       </div>
 
       {/* Content */}
-      <div className="p-8">
+      <div className="p-4 lg:p-8">
         {/* Filters */}
-        <div className="bg-white rounded-lg p-6 mb-8 border border-gray-200">
-          <div className="flex gap-4 items-end flex-wrap">
+        <div className="bg-white rounded-lg p-4 lg:p-6 mb-8 border border-gray-200">
+          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end flex-wrap">
             <div className="flex-1 min-w-[200px]">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 {language === "ar" ? "الحالة" : "Statut"}
