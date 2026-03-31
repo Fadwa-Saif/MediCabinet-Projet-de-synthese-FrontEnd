@@ -9,6 +9,7 @@ import { InscriptionPage } from "./auth/pages/InscriptionPage";
 // Patient Pages
 import { PatientDashboard } from "./pages/patient/PatientDashboard";
 import { PatientAppointmentsList } from "./pages/patient/PatientAppointmentsList";
+import { AppointmentBooking as PatientAppointmentBooking } from "./pages/patient/AppointmentBooking";
 import { PatientConsultationsList } from "./pages/patient/PatientConsultationsList";
 import { PatientUploadAnalysis } from "./pages/patient/PatientUploadAnalysis";
 
@@ -48,6 +49,14 @@ export default function App() {
             element={
               <ProtectedRoute requiredRole="patient">
                 <PatientAppointmentsList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/patient/rendezvous/nouveau"
+            element={
+              <ProtectedRoute requiredRole="patient">
+                <PatientAppointmentBooking />
               </ProtectedRoute>
             }
           />

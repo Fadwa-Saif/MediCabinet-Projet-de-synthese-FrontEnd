@@ -39,10 +39,10 @@ export function PatientDashboard() {
   ];
 
   const pageContent = (
-    <div>
+    <div className="p-4 lg:p-8">
       {/* Dashboard Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">
+      <div className="mb-6 lg:mb-8">
+        <h1 className="text-2xl lg:text-3xl font-bold text-gray-800">
           {language === "fr" ? `Bienvenue, ${firstName}` : `أهلا, ${firstName}`}
         </h1>
         <p className="text-sm text-gray-600 mt-1">
@@ -90,8 +90,8 @@ export function PatientDashboard() {
 
       {/* Consultations Passées Table */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-          <h2 className="text-lg font-semibold text-gray-800">
+        <div className="px-4 lg:px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <h2 className="text-base lg:text-lg font-semibold text-gray-800">
             {language === "fr" ? "Consultations passées" : "الاستشارات السابقة"}
           </h2>
           <p className="text-sm text-gray-600 mt-1">

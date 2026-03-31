@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import { useNavigate, useLocation } from "react-router-dom";
+import { Menu, X } from "lucide-react";
 
 export function Navbar({ userRole = "patient", children }) {
   const { language, toggleLanguage } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const userData = JSON.parse(localStorage.getItem("medicabinet_user") || "{}");
   const userName = userData.firstName
@@ -112,8 +114,16 @@ export function Navbar({ userRole = "patient", children }) {
       className="flex h-screen bg-gray-50"
       dir={language === "ar" ? "rtl" : "ltr"}
     >
-      {/* ── Sidebar ── */}
-      <aside className="w-56 bg-blue-600 text-white flex flex-col shadow-xl flex-shrink-0">
+      {/* ── Sidebar (Collapsible) ── */}
+      <aside
+        className={`w-56 bg-blue-600 text-white flex flex-col shadow-xl flex-shrink-0 transition-all duration-300 ease-in-out ${
+          sidebarOpen
+            ? "translate-x-0"
+            : language === "ar"
+              ? "translate-x-full"
+              : "-translate-x-full"
+        } fixed lg:static h-screen z-50 lg:z-auto left-0 lg:left-auto top-0 ${language === "ar" ? "right-0 lg:right-auto" : ""}`}
+      >
         {/* Logo */}
         <div className="px-5 py-5 border-b border-blue-500 flex items-center gap-3">
           <img
@@ -124,19 +134,18 @@ export function Navbar({ userRole = "patient", children }) {
           <span className="font-bold text-base tracking-wide">MediCabinet</span>
         </div>
 
-        {/* Role badge */}
-        <div className="px-5 py-3 border-b border-blue-500">
-          <span className="text-xs font-semibold uppercase tracking-widest text-blue-200">
-            {getRoleLabel()}
-          </span>
-        </div>
-
         {/* Nav items */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {getMenuItems().map((item) => (
             <button
               key={item.path}
-              onClick={() => navigate(item.path)}
+              onClick={() => {
+                navigate(item.path);
+                // Close sidebar on mobile after navigation
+                if (window.innerWidth < 1024) {
+                  setSidebarOpen(false);
+                }
+              }}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 text-left
                 ${
                   isActive(item.path)
@@ -166,8 +175,18 @@ export function Navbar({ userRole = "patient", children }) {
 
       {/* ── Main area ── */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar — profil uniquement */}
-        <header className="bg-white border-b border-gray-200 px-8 py-3 flex justify-end items-center flex-shrink-0">
+        {/* Top bar — toggle button (mobile only) + profile */}
+        <header className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 flex justify-between items-center flex-shrink-0">
+          {/* Toggle sidebar button - show on mobile only */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition text-gray-600 flex-shrink-0"
+            title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+          >
+            {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+
+          {/* Profile section */}
           <div className="relative">
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
@@ -218,6 +237,14 @@ export function Navbar({ userRole = "patient", children }) {
         {/* Page content */}
         <main className="flex-1 overflow-auto">{children}</main>
       </div>
+
+      {/* Overlay for mobile when sidebar is open */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     </div>
   );
 }
