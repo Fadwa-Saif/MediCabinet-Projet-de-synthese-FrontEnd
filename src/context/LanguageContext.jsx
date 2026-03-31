@@ -21,7 +21,14 @@ export const useLanguage = () => {
   if (!context) {
     throw new Error("useLanguage must be used within LanguageProvider");
   }
-  return context;
+
+  // Add the t function to get translations
+  const t = (key) => translations[context.language][key] || key;
+
+  return {
+    ...context,
+    t,
+  };
 };
 
 // Comprehensive French and Arabic translations
@@ -67,6 +74,20 @@ export const translations = {
     delete: "Supprimer",
     edit: "Modifier",
     back: "Retour",
+
+    // Dashboard Navigation
+    dashboard: "Tableau de bord",
+    appointments: "Rendez-vous",
+    consultations: "Consultations",
+    medicalRecord: "Dossier médical",
+    analysis: "Analyses",
+    virtualAssistant: "Assistant virtuel",
+    patients: "Patients",
+    notifications: "Notifications",
+    reports: "Rapports",
+    doctor: "Médecin",
+    secretary: "Secrétaire",
+    patient: "Patient",
   },
 
   ar: {
@@ -110,5 +131,19 @@ export const translations = {
     delete: "حذف",
     edit: "تعديل",
     back: "رجوع",
+
+    // Dashboard Navigation
+    dashboard: "لوحة التحكم",
+    appointments: "المواعيد",
+    consultations: "الاستشارات",
+    medicalRecord: "الملف الطبي",
+    analysis: "التحليلات",
+    virtualAssistant: "المساعد الافتراضي",
+    patients: "المرضى",
+    notifications: "الإشعارات",
+    reports: "التقارير",
+    doctor: "الطبيب",
+    secretary: "السكرتيرة",
+    patient: "المريض",
   },
 };
