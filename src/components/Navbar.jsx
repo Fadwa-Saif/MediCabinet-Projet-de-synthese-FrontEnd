@@ -1,183 +1,222 @@
 import { useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
-export function Navbar({ userRole = "patient" }) {
-  const { language, t } = useLanguage();
+export function Navbar({ userRole = "patient", children }) {
+  const { language, toggleLanguage } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // Get user data from localStorage
   const userData = JSON.parse(localStorage.getItem("medicabinet_user") || "{}");
   const userName = userData.firstName
     ? `${userData.firstName} ${userData.lastName}`
-    : "User";
+    : "Utilisateur";
+  const initials = userData.firstName
+    ? `${userData.firstName[0]}${userData.lastName?.[0] || ""}`.toUpperCase()
+    : "U";
 
-  // Get menu items based on user role
   const getMenuItems = () => {
-    const baseMenus = {
+    const menus = {
       patient: [
-        { label: t("dashboard"), icon: "📊", path: "/patient/dashboard" },
-        { label: t("appointments"), icon: "📅", path: "/patient/rendezvous" },
         {
-          label: t("consultations"),
-          icon: "📋",
+          label: "Tableau de bord",
+          labelAr: "الرئيسية",
+          path: "/patient/dashboard",
+        },
+        {
+          label: "Rendez-vous",
+          labelAr: "المواعيد",
+          path: "/patient/rendezvous",
+        },
+        {
+          label: "Consultations",
+          labelAr: "الاستشارات",
           path: "/patient/consultations",
         },
-        { label: t("medicalRecord"), icon: "📄", path: "/patient/dossier" },
-        { label: t("analysis"), icon: "🔬", path: "/patient/analyses" },
         {
-          label: t("virtualAssistant"),
-          icon: "🤖",
-          path: "/patient/assistant",
+          label: "Dossier médical",
+          labelAr: "الملف الطبي",
+          path: "/patient/dossier",
+        },
+        {
+          label: "Analyses",
+          labelAr: "التحاليل",
+          path: "/patient/analyses",
         },
       ],
       medecin: [
-        { label: t("dashboard"), icon: "📊", path: "/medecin/dashboard" },
-        { label: t("appointments"), icon: "📅", path: "/medecin/rendezvous" },
-        { label: t("reports"), icon: "📑", path: "/medecin/rapports" },
-        { label: t("patients"), icon: "👥", path: "/medecin/patients" },
+        {
+          label: "Tableau de bord",
+          labelAr: "الرئيسية",
+          path: "/medecin/dashboard",
+        },
+        {
+          label: "Rendez-vous",
+          labelAr: "المواعيد",
+          path: "/medecin/rendezvous",
+        },
+        {
+          label: "Patients",
+          labelAr: "المرضى",
+          path: "/medecin/patients",
+        },
+        {
+          label: "Rapports",
+          labelAr: "التقارير",
+          path: "/medecin/rapports",
+        },
       ],
       secretaire: [
-        { label: t("dashboard"), icon: "📊", path: "/secretaire/dashboard" },
-        { label: t("patients"), icon: "👥", path: "/secretaire/patients" },
         {
-          label: t("appointments"),
-          icon: "📅",
+          label: "Tableau de bord",
+          labelAr: "الرئيسية",
+          path: "/secretaire/dashboard",
+        },
+        {
+          label: "Patients",
+          labelAr: "المرضى",
+          path: "/secretaire/patients",
+        },
+        {
+          label: "Rendez-vous",
+          labelAr: "المواعيد",
           path: "/secretaire/rendezvous",
         },
         {
-          label: t("notifications"),
-          icon: "🔔",
+          label: "Notifications",
+          labelAr: "الإشعارات",
           path: "/secretaire/notifications",
         },
       ],
     };
-    return baseMenus[userRole] || baseMenus.patient;
+    return menus[userRole] || menus.patient;
   };
 
-  const menuItems = getMenuItems();
+  const getRoleLabel = () =>
+    ({
+      patient: language === "fr" ? "Patient" : "مريض",
+      medecin: language === "fr" ? "Médecin" : "طبيب",
+      secretaire: language === "fr" ? "Secrétaire" : "سكرتيرة",
+    })[userRole] || "Utilisateur";
 
   const handleLogout = () => {
     localStorage.removeItem("medicabinet_user");
     navigate("/login");
   };
 
-  const getRoleLabel = () => {
-    const roleLabels = {
-      patient: t("patient"),
-      medecin: t("doctor"),
-      secretaire: t("secretary"),
-    };
-    return roleLabels[userRole] || "User";
-  };
+  const isActive = (path) => location.pathname === path;
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div
-        className={`w-48 bg-blue-600 text-white flex flex-col shadow-lg ${language === "ar" ? "rtl" : ""}`}
-      >
+    <div
+      className="flex h-screen bg-gray-50"
+      dir={language === "ar" ? "rtl" : "ltr"}
+    >
+      {/* ── Sidebar ── */}
+      <aside className="w-56 bg-blue-600 text-white flex flex-col shadow-xl flex-shrink-0">
         {/* Logo */}
-        <div className="p-6 border-b border-blue-500 flex items-center justify-center">
+        <div className="px-5 py-5 border-b border-blue-500 flex items-center gap-3">
           <img
             src="/MediCabinet-Logo.png"
             alt="MediCabinet"
-            width="40"
-            height="40"
+            className="w-9 h-9 object-contain"
           />
-          <span className="ml-2 font-bold text-lg">MediCabinet</span>
+          <span className="font-bold text-base tracking-wide">MediCabinet</span>
         </div>
 
-        {/* Profile Section - Clickable Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setShowProfileMenu(!showProfileMenu)}
-            className="w-full p-4 border-b border-blue-500 hover:bg-blue-700 transition flex items-center gap-3 text-left"
-          >
-            <div className="w-10 h-10 bg-blue-400 rounded-full flex items-center justify-center text-sm font-bold">
-              {userName.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm truncate">{userName}</p>
-              <p className="text-xs text-blue-100">{getRoleLabel()}</p>
-            </div>
-          </button>
-
-          {/* Profile Dropdown Menu */}
-          {showProfileMenu && (
-            <div className="absolute top-full left-0 right-0 bg-blue-700 border-t border-blue-500 shadow-lg z-50">
-              <div className="p-4 border-b border-blue-500">
-                <p className="text-sm font-semibold">{userName}</p>
-                <p className="text-xs text-blue-100">
-                  {userData.email || "email@example.com"}
-                </p>
-                {userData.phone && (
-                  <p className="text-xs text-blue-100">{userData.phone}</p>
-                )}
-              </div>
-              <button
-                onClick={handleLogout}
-                className="w-full px-4 py-3 text-left text-sm hover:bg-blue-800 transition text-red-200 font-medium"
-              >
-                {language === "fr" ? "Déconnexion" : "تسجيل الخروج"}
-              </button>
-            </div>
-          )}
+        {/* Role badge */}
+        <div className="px-5 py-3 border-b border-blue-500">
+          <span className="text-xs font-semibold uppercase tracking-widest text-blue-200">
+            {getRoleLabel()}
+          </span>
         </div>
 
-        {/* Menu Items */}
-        <nav className="flex-1 p-4 space-y-2">
-          {menuItems.map((item, index) => (
+        {/* Nav items */}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {getMenuItems().map((item) => (
             <button
-              key={index}
-              onClick={() => {
-                navigate(item.path);
-                setShowProfileMenu(false);
-              }}
-              className="w-full px-4 py-3 rounded-lg hover:bg-blue-700 transition flex items-center gap-3 text-left text-sm font-medium"
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 text-left
+                ${
+                  isActive(item.path)
+                    ? "bg-white text-blue-600 shadow-sm"
+                    : "text-blue-100 hover:bg-blue-500 hover:text-white"
+                }`}
             >
-              <span className="text-lg">{item.icon}</span>
-              <span>{item.label}</span>
+              <span className="text-base">{item.icon}</span>
+              <span>{language === "ar" ? item.labelAr : item.label}</span>
+              {isActive(item.path) && (
+                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600" />
+              )}
             </button>
           ))}
         </nav>
 
-        {/* Language Toggle - At Bottom */}
-        <div className="p-4 border-t border-blue-500">
+        {/* Language toggle */}
+        <div className="px-4 py-4 border-t border-blue-500">
           <button
-            onClick={() => {
-              // Language toggle will be handled by main app
-              // This is just for UI
-            }}
-            className="w-full px-3 py-2 bg-blue-700 hover:bg-blue-800 rounded text-xs font-medium transition"
+            onClick={toggleLanguage}
+            className="w-full py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-xs font-semibold tracking-wide transition"
           >
-            {language === "fr" ? "العربية" : "Français"}
+            {language === "fr" ? "🌐 العربية" : "🌐 Français"}
           </button>
         </div>
-      </div>
+      </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-auto">
-        {/* Top Bar */}
-        <div className="bg-white shadow-sm px-8 py-6 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              {language === "fr" ? "Bienvenue" : "أهلا و سهلا"},{" "}
-              {userName.split(" ")[0]}
-            </h1>
-            <p className="text-sm text-gray-600 mt-1">
-              {language === "fr"
-                ? "Voici un aperçu de vos rendez-vous et consultations"
-                : "إليك نظرة عامة على مواعيدك والاستشارات"}
-            </p>
+      {/* ── Main area ── */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top bar — profil uniquement */}
+        <header className="bg-white border-b border-gray-200 px-8 py-3 flex justify-end items-center flex-shrink-0">
+          <div className="relative">
+            <button
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-gray-100 transition"
+            >
+              <div className="text-right">
+                <p className="text-sm font-semibold text-gray-800 leading-tight">
+                  {userName}
+                </p>
+                <p className="text-xs text-gray-400">{getRoleLabel()}</p>
+              </div>
+              <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
+                {initials}
+              </div>
+              <span className="text-gray-400 text-xs">▾</span>
+            </button>
+
+            {/* Dropdown */}
+            {showProfileMenu && (
+              <>
+                {/* overlay pour fermer en cliquant dehors */}
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowProfileMenu(false)}
+                />
+                <div className="absolute top-full right-0 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+                    <p className="text-sm font-semibold text-gray-800">
+                      {userName}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {userData.email || ""}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 font-medium transition flex items-center gap-2"
+                  >
+                    <span>🚪</span>
+                    {language === "fr" ? "Déconnexion" : "تسجيل الخروج"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
-        </div>
+        </header>
 
-        {/* Placeholder for page content */}
-        <div className="p-8" id="page-content">
-          {/* Content will be rendered here */}
-        </div>
+        {/* Page content */}
+        <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>
   );
