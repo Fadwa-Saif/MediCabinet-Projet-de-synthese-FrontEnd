@@ -14,6 +14,31 @@ export function LoginPage() {
   const t = translations[language];
   const isRTL = language === "ar";
 
+  // Test credentials
+  const testUsers = {
+    "patient@test.com": {
+      email: "patient@test.com",
+      password: "password123",
+      role: "patient",
+      firstName: "Omar",
+      lastName: "Kamali",
+    },
+    "doctor@test.com": {
+      email: "doctor@test.com",
+      password: "password123",
+      role: "medecin",
+      firstName: "Dr. Ahmed",
+      lastName: "Mansouri",
+    },
+    "secretary@test.com": {
+      email: "secretary@test.com",
+      password: "password123",
+      role: "secretaire",
+      firstName: "Fatima",
+      lastName: "Bennani",
+    },
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -29,17 +54,29 @@ export function LoginPage() {
       // const data = await response.json();
       // if (response.ok) {
       //   localStorage.setItem('medicabinet_user', JSON.stringify(data.user));
-      //   navigate('/patient/dashboard');
+      //   navigate(data.user.redirectUrl);
       // } else {
       //   setError(data.message || 'Login failed');
       // }
 
-      // Demo: redirect to patient dashboard
-      localStorage.setItem(
-        "medicabinet_user",
-        JSON.stringify({ role: "patient", email }),
-      );
-      navigate("/patient/dashboard");
+      // Test credentials support
+      const user = testUsers[email];
+      if (user && user.password === password) {
+        localStorage.setItem("medicabinet_user", JSON.stringify(user));
+        if (user.role === "patient") {
+          navigate("/patient/dashboard");
+        } else if (user.role === "medecin") {
+          navigate("/medecin/dashboard");
+        } else if (user.role === "secretaire") {
+          navigate("/secretaire/dashboard");
+        }
+      } else {
+        setError(
+          language === "fr"
+            ? "Email ou mot de passe incorrect"
+            : "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+        );
+      }
     } catch (err) {
       setError(err.message || "Une erreur est survenue");
       console.error("Login error:", err);
