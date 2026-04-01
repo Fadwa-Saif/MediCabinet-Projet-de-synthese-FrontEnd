@@ -3,7 +3,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 
-export function Navbar({ userRole = "patient", children }) {
+export function Navbar({ userRole = "patient", children, pageTitle = null }) {
   const { language, toggleLanguage } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
@@ -175,19 +175,27 @@ export function Navbar({ userRole = "patient", children }) {
 
       {/* ── Main area ── */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar — toggle button (mobile only) + profile */}
+        {/* Top bar — toggle button (mobile only) + title + profile */}
         <header className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 flex justify-between items-center flex-shrink-0">
-          {/* Toggle sidebar button - show on mobile only */}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition text-gray-600 flex-shrink-0"
-            title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
-          >
-            {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          {/* Left side: toggle button + page title */}
+          <div className="flex items-center gap-4 flex-1">
+            {/* Toggle sidebar button - show on mobile only */}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition text-gray-600 flex-shrink-0"
+              title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+            >
+              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
 
-          {/* Profile section */}
-          <div className="relative">
+            {/* Page title - if provided */}
+            {pageTitle && (
+              <div className="text-xl font-bold text-gray-800">{pageTitle}</div>
+            )}
+          </div>
+
+          {/* Right side: profile */}
+          <div className="relative flex-shrink-0">
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-gray-100 transition"
@@ -207,7 +215,7 @@ export function Navbar({ userRole = "patient", children }) {
             {/* Dropdown */}
             {showProfileMenu && (
               <>
-                {/* overlay pour fermer en cliquant dehors */}
+                {/* overlay to close by clicking outside */}
                 <div
                   className="fixed inset-0 z-40"
                   onClick={() => setShowProfileMenu(false)}
@@ -225,8 +233,8 @@ export function Navbar({ userRole = "patient", children }) {
                     onClick={handleLogout}
                     className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 font-medium transition flex items-center gap-2"
                   >
-                    <span>🚪</span>
-                    {language === "fr" ? "Déconnexion" : "تسجيل الخروج"}
+                    <span></span>
+                    {language === "fr" ? "Deconnexion" : "تسجيل الخروج"}
                   </button>
                 </div>
               </>

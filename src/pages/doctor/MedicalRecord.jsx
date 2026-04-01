@@ -106,8 +106,8 @@ export function MedicalRecord() {
     fr: {
       title: "Dossier médical",
       subtitle: "Consultez votre historique médical complet",
-      alertTitle: "Information manquante:",
-      alertMessage: "Veuillez mettre à jour vos informations d'assurance",
+      alertTitle: "",
+      alertMessage: "",
       patient: "Patient:",
       birthDate: "Date de naissance:",
       allergies: "Allergies:",
@@ -122,8 +122,8 @@ export function MedicalRecord() {
     ar: {
       title: "الملف الطبي",
       subtitle: "راجع سجلك الطبي الكامل",
-      alertTitle: "معلومات مفقودة:",
-      alertMessage: "يرجى تحديث معلومات التأمين الخاصة بك",
+      alertTitle: "",
+      alertMessage:"",
       patient: "المريض:",
       birthDate: "تاريخ الميلاد:",
       allergies: "الحساسيات:",
@@ -162,13 +162,13 @@ export function MedicalRecord() {
         <p className="text-gray-600 text-sm">{t.subtitle}</p>
       </div>
 
-      {/* Alert Banner */}
+      {/* Alert Banner 
       <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 flex items-center gap-3">
         <AlertCircle size={24} className="text-red-500 flex-shrink-0" />
         <span className="text-red-700">
           <span className="font-semibold">{t.alertTitle}</span> {t.alertMessage}
         </span>
-      </div>
+      </div> */}
 
       {/* Patient Info Card with Left Blue Border */}
       <div className="bg-white rounded-lg shadow border-l-4 border-blue-600 p-4 lg:p-6">
