@@ -23,7 +23,6 @@ import { MedicalRecord } from "./pages/doctor/MedicalRecord";
 import { SecretaireDashboard } from "./pages/secretary/SecretaireDashboard";
 import { SecretaryPatients } from "./pages/secretary/SecretaryPatients";
 import { SecretaryAppointments } from "./pages/secretary/SecretaryAppointments";
-import { SecretaryNotifications } from "./pages/secretary/SecretaryNotifications";
 
 export default function App() {
   return (
@@ -133,14 +132,6 @@ export default function App() {
             element={
               <ProtectedRoute requiredRole="secretaire">
                 <SecretaryAppointments />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/secretaire/notifications"
-            element={
-              <ProtectedRoute requiredRole="secretaire">
-                <SecretaryNotifications />
               </ProtectedRoute>
             }
           />
