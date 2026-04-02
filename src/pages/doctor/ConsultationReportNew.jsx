@@ -1,11 +1,116 @@
-<!DOCTYPE html>
+import { useState } from "react";
+import { Navbar } from "../../components/Navbar";
+import { useParams, useNavigate } from "react-router-dom";
 
-<html class="light" lang="fr"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Consultation Médicale - MediCabinet</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+export function ConsultationReportNew() {
+  const { rdvId } = useParams();
+  const navigate = useNavigate();
+  
+  // TODO: fetch from API — GET /api/consultation/{rdvId}
+  const [formData, setFormData] = useState({
+    diagnosis: "",
+    treatment: "",
+    notes: "",
+    prescription: "",
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // TODO: POST /api/consultation to create report
+    console.log("Rapport créé:", formData);
+    navigate("/medecin/dashboard");
+  };
+
+  return (
+    <Navbar userRole="medecin" pageTitle="Nouveau Rapport de Consultation">
+      <div className="p-8 max-w-2xl">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Diagnostic */}
+          <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Diagnostic
+            </label>
+            <textarea
+              value={formData.diagnosis}
+              onChange={(e) =>
+                setFormData({ ...formData, diagnosis: e.target.value })
+              }
+              rows="4"
+              placeholder="Entrez le diagnostic du patient"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+          {/* Treatment */}
+          <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Traitement Recommandé
+            </label>
+            <textarea
+              value={formData.treatment}
+              onChange={(e) =>
+                setFormData({ ...formData, treatment: e.target.value })
+              }
+              rows="4"
+              placeholder="Décrivez le traitement recommandé"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+          {/* Notes */}
+          <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Notes Additionnelles
+            </label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
+              rows="3"
+              placeholder="Notes supplémentaires..."
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+          {/* Prescription */}
+          <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Ordonnance
+            </label>
+            <textarea
+              value={formData.prescription}
+              onChange={(e) =>
+                setFormData({ ...formData, prescription: e.target.value })
+              }
+              rows="3"
+              placeholder="Ordonnance médicale..."
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-4">
+            <button
+              type="submit"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition"
+            >
+              ✓ Enregistrer le Rapport
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/medecin/dashboard")}
+              className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-semibold py-3 rounded-lg transition"
+            >
+              Annuler
+            </button>
+          </div>
+        </form>
+      </div>
+    </Navbar>
+  );
+}
+
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
