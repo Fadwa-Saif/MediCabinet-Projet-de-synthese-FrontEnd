@@ -127,6 +127,22 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/medecin/medical-record/:patientId"
+            element={
+              <ProtectedRoute requiredRole="medecin">
+                <MedicalRecord />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/medecin/medicalrecord/:patientId"
+            element={
+              <ProtectedRoute requiredRole="medecin">
+                <MedicalRecord />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Secretary (secrétaire) routes - protected, role: secretaire */}
           <Route
