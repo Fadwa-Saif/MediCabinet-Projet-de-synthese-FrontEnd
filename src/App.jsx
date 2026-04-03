@@ -17,6 +17,8 @@ import { PatientUploadAnalysis } from "./pages/patient/PatientUploadAnalysis";
 import { DoctorDashboard } from "./pages/doctor/DoctorDashboard";
 import { AppointmentBooking } from "./pages/doctor/AppointmentBooking";
 import { ConsultationReportNew } from "./pages/doctor/ConsultationReportNew";
+import { DoctorPatients } from "./pages/doctor/DoctorPatients";
+import { DoctorReports } from "./pages/doctor/DoctorReports";
 import { MedicalRecord } from "./pages/doctor/MedicalRecord";
 
 // Secretary Pages
@@ -106,6 +108,22 @@ export default function App() {
             element={
               <ProtectedRoute requiredRole="medecin">
                 <AppointmentBooking />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/medecin/patients"
+            element={
+              <ProtectedRoute requiredRole="medecin">
+                <DoctorPatients />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/medecin/rapports"
+            element={
+              <ProtectedRoute requiredRole="medecin">
+                <DoctorReports />
               </ProtectedRoute>
             }
           />
