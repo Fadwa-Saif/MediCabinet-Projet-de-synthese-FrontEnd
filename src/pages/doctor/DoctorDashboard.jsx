@@ -1,172 +1,263 @@
-﻿import { useState } from "react";
-import { Navbar } from "../../components/Navbar";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Navbar } from "../../components/Navbar";
+
+function getInitials(fullName = "") {
+  return fullName
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
 
 export function DoctorDashboard() {
   const navigate = useNavigate();
+  const [activeFilter, setActiveFilter] = useState("all");
 
-  // TODO: fetch from API — GET /api/doctor/appointments-today
-  const [appointments] = useState([
+  const appointments = [
     {
       id: 1,
-      time: "09:00",
-      duration: "30 MIN",
-      patientInitials: "ML",
-      patientName: "Marc Laurent",
-      reason: "Suivi post-opératoire",
-      status: "Confirmé",
+      time: "09:30",
+      patientName: "Jean Dupont",
+      meta: "45 ans, Homme",
+      reason: "Consultation de routine",
+      status: "En attente",
+      period: "morning",
+      canLaunch: true,
     },
     {
       id: 2,
-      time: "09:45",
-      duration: "45 MIN",
-      patientInitials: "SB",
-      patientName: "Sophie Bernard",
-      reason: "Première consultation cardiologie",
-      status: "En cours",
+      time: "10:00",
+      patientName: "Marie Laurent",
+      meta: "32 ans, Femme",
+      reason: "Suivi post-operatoire",
+      status: "Confirme",
+      period: "morning",
+      canLaunch: false,
     },
-  ]);
+    {
+      id: 3,
+      time: "10:30",
+      patientName: "Robert Bernard",
+      meta: "68 ans, Homme",
+      reason: "Renouvellement ordonnance",
+      status: "Confirme",
+      period: "morning",
+      canLaunch: false,
+    },
+    {
+      id: 4,
+      time: "14:00",
+      patientName: "Sophie Morel",
+      meta: "29 ans, Femme",
+      reason: "Vaccination",
+      status: "Annule",
+      period: "afternoon",
+      canLaunch: false,
+    },
+  ];
 
-  // TODO: fetch from API — GET /api/doctor/dashboard-stats
-  const [stats] = useState({
-    appointmentsToday: 12,
-    totalPatients: 156,
-    consultationsThisMonth: 48,
-  });
+  const displayedAppointments = (() => {
+    if (activeFilter === "morning") {
+      return appointments.filter((item) => item.period === "morning");
+    }
+    if (activeFilter === "afternoon") {
+      return appointments.filter((item) => item.period === "afternoon");
+    }
+    return appointments;
+  })();
 
-  const userData = JSON.parse(localStorage.getItem("medicabinet_user") || "{}");
-  const doctorName = userData.firstName ? `Dr. ${userData.firstName}` : "Médecin";
-  const specialization = userData.specialization || "Généraliste";
+  const completedCount = appointments.filter((item) => item.status === "Confirme").length;
+  const onlineUser = JSON.parse(localStorage.getItem("medicabinet_user") || "{}");
+  const doctorName = onlineUser.firstName ? `Dr. ${onlineUser.firstName}` : "Dr. Martin";
+
+  const nextPatient = appointments.find((item) => item.canLaunch) || appointments[0];
 
   return (
-    <Navbar userRole="medecin" pageTitle="Tableau de Bord Médecin">
-      <div className="p-8">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Tableau de Bord Médecin
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Lundi 24 Mai 2024 — Vous avez {stats.appointmentsToday} rendez-vous aujourd'hui.
-            </p>
-          </div>
-          <button
-            onClick={() => navigate("/medecin/rapport/new")}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition"
-          >
-            <span>+</span> Nouvelle Consultation
-          </button>
-        </div>
+    <Navbar userRole="medecin" pageTitle="Rendez-vous du jour">
+      <div className="min-h-full bg-[#f2f4f8] px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl space-y-6">
+          <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-7">
+            <div>
+              <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+                Bonjour, {doctorName}
+              </h1>
+              <p className="mt-1 text-sm font-medium text-slate-500 sm:text-base">
+                Voici votre planning pour aujourd&apos;hui, <span className="text-blue-600">12 Octobre 2023</span>.
+              </p>
+            </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow border-l-4 border-blue-500">
-            <p className="text-gray-600 text-sm font-medium">Rendez-vous aujourd'hui</p>
-            <p className="text-4xl font-bold text-gray-900 mt-2">
-              {stats.appointmentsToday}
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow border-l-4 border-green-500">
-            <p className="text-gray-600 text-sm font-medium">Total des patients</p>
-            <p className="text-4xl font-bold text-gray-900 mt-2">
-              {stats.totalPatients}
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow border-l-4 border-purple-500">
-            <p className="text-gray-600 text-sm font-medium">Consultations ce mois</p>
-            <p className="text-4xl font-bold text-gray-900 mt-2">
-              {stats.consultationsThisMonth}
-            </p>
-          </div>
-        </div>
+            <div className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 sm:w-auto sm:gap-4">
+              <div className="text-right">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Statut</p>
+                <p className="text-sm font-bold text-blue-700">En ligne</p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-blue-500 bg-blue-100 text-sm font-extrabold text-blue-700">
+                {getInitials(doctorName)}
+              </div>
+            </div>
+          </section>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Appointments Section */}
-          <div className="lg:col-span-2">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-800">
-                Rendez-vous du jour
-              </h2>
-              <button className="text-blue-600 hover:underline text-sm font-medium">
-                Voir l'agenda complet
+          <section className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+            <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-8">
+              <h2 className="text-2xl font-extrabold text-slate-900">Vue d&apos;ensemble de la journee</h2>
+              <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Rendez-vous</p>
+                  <p className="mt-1 text-4xl font-extrabold text-slate-900">14</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Termines</p>
+                  <p className="mt-1 text-4xl font-extrabold text-blue-700">{String(completedCount).padStart(2, "0")}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Temps estime</p>
+                  <p className="mt-1 text-4xl font-extrabold text-slate-900">4h 20m</p>
+                </div>
+              </div>
+            </article>
+
+            <article className="rounded-2xl bg-gradient-to-b from-blue-700 to-blue-600 p-6 text-white shadow-lg lg:col-span-4">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-100">Prochain patient</p>
+              <h3 className="mt-3 text-3xl font-extrabold">{nextPatient.patientName}</h3>
+              <p className="mt-1 text-sm font-medium text-blue-100">
+                {nextPatient.time} - Consultation Generale
+              </p>
+
+              <button
+                type="button"
+                className="mt-8 w-full rounded-xl bg-white px-4 py-3 text-sm font-bold text-blue-700 transition hover:bg-blue-50"
+              >
+                Lancer l&apos;appel
+              </button>
+            </article>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+              <h3 className="text-2xl font-extrabold text-slate-900">Liste des Rendez-vous</h3>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveFilter("all")}
+                  className={`rounded-lg px-4 py-2 text-sm font-bold transition ${
+                    activeFilter === "all"
+                      ? "bg-slate-200 text-slate-700"
+                      : "text-slate-500 hover:bg-slate-100"
+                  }`}
+                >
+                  Tous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveFilter("morning")}
+                  className={`rounded-lg px-4 py-2 text-sm font-bold transition ${
+                    activeFilter === "morning"
+                      ? "bg-slate-200 text-slate-700"
+                      : "text-slate-500 hover:bg-slate-100"
+                  }`}
+                >
+                  Matin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveFilter("afternoon")}
+                  className={`rounded-lg px-4 py-2 text-sm font-bold transition ${
+                    activeFilter === "afternoon"
+                      ? "bg-slate-200 text-slate-700"
+                      : "text-slate-500 hover:bg-slate-100"
+                  }`}
+                >
+                  Apres-midi
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead className="bg-slate-100">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Heure</th>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Patient</th>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Motif</th>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Statut</th>
+                    <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayedAppointments.map((item) => (
+                    <tr key={item.id} className="border-b border-slate-100 last:border-none hover:bg-slate-50">
+                      <td className="px-6 py-5">
+                        <span className={`text-2xl font-extrabold ${item.canLaunch ? "text-blue-600" : "text-slate-700"}`}>
+                          {item.time}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-extrabold text-blue-700">
+                            {getInitials(item.patientName)}
+                          </div>
+                          <div>
+                            <p className="text-base font-extrabold text-slate-900">{item.patientName}</p>
+                            <p className="text-xs font-medium text-slate-500">{item.meta}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
+                          {item.reason}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wider ${
+                            item.status === "En attente"
+                              ? "bg-orange-100 text-orange-700"
+                              : item.status === "Annule"
+                                ? "bg-red-100 text-red-600"
+                                : "bg-blue-100 text-blue-700"
+                          }`}
+                        >
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-right">
+                        {item.canLaunch ? (
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/medecin/rapport/${item.id}`)}
+                            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-700"
+                          >
+                            Lancer la consultation
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/medecin/rapport/${item.id}`)}
+                            className="text-sm font-bold text-blue-600 transition hover:underline"
+                          >
+                            Details
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="border-t border-slate-200 px-5 py-4 text-center sm:px-7">
+              <button
+                type="button"
+                className="text-sm font-bold text-blue-600 transition hover:text-blue-700"
+                onClick={() => navigate("/medecin/rendezvous")}
+              >
+                Voir tous les rendez-vous de la semaine
               </button>
             </div>
-
-            <div className="space-y-4">
-              {appointments.map((apt) => (
-                <div
-                  key={apt.id}
-                  className="bg-white p-4 rounded-lg border border-gray-200 hover:shadow-md transition flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="w-16 text-center">
-                      <p className="text-lg font-bold text-blue-600">{apt.time}</p>
-                      <p className="text-xs text-gray-500 font-semibold">
-                        {apt.duration}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center text-sm font-bold text-blue-600">
-                      {apt.patientInitials}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-gray-900">{apt.patientName}</h3>
-                      <p className="text-sm text-gray-600 italic">{apt.reason}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        apt.status === "En cours"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
-                    >
-                      {apt.status}
-                    </span>
-                    <button className="text-gray-400 hover:text-gray-600">
-                      ⋮
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Doctor Info */}
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg border border-blue-200">
-              <h3 className="font-bold text-gray-800 mb-3">Informations</h3>
-              <div className="space-y-2">
-                <div>
-                  <p className="text-xs text-gray-600 uppercase">Nom</p>
-                  <p className="font-semibold text-gray-900">{doctorName}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600 uppercase">Spécialité</p>
-                  <p className="font-semibold text-gray-900">{specialization}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
-              <h3 className="font-bold text-gray-800 mb-3">Actions Rapides</h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => navigate("/medecin/rapport/new")}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded text-blue-600 font-medium transition"
-                >
-                  📝 Nouveau Rapport
-                </button>
-                <button className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded text-blue-600 font-medium transition">
-                  📋 Voir Patients
-                </button>
-              </div>
-            </div>
-          </div>
+          </section>
         </div>
       </div>
     </Navbar>
