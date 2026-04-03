@@ -158,7 +158,7 @@ export function DoctorPatients() {
                       <td className="px-6 py-5 text-right">
                         <button
                           type="button"
-                          onClick={() => navigate(`/medecin/rapport/${patient.id}`)}
+                          onClick={() => navigate(`/medecin/medical-record/${patient.id}`)}
                           className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-700"
                         >
                           Ouvrir dossier

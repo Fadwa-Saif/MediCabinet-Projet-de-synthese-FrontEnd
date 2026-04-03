@@ -102,7 +102,7 @@ const RowAction = ({ rdv, onAnnuler }) => {
       className="text-on-surface-variant hover:text-error transition-colors"
       title="Annuler"
     >
-      <span className="material-symbols-outlined">more_vert</span>
+      <span className="material-symbols-outlined">cancel</span>
     </button>
   );
 };
@@ -112,7 +112,7 @@ const RowAction = ({ rdv, onAnnuler }) => {
 export function PatientAppointmentsList() {
   const navigate = useNavigate();
 
-  const [rendezvous, setRendezvous] = useState([]); // TODO: GET /api/rendezvous
+  const [rendezvous, setRendezvous] = useState([]);
   const [prochain, setProchain] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -155,6 +155,11 @@ export function PatientAppointmentsList() {
     }
   };
 
+  // Filter out next appointment from table to avoid duplication
+  const tableRendezvous = prochain
+    ? rendezvous.filter((r) => r.id !== prochain.id)
+    : rendezvous;
+
   // ─────────────────────────────────────────────────────────────────────────────
 
   return (
@@ -185,7 +190,7 @@ export function PatientAppointmentsList() {
             onClick={() => navigate("/patient/rendezvous/nouveau")}
             className="signature-gradient text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:opacity-90 transition-all shadow-lg shadow-primary/10 active:scale-95"
           >
-            <span className="material-symbols-outlined">add_circle</span>
+            <span className="material-symbols-outlined">add</span>
             Prendre rendez-vous
           </button>
         </header>
@@ -200,8 +205,17 @@ export function PatientAppointmentsList() {
           </div>
         )}
         {error && (
-          <div className="text-center py-10 text-error font-medium">
-            {error}
+          <div className="text-center py-10">
+            <div className="inline-flex items-center gap-3 px-6 py-4 rounded-xl bg-error-container text-on-error-container font-medium">
+              <span className="material-symbols-outlined">error</span>
+              {error}
+              <button
+                onClick={() => window.location.reload()}
+                className="ml-2 text-sm underline font-semibold hover:no-underline"
+              >
+                Réessayer
+              </button>
+            </div>
           </div>
         )}
 
@@ -276,7 +290,7 @@ export function PatientAppointmentsList() {
                   </>
                 ) : (
                   <div className="text-center py-8 text-on-surface-variant text-sm">
-                    <span className="material-symbols-outlined text-4xl mb-2 block">
+                    <span className="material-symbols-outlined text-4xl mb-2 block text-outline">
                       event_busy
                     </span>
                     Aucun rendez-vous à venir.
@@ -337,17 +351,20 @@ export function PatientAppointmentsList() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-surface-variant/20">
-                      {rendezvous.length === 0 ? (
+                      {tableRendezvous.length === 0 ? (
                         <tr>
                           <td
                             colSpan={5}
                             className="px-6 py-12 text-center text-on-surface-variant"
                           >
+                            <span className="material-symbols-outlined text-4xl mb-2 block text-outline">
+                              event_note
+                            </span>
                             Aucun rendez-vous trouvé.
                           </td>
                         </tr>
                       ) : (
-                        rendezvous.map((rdv) => {
+                        tableRendezvous.map((rdv) => {
                           const isPast = ["terminé", "annulé"].includes(
                             rdv.statut?.toLowerCase(),
                           );
@@ -406,7 +423,6 @@ export function PatientAppointmentsList() {
                 {/* Load more */}
                 <div className="p-6 bg-surface-container-low/30 flex justify-center">
                   <button className="text-primary font-bold text-sm hover:underline">
-                    {/* TODO: pagination — GET /api/rendezvous?page=2 */}
                     Afficher plus de rendez-vous
                   </button>
                 </div>
