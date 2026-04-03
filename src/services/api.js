@@ -1,0 +1,55 @@
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL || "http://localhost:8080/api";
+
+function getAuthHeaders() {
+  const medicabinetUser = JSON.parse(
+    localStorage.getItem("medicabinet_user") || "{}",
+  );
+  const legacyUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const token = medicabinetUser.token || legacyUser.token;
+
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function request(path, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
+
+  const contentType = response.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
+  const data = isJson ? await response.json() : await response.text();
+
+  if (!response.ok) {
+    const error = new Error(
+      data?.message || `Request failed with status ${response.status}`,
+    );
+    error.response = { status: response.status, data };
+    throw error;
+  }
+
+  return { data, status: response.status };
+}
+
+const api = {
+  get: (path, options = {}) => request(path, { method: "GET", ...options }),
+  post: (path, body, options = {}) =>
+    request(path, {
+      method: "POST",
+      body: JSON.stringify(body),
+      ...options,
+    }),
+  patch: (path, body, options = {}) =>
+    request(path, {
+      method: "PATCH",
+      body: body === undefined ? undefined : JSON.stringify(body),
+      ...options,
+    }),
+};
+
+export default api;

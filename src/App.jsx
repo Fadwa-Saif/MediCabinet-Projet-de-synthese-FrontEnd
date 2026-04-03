@@ -21,7 +21,7 @@ import { MedicalRecord } from "./pages/doctor/MedicalRecord";
 
 // Secretary Pages
 import { SecretaireDashboard } from "./pages/secretary/SecretaireDashboard";
-import { SecretaryPatients } from "./pages/secretary/SecretaryPatients";
+import SecretaryPatients from "./pages/secretary/SecretaryPatientsList";
 import { SecretaryAppointments } from "./pages/secretary/SecretaryAppointments";
 
 export default function App() {
