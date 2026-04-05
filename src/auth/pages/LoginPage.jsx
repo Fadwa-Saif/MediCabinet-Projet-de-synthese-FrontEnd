@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../../context/LanguageContext.jsx";
 import { translations } from "../../context/LanguageContext.jsx";
+import authService from "../../services/authService";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -14,71 +15,25 @@ export function LoginPage() {
   const t = translations[language];
   const isRTL = language === "ar";
 
-  // Test credentials
-  const testUsers = {
-    "patient@test.com": {
-      email: "patient@test.com",
-      password: "password123",
-      role: "patient",
-      firstName: "Omar",
-      lastName: "Kamali",
-    },
-    "doctor@test.com": {
-      email: "doctor@test.com",
-      password: "password123",
-      role: "medecin",
-      firstName: "Dr. Ahmed",
-      lastName: "Mansouri",
-    },
-    "secretary@test.com": {
-      email: "secretary@test.com",
-      password: "password123",
-      role: "secretaire",
-      firstName: "Fatima",
-      lastName: "Bennani",
-    },
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password })
-      // });
-      // const data = await response.json();
-      // if (response.ok) {
-      //   localStorage.setItem('medicabinet_user', JSON.stringify(data.user));
-      //   navigate(data.user.redirectUrl);
-      // } else {
-      //   setError(data.message || 'Login failed');
-      // }
+      const data = await authService.login(email, password);
 
-      // Test credentials support
-      const user = testUsers[email];
-      if (user && user.password === password) {
-        localStorage.setItem("medicabinet_user", JSON.stringify(user));
-        if (user.role === "patient") {
-          navigate("/patient/dashboard");
-        } else if (user.role === "medecin") {
-          navigate("/medecin/dashboard");
-        } else if (user.role === "secretaire") {
-          navigate("/secretaire/dashboard");
-        }
+      if (data.role === "patient") {
+        navigate("/patient/dashboard");
+      } else if (data.role === "medecin") {
+        navigate("/medecin/dashboard");
+      } else if (data.role === "secretaire") {
+        navigate("/secretaire/dashboard");
       } else {
-        setError(
-          language === "fr"
-            ? "Email ou mot de passe incorrect"
-            : "البريد الإلكتروني أو كلمة المرور غير صحيحة",
-        );
+        navigate("/login");
       }
     } catch (err) {
-      setError(err.message || "Une erreur est survenue");
+      setError(err.message || "Une erreur est survenue lors de la connexion");
       console.error("Login error:", err);
     } finally {
       setIsLoading(false);

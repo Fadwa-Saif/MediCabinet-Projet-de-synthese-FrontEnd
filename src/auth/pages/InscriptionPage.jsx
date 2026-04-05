@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../../context/LanguageContext.jsx";
 import { translations } from "../../context/LanguageContext.jsx";
+import authService from "../../services/authService";
 
 export function InscriptionPage() {
   const navigate = useNavigate();
@@ -77,40 +78,19 @@ export function InscriptionPage() {
     setIsLoading(true);
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/auth/register', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     firstName: formData.firstName,
-      //     lastName: formData.lastName,
-      //     email: formData.email,
-      //     phone: formData.phone,
-      //     cin: formData.cin,
-      //     password: formData.password
-      //   })
-      // });
-      // const data = await response.json();
-      // if (response.ok) {
-      //   localStorage.setItem('medicabinet_user', JSON.stringify(data.user));
-      //   navigate('/patient/dashboard');
-      // } else {
-      //   setError(data.message || 'Registration failed');
-      // }
+      await authService.register({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        cin: formData.cin,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+      });
 
-      // Demo: redirect to login
-      localStorage.setItem(
-        "medicabinet_user",
-        JSON.stringify({
-          role: "patient",
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-        }),
-      );
       navigate("/patient/dashboard");
     } catch (err) {
-      setError(err.message || "Une erreur est survenue");
+      setError(err.message || "Une erreur est survenue lors de l'inscription");
       console.error("Registration error:", err);
     } finally {
       setIsLoading(false);

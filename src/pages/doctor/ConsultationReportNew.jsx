@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowRight,
@@ -17,31 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { Navbar } from "../../components/Navbar";
-
-const patientSummary = {
-  name: "Marie-Louise Lefebvre",
-  age: "45 ans",
-  bloodType: "Groupe O+",
-  lastVisit: "12 mars 2024",
-  tension: "12/8",
-  weight: "64 kg",
-  height: "168 cm",
-  avatar:
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuAPV4nM6Tu7oWwYEsZKzh4EAmbye_ZJvUWvko_6DRbAJK9jnkQbKLPukWiNhdFuD7bhgUI_BZTVEukTRgVC3ehzUpbdARMnkmdt9oqPaV-Zg_OXn1U0Ih2lpvyEIDxw85-jvnxQuUE_BbltTcABGIm0bC3LLi1QHYedxCgWvGrbcIqNFYydmSfc8sfmuVMxXf2lc2O4VfPwQ-UXC0UYq_lRmB8FSQj18lLzFvEfVigvVteuET8udVwR0S8D3mUKSHm7E9zvwHJj7ORI",
-};
-
-const recentHistory = [
-  {
-    date: "15 Jan 2024",
-    title: "Infection respiratoire",
-    description: "Traitement par antibiotiques complete.",
-  },
-  {
-    date: "02 Nov 2023",
-    title: "Bilan sanguin annuel",
-    description: "Resultats normaux, cholesterol a surveiller.",
-  },
-];
+import api from "../../services/api";
 
 const quickActions = [
   { label: "Ordonnance", icon: Pill },
@@ -50,11 +26,31 @@ const quickActions = [
   { label: "Teleconsult.", icon: Video },
 ];
 
+const calculateAge = (birthDate) => {
+  if (!birthDate) return "—";
+  const birth = new Date(birthDate);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return `${age} ans`;
+};
+
+const formatDateShort = (dateStr) => {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
 export function ConsultationReportNew() {
   const { rdvId } = useParams();
   const navigate = useNavigate();
 
-  // TODO: fetch from API - GET /api/consultation/{rdvId}
   const [formData, setFormData] = useState({
     diagnosis: "",
     treatment: "",
@@ -62,11 +58,92 @@ export function ConsultationReportNew() {
     prescription: "",
   });
 
-  const handleSubmit = (e) => {
+  const [patientData, setPatientData] = useState(null);
+  const [recentHistory, setRecentHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchConsultationData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch rendez-vous details to get patient info
+        if (rdvId) {
+          const rdvRes = await api.get(`/rendezvous/${rdvId}`);
+          const rdv = rdvRes.data.data || rdvRes.data;
+          
+          if (rdv && rdv.patient) {
+            const patient = rdv.patient;
+            setPatientData({
+              name: `${patient.user?.prenom || ""} ${patient.user?.nom || ""}`.trim(),
+              age: calculateAge(patient.date_naissance),
+              bloodType: patient.groupe_sanguin || "—",
+              lastVisit: formatDateShort(rdv.date_heure),
+              tension: "—",
+              weight: "—",
+              height: "—",
+              avatar: "https://via.placeholder.com/150",
+            });
+
+            // Fetch patient history
+            try {
+              const histRes = await api.get(`/patients/${patient.id}/historique`);
+              const consultations = histRes.data.data || histRes.data || [];
+              const history = consultations.slice(0, 3).map((c) => ({
+                date: formatDateShort(c.date_heure || c.date),
+                title: c.motif || "Consultation",
+                description: c.diagnostic || "—",
+              }));
+              setRecentHistory(history);
+            } catch (histErr) {
+              console.warn("Failed to fetch patient history:", histErr);
+              setRecentHistory([]);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Consultation data fetch error:", err);
+        setError(err.response?.data?.message || "Erreur lors du chargement des données.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConsultationData();
+  }, [rdvId]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: POST /api/consultation to create report
-    console.log("Rapport cree:", formData);
-    navigate("/medecin/dashboard");
+    
+    if (!formData.diagnosis.trim()) {
+      setError("Veuillez indiquer un diagnostic.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      await api.post("/consultations", {
+        rendezvous_id: rdvId,
+        diagnostic: formData.diagnosis,
+        traitement: formData.treatment,
+        notes: formData.notes,
+        ordonnance: formData.prescription,
+      });
+
+      navigate("/medecin/dashboard");
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Erreur lors de la création de la consultation."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const updateField = (field) => (e) => {
@@ -109,63 +186,82 @@ export function ConsultationReportNew() {
           </header>
 
           <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 lg:p-8">
-            <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-                <img
-                  src={patientSummary.avatar}
-                  alt={patientSummary.name}
-                  className="h-24 w-24 rounded-3xl object-cover ring-4 ring-slate-100"
-                />
-
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900">
-                    {patientSummary.name}
-                  </h2>
-                  <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-                    <span className="rounded-full bg-blue-100 px-3 py-1 font-semibold text-blue-700">
-                      {patientSummary.age}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <HeartPulse className="h-4 w-4 text-blue-600" />
-                      {patientSummary.bloodType}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <ClipboardList className="h-4 w-4 text-blue-600" />
-                      Derniere visite: {patientSummary.lastVisit}
-                    </span>
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+                  <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+                    <div className="h-24 w-24 rounded-3xl bg-slate-200" />
+                    <div className="flex-1">
+                      <div className="mb-3 h-6 w-1/3 bg-slate-200 rounded" />
+                      <div className="mb-2 h-4 w-1/2 bg-slate-200 rounded" />
+                      <div className="h-4 w-2/3 bg-slate-200 rounded" />
+                    </div>
                   </div>
                 </div>
               </div>
+            ) : error ? (
+              <div className="p-4 rounded-lg bg-red-50 text-red-700 border border-red-200">
+                {error}
+              </div>
+            ) : patientData ? (
+              <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+                  <img
+                    src={patientData.avatar}
+                    alt={patientData.name}
+                    className="h-24 w-24 rounded-3xl object-cover ring-4 ring-slate-100"
+                  />
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
-                    Tension
-                  </p>
-                  <p className="mt-2 text-xl font-bold text-slate-900">
-                    {patientSummary.tension}
-                  </p>
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-900">
+                      {patientData.name}
+                    </h2>
+                    <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                      <span className="rounded-full bg-blue-100 px-3 py-1 font-semibold text-blue-700">
+                        {patientData.age}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <HeartPulse className="h-4 w-4 text-blue-600" />
+                        {patientData.bloodType}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <ClipboardList className="h-4 w-4 text-blue-600" />
+                        Derniere visite: {patientData.lastVisit}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
-                    Poids
-                  </p>
-                  <p className="mt-2 flex items-center gap-2 text-xl font-bold text-slate-900">
-                    <Weight className="h-4 w-4 text-blue-600" />
-                    {patientSummary.weight}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
-                    Taille
-                  </p>
-                  <p className="mt-2 flex items-center gap-2 text-xl font-bold text-slate-900">
-                    <Ruler className="h-4 w-4 text-blue-600" />
-                    {patientSummary.height}
-                  </p>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+                      Tension
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-slate-900">
+                      {patientData.tension}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+                      Poids
+                    </p>
+                    <p className="mt-2 flex items-center gap-2 text-xl font-bold text-slate-900">
+                      <Weight className="h-4 w-4 text-blue-600" />
+                      {patientData.weight}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+                      Taille
+                    </p>
+                    <p className="mt-2 flex items-center gap-2 text-xl font-bold text-slate-900">
+                      <Ruler className="h-4 w-4 text-blue-600" />
+                      {patientData.height}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : null}
           </section>
 
           <div className="grid gap-8 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
@@ -173,6 +269,11 @@ export function ConsultationReportNew() {
               onSubmit={handleSubmit}
               className="space-y-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 lg:p-8"
             >
+              {error && (
+                <div className="rounded-lg bg-red-50 p-4 text-red-700 border border-red-200">
+                  {error}
+                </div>
+              )}
               <div className="space-y-2">
                 <label
                   htmlFor="diagnosis"
@@ -276,15 +377,17 @@ export function ConsultationReportNew() {
               <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row">
                 <button
                   type="submit"
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-4 font-semibold text-white shadow-lg shadow-blue-200 transition hover:scale-[1.01] hover:shadow-xl"
+                  disabled={submitting || loading}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-4 font-semibold text-white shadow-lg shadow-blue-200 transition hover:scale-[1.01] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className="h-5 w-5" />
-                  Enregistrer la consultation
+                  {submitting ? "Enregistrement..." : "Enregistrer la consultation"}
                 </button>
                 <button
                   type="button"
                   onClick={() => navigate("/medecin/dashboard")}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-4 font-semibold text-slate-700 transition hover:bg-slate-50"
+                  disabled={submitting}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-4 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <X className="h-5 w-5" />
                   Annuler
@@ -301,24 +404,37 @@ export function ConsultationReportNew() {
                   <ClipboardList className="h-5 w-5 text-slate-400" />
                 </div>
 
-                <div className="space-y-4">
-                  {recentHistory.map((item) => (
-                    <div
-                      key={item.date}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                    >
-                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600">
-                        {item.date}
-                      </p>
-                      <p className="mt-2 text-sm font-bold text-slate-900">
-                        {item.title}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {item.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                {loading ? (
+                  <div className="animate-pulse space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="h-24 rounded-2xl bg-slate-200"
+                      />
+                    ))}
+                  </div>
+                ) : recentHistory.length === 0 ? (
+                  <p className="text-sm text-slate-600">Aucun historique disponible.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {recentHistory.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                      >
+                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600">
+                          {item.date}
+                        </p>
+                        <p className="mt-2 text-sm font-bold text-slate-900">
+                          {item.title}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {item.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <button
                   type="button"

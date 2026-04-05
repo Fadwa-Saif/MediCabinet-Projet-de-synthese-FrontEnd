@@ -1,37 +1,39 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "../../components/Navbar";
 import { useNavigate } from "react-router-dom";
+import api from "../../services/api";
 
 export function SecretaryAppointments() {
   const navigate = useNavigate();
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // TODO: fetch from API — GET /api/secretary/appointments
-  const [appointments, setAppointments] = useState([
-    {
-      id: 1,
-      date: "24 Octobre 2024",
-      time: "09:00",
-      patient: "Marc Laurent",
-      doctor: "Dr. Claire Lefebvre",
-      status: "Confirmé",
-    },
-    {
-      id: 2,
-      date: "24 Octobre 2024",
-      time: "10:30",
-      patient: "Sophie Bernard",
-      doctor: "Dr. Marc Antoine",
-      status: "Confirmé",
-    },
-    {
-      id: 3,
-      date: "25 Octobre 2024",
-      time: "14:00",
-      patient: "Jean Moreau",
-      doctor: "Dr. Claire Lefebvre",
-      status: "En attente",
-    },
-  ]);
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await api.get("/rendezvous");
+        const data = Array.isArray(response.data?.data) ? response.data.data : response.data || [];
+        setAppointments(
+          data.map((rdv) => ({
+            id: rdv.id,
+            date: new Date(rdv.date_heure).toLocaleDateString('fr-FR'),
+            time: new Date(rdv.date_heure).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+            patient: rdv.patient?.user?.prenom + " " + rdv.patient?.user?.nom || "—",
+            doctor: rdv.admin?.user?.prenom + " " + rdv.admin?.user?.nom || "—",
+            status: rdv.statut === 'en_attente' ? 'En attente' : rdv.statut === 'confirme' ? 'Confirmé' : 'Terminé',
+          }))
+        );
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAppointments();
+  }, []);
 
   return (
     <Navbar userRole="secretaire" pageTitle="Gestion des Rendez-vous">
@@ -53,9 +55,7 @@ export function SecretaryAppointments() {
           <div className="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500">
             <p className="text-gray-600 text-sm">Aujourd'hui</p>
             <p className="text-2xl font-bold text-gray-900 mt-1">
-              {appointments.filter(
-                (a) => a.date === "24 Octobre 2024"
-              ).length}
+              {appointments.filter((a) => a.date === new Date().toLocaleDateString('fr-FR')).length}
             </p>
           </div>
           <div className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
@@ -96,39 +96,51 @@ export function SecretaryAppointments() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {appointments.map((apt) => (
-                  <tr key={apt.id} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-4 text-gray-900">
-                      <div className="font-semibold">{apt.date}</div>
-                      <div className="text-gray-600 text-xs">{apt.time}</div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-900">{apt.patient}</td>
-                    <td className="px-6 py-4 text-gray-900">{apt.doctor}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          apt.status === "Confirmé"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {apt.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button className="text-blue-600 hover:underline text-sm font-medium">
-                        Voir
-                      </button>
-                    </td>
+                {loading ? (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">Chargement...</td>
                   </tr>
-                ))}
+                ) : error ? (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-8 text-center text-red-500">{error}</td>
+                  </tr>
+                ) : appointments.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">Aucun rendez-vous</td>
+                  </tr>
+                ) : (
+                  appointments.map((apt) => (
+                    <tr key={apt.id} className="hover:bg-gray-50 transition">
+                      <td className="px-6 py-4 text-gray-900">
+                        <div className="font-semibold">{apt.date}</div>
+                        <div className="text-gray-600 text-xs">{apt.time}</div>
+                      </td>
+                      <td className="px-6 py-4 text-gray-900">{apt.patient}</td>
+                      <td className="px-6 py-4 text-gray-900">{apt.doctor}</td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            apt.status === "Confirmé"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
+                          {apt.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button className="text-blue-600 hover:underline text-sm font-medium">
+                          Voir
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* TODO: fetch from API — GET /api/secretary/appointments */}
-        {/* TODO: Add filtering, search, and pagination */}
       </div>
     </Navbar>
   );

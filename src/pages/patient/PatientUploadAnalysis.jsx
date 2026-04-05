@@ -209,7 +209,7 @@ export function PatientUploadAnalysis() {
       }
 
       // API call to upload analysis
-      const response = await api.post("/analyses", submitData, {
+      await api.post("/analyses", submitData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },

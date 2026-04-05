@@ -141,9 +141,11 @@ export function AppointmentBooking() {
   const navigate = useNavigate();
 
   // ── State ────────────────────────────────────────────────────────────────
-  const [creneaux, setCreneaux] = useState([]); // TODO: GET /api/rendezvous/creneaux
+  const [creneaux, setCreneaux] = useState([]);
   const [availableDates, setAvailDates] = useState([]);
   const [loadingCreneaux, setLoadingCren] = useState(true);
+  const [doctors, setDoctors] = useState([]);
+  const [selectedAdminId, setSelectedAdminId] = useState("");
 
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedCreneau, setSelectedCreneau] = useState("");
@@ -152,29 +154,160 @@ export function AppointmentBooking() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  // Médecin (un seul cabinet, récupéré depuis /auth/me ou dashboard)
-  const user = JSON.parse(localStorage.getItem("user") ?? "{}");
-  const medecin = { nom: "Dr. Jean Dupont", specialite: "Médecine Générale" }; // TODO: GET /api/auth/me → profile.medecin
+  const medecin =
+    doctors.find((d) => String(d.id) === String(selectedAdminId)) ?? null;
 
-  // ── Fetch créneaux ───────────────────────────────────────────────────────
+  // ── Fetch médecins disponibles ───────────────────────────────────────────
   useEffect(() => {
-    const fetchCreneaux = async () => {
+    const fetchDoctors = async () => {
       try {
         setLoadingCren(true);
-        const res = await api.get("/rendezvous/creneaux");
-        const data = res.data.data ?? res.data;
-        // data = [{ date: "2026-04-05", heure: "09:00" }, ...]
-        setCreneaux(data);
-        const dates = [...new Set(data.map((c) => c.date))];
-        setAvailDates(dates);
+        setError(null);
+
+        const rdvRes = await api.get("/rendezvous");
+        const rdvData = Array.isArray(rdvRes.data?.data)
+          ? rdvRes.data.data
+          : rdvRes.data || [];
+
+        const fromRdv = rdvData
+          .filter((r) => r.admin_id)
+          .map((r) => ({
+            id: r.admin_id,
+            nom:
+              `Dr. ${r.admin?.user?.prenom || ""} ${r.admin?.user?.nom || ""}`.trim() ||
+              `Medecin #${r.admin_id}`,
+            specialite: r.admin?.specialite || "Medecine generale",
+          }));
+
+        const uniqMap = new Map();
+        fromRdv.forEach((d) => {
+          if (!uniqMap.has(d.id)) uniqMap.set(d.id, d);
+        });
+
+        // Fallback for first booking users: use disponibilites to discover admin ids.
+        if (uniqMap.size === 0) {
+          const dispoRes = await api.get("/disponibilites");
+          const dispoData = Array.isArray(dispoRes.data?.data)
+            ? dispoRes.data.data
+            : dispoRes.data || [];
+
+          dispoData.forEach((slot) => {
+            if (slot.admin_id && !uniqMap.has(slot.admin_id)) {
+              uniqMap.set(slot.admin_id, {
+                id: slot.admin_id,
+                nom: `Medecin #${slot.admin_id}`,
+                specialite: "Medecine generale",
+              });
+            }
+          });
+        }
+
+        const doctorsList = Array.from(uniqMap.values());
+        setDoctors(doctorsList);
+        if (doctorsList[0]) {
+          setSelectedAdminId(String(doctorsList[0].id));
+        }
       } catch {
-        setError("Impossible de charger les créneaux disponibles.");
+        setError("Impossible de charger les medecins disponibles.");
       } finally {
         setLoadingCren(false);
       }
     };
-    fetchCreneaux();
+
+    fetchDoctors();
   }, []);
+
+  // ── Compute available dates based on doctor's weekly availability ────────
+  useEffect(() => {
+    const dayMap = {
+      Lun: 1,
+      Mar: 2,
+      Mer: 3,
+      Jeu: 4,
+      Ven: 5,
+      Sam: 6,
+      Dim: 0,
+    };
+
+    const fetchAvailableDates = async () => {
+      if (!selectedAdminId) {
+        setAvailDates([]);
+        return;
+      }
+
+      try {
+        setLoadingCren(true);
+        const res = await api.get(`/disponibilites?admin_id=${selectedAdminId}`);
+        const data = Array.isArray(res.data?.data) ? res.data.data : res.data || [];
+
+        const weeklyDays = data
+          .filter((d) => d.est_disponible !== false)
+          .map((d) => d.jour_semaine)
+          .filter(Boolean);
+
+        const exceptionDates = new Set(
+          data.map((d) => d.date_exception).filter(Boolean),
+        );
+
+        const dates = [];
+        const today = new Date();
+        for (let i = 0; i < 45; i++) {
+          const date = new Date(today);
+          date.setDate(today.getDate() + i);
+          const dateStr = toDateStr(
+            date.getFullYear(),
+            date.getMonth(),
+            date.getDate(),
+          );
+
+          if (exceptionDates.has(dateStr)) continue;
+
+          const jsDay = date.getDay();
+          const hasDay = weeklyDays.some((d) => dayMap[d] === jsDay);
+          if (hasDay) dates.push(dateStr);
+        }
+
+        setAvailDates(dates);
+        setSelectedDate("");
+        setSelectedCreneau("");
+        setCreneaux([]);
+      } catch {
+        setError("Impossible de charger les disponibilites du medecin.");
+      } finally {
+        setLoadingCren(false);
+      }
+    };
+
+    fetchAvailableDates();
+  }, [selectedAdminId]);
+
+  // ── Fetch slots for selected date ────────────────────────────────────────
+  useEffect(() => {
+    const fetchSlots = async () => {
+      if (!selectedAdminId || !selectedDate) {
+        setCreneaux([]);
+        return;
+      }
+
+      try {
+        setLoadingCren(true);
+        const res = await api.get(
+          `/rendezvous/creneaux?admin_id=${selectedAdminId}&date=${selectedDate}`,
+        );
+        const slots = Array.isArray(res.data?.creneaux)
+          ? res.data.creneaux
+          : [];
+        setCreneaux(slots.map((heure) => ({ date: selectedDate, heure })));
+      } catch {
+        setError("Impossible de charger les creneaux disponibles.");
+        setCreneaux([]);
+      } finally {
+        setLoadingCren(false);
+      }
+    };
+
+    fetchSlots();
+  }, [selectedAdminId, selectedDate]);
 
   // Créneaux du jour sélectionné
   const creneauxDuJour = creneaux.filter((c) => c.date === selectedDate);
@@ -195,8 +328,10 @@ export function AppointmentBooking() {
       setSubmitting(true);
       setError(null);
       await api.post("/rendezvous", {
-        date_heure: `${selectedDate} ${selectedCreneau}:00`,
+        admin_id: Number(selectedAdminId),
+        date_heure: `${selectedDate}T${selectedCreneau}:00`,
         motif: motif.trim(),
+        duree_minutes: 30,
       });
       navigate("/patient/rendezvous");
     } catch (err) {
@@ -240,6 +375,24 @@ export function AppointmentBooking() {
                 <h2 className="text-xl font-bold font-headline">
                   Choix de la date
                 </h2>
+              </div>
+
+              <div className="mb-6">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-on-surface-variant font-label">
+                  Medecin
+                </label>
+                <select
+                  value={selectedAdminId}
+                  onChange={(e) => setSelectedAdminId(e.target.value)}
+                  className="w-full rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-3 text-on-surface outline-none focus:border-primary"
+                >
+                  <option value="">Selectionner un medecin</option>
+                  {doctors.map((doc) => (
+                    <option key={doc.id} value={doc.id}>
+                      {doc.nom} - {doc.specialite}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {loadingCreneaux ? (
@@ -350,7 +503,7 @@ export function AppointmentBooking() {
                 {/* Médecin */}
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold text-lg">
-                    {medecin.nom
+                    {(medecin?.nom || "Dr")
                       .replace("Dr.", "")
                       .trim()
                       .split(" ")
@@ -363,9 +516,9 @@ export function AppointmentBooking() {
                     <p className="text-xs font-bold uppercase tracking-tighter text-on-surface-variant">
                       Praticien
                     </p>
-                    <p className="font-bold text-on-surface">{medecin.nom}</p>
+                    <p className="font-bold text-on-surface">{medecin?.nom || "—"}</p>
                     <p className="text-xs text-on-surface-variant">
-                      {medecin.specialite}
+                      {medecin?.specialite || "—"}
                     </p>
                   </div>
                 </div>

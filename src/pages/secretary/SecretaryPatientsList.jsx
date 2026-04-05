@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { Navbar } from "../../components/Navbar";
+import api from "../../services/api";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const API_BASE_URL = "http://localhost:8080/api"; // TODO: update with your actual base URL
 const PATIENTS_PER_PAGE = 10;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -13,16 +13,33 @@ function getInitials(firstName = "", lastName = "") {
 }
 
 function getBadge(lastVisit) {
-  // TODO: adapt this logic to match your actual API date format
   if (!lastVisit) return { label: "—", className: "bg-gray-100 text-gray-500" };
-  return { label: lastVisit, className: "bg-gray-100 text-gray-500" };
-}
+  const d = new Date(lastVisit);
+  if (Number.isNaN(d.getTime())) {
+    return { label: String(lastVisit), className: "bg-gray-100 text-gray-500" };
+  }
 
-function getAuthHeader() {
-  const token = JSON.parse(
-    localStorage.getItem("medicabinet_user") || "{}",
-  )?.token;
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const now = new Date();
+  const diffDays = Math.floor((now - d) / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 7) {
+    return {
+      label: `Vu ${d.toLocaleDateString("fr-FR")}`,
+      className: "bg-green-100 text-green-700",
+    };
+  }
+
+  if (diffDays <= 30) {
+    return {
+      label: `Vu ${d.toLocaleDateString("fr-FR")}`,
+      className: "bg-amber-100 text-amber-700",
+    };
+  }
+
+  return {
+    label: `Vu ${d.toLocaleDateString("fr-FR")}`,
+    className: "bg-gray-100 text-gray-500",
+  };
 }
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
@@ -150,10 +167,9 @@ export default function PatientsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPatients, setTotalPatients] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
-
-  const totalPages = Math.max(1, Math.ceil(totalPatients / PATIENTS_PER_PAGE));
 
   // ── Debounce search ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -169,30 +185,39 @@ export default function PatientsPage() {
     setLoading(true);
     setError(null);
     try {
-      // TODO: adjust query param names to match your backend
       const params = new URLSearchParams({
-        page: currentPage - 1, // adjust if your API is 1-indexed
-        size: PATIENTS_PER_PAGE,
-        ...(debouncedSearch && { search: debouncedSearch }),
+        page: String(currentPage),
+        ...(debouncedSearch ? { search: debouncedSearch } : {}),
       });
 
-      const res = await fetch(`${API_BASE_URL}/patients?${params}`, {
-        headers: { "Content-Type": "application/json", ...getAuthHeader() },
-      });
+      const response = await api.get(`/patients?${params.toString()}`);
+      const payload = response.data;
+      const items = Array.isArray(payload?.data) ? payload.data : [];
 
-      if (!res.ok) throw new Error(`Erreur serveur : ${res.status}`);
+      setPatients(
+        items.map((patient) => ({
+          id: patient.id,
+          firstName: patient.user?.prenom || "",
+          lastName: patient.user?.nom || "",
+          cin: patient.cin,
+          phone: patient.user?.telephone,
+          dateOfBirth: patient.date_naissance,
+          lastVisit: patient.dossier_updated_at || patient.updated_at,
+          raw: patient,
+        })),
+      );
 
-      const data = await res.json();
-
-      // TODO: adapt to your actual response shape, e.g.:
-      // Spring Page: { content: [], totalElements: N }
-      // Plain array: []
-      setPatients(data.content ?? data.patients ?? data);
-      setTotalPatients(data.totalElements ?? data.total ?? data.length ?? 0);
+      setTotalPatients(payload?.total || items.length);
+      setTotalPages(payload?.last_page || 1);
+      setStats((prev) => ({
+        ...prev,
+        total: payload?.total || items.length,
+      }));
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Impossible de charger les patients.");
     } finally {
       setLoading(false);
+      setStatsLoading(false);
     }
   }, [currentPage, debouncedSearch]);
 
@@ -200,59 +225,33 @@ export default function PatientsPage() {
     fetchPatients();
   }, [fetchPatients]);
 
-  // ── Fetch stats ───────────────────────────────────────────────────────────
-  useEffect(() => {
-    const fetchStats = async () => {
-      setStatsLoading(true);
-      try {
-        const res = await fetch(`${API_BASE_URL}/patients/stats`, {
-          headers: { "Content-Type": "application/json", ...getAuthHeader() },
-        });
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        // TODO: adapt field names to match your endpoint response
-        setStats({
-          total: data.total ?? data.totalPatients ?? 0,
-          todayAppts: data.todayAppointments ?? data.todayAppts ?? 0,
-          newThisMonth: data.newThisMonth ?? 0,
-        });
-      } catch {
-        // stats failure is non-blocking, silently ignored
-      } finally {
-        setStatsLoading(false);
-      }
-    };
-    fetchStats();
-  }, []);
-
   // ── Action handlers ───────────────────────────────────────────────────────
   const handleView = (patient) => {
-    // TODO: navigate to patient detail, e.g. navigate(`/secretaire/patients/${patient.id}`)
-    console.log("view", patient);
+    const details = [
+      `Nom: ${patient.firstName} ${patient.lastName}`,
+      `CIN: ${patient.cin || "—"}`,
+      `Telephone: ${patient.phone || "—"}`,
+      `Date de naissance: ${patient.dateOfBirth || "—"}`,
+    ].join("\n");
+
+    window.alert(`Dossier patient\n\n${details}`);
   };
 
   const handleEdit = (patient) => {
-    // TODO: open edit modal or navigate to edit page
-    console.log("edit", patient);
+    if (patient.phone) {
+      window.open(`tel:${patient.phone}`, "_self");
+      return;
+    }
+
+    window.alert(
+      `Aucun numero de telephone disponible pour ${patient.firstName} ${patient.lastName}.`,
+    );
   };
 
   const handleDelete = async (patient) => {
-    if (
-      !window.confirm(
-        `Supprimer le patient ${patient.firstName} ${patient.lastName} ?`,
-      )
-    )
-      return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/patients/${patient.id}`, {
-        method: "DELETE",
-        headers: getAuthHeader(),
-      });
-      if (!res.ok) throw new Error();
-      fetchPatients(); // refresh list after delete
-    } catch {
-      alert("Erreur lors de la suppression. Veuillez réessayer.");
-    }
+    alert(
+      `La suppression du patient ${patient.firstName} ${patient.lastName} n'est pas autorisée pour le role secretaire.`,
+    );
   };
 
   // ── Pagination helpers ────────────────────────────────────────────────────
