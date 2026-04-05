@@ -103,6 +103,10 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
     })[userRole] || "Utilisateur";
 
   const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+    localStorage.removeItem("profile");
     localStorage.removeItem("medicabinet_user");
     navigate("/login");
   };

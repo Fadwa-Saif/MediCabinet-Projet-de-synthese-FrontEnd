@@ -1,36 +1,53 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CalendarDays, Clock3, UserRound } from "lucide-react";
 import { Navbar } from "../../components/Navbar";
-
-const mockAppointments = [
-  {
-    id: 1,
-    date: "03 avril 2026",
-    time: "09:00",
-    patient: "Marc Laurent",
-    reason: "Suivi post-operatoire",
-    status: "Confirme",
-  },
-  {
-    id: 2,
-    date: "03 avril 2026",
-    time: "10:30",
-    patient: "Sophie Bernard",
-    reason: "Controle cardiologie",
-    status: "En cours",
-  },
-  {
-    id: 3,
-    date: "03 avril 2026",
-    time: "14:00",
-    patient: "Jean Moreau",
-    reason: "Renouvellement ordonnance",
-    status: "En attente",
-  },
-];
+import api from "../../services/api";
 
 export function AppointmentBooking() {
-  const [appointments] = useState(mockAppointments);
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await api.get("/rendezvous");
+        const data = Array.isArray(response.data?.data) ? response.data.data : response.data || [];
+        
+        // Filter for today's appointments
+        const today = new Date().toISOString().split('T')[0];
+        const todayAppointments = data.filter((rdv) => {
+          const rdvDate = rdv.date_heure?.split('T')[0];
+          return rdvDate === today;
+        }).map((rdv) => ({
+          id: rdv.id,
+          date: new Date(rdv.date_heure).toLocaleDateString("fr-FR", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          }),
+          time: new Date(rdv.date_heure).toLocaleTimeString("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          patient: `${rdv.patient?.user?.prenom || ""} ${rdv.patient?.user?.nom || ""}`.trim() || "—",
+          reason: rdv.motif || "Consultation générale",
+          status: rdv.statut === "confirme" ? "Confirme" : rdv.statut === "en_attente" ? "En attente" : "Annule",
+        }));
+        
+        setAppointments(todayAppointments);
+      } catch (err) {
+        setError(err.response?.data?.message || "Erreur lors du chargement des rendez-vous.");
+        setAppointments([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAppointments();
+  }, []);
 
   return (
     <Navbar userRole="medecin" pageTitle="Rendez-vous">
@@ -47,42 +64,60 @@ export function AppointmentBooking() {
               Total
             </p>
             <p className="text-2xl font-bold text-blue-900">
-              {appointments.length}
+              {loading ? "..." : appointments.length}
             </p>
           </div>
         </div>
 
-        <div className="space-y-4">
-          {appointments.map((appointment) => (
-            <div
-              key={appointment.id}
-              className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
-            >
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div className="flex flex-wrap items-center gap-6">
-                  <div className="flex items-center gap-2 text-blue-700">
-                    <Clock3 className="h-4 w-4" />
-                    <span className="font-semibold">{appointment.time}</span>
+        {error && (
+          <div className="mb-6 p-4 rounded-lg bg-red-50 text-red-700 border border-red-200">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="animate-pulse h-24 rounded-2xl bg-slate-200" />
+            ))}
+          </div>
+        ) : appointments.length === 0 ? (
+          <div className="rounded-lg p-8 text-center bg-slate-50 border border-slate-200">
+            <p className="text-gray-600">Aucun rendez-vous prévu pour aujourd'hui.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {appointments.map((appointment) => (
+              <div
+                key={appointment.id}
+                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+              >
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div className="flex flex-wrap items-center gap-6">
+                    <div className="flex items-center gap-2 text-blue-700">
+                      <Clock3 className="h-4 w-4" />
+                      <span className="font-semibold">{appointment.time}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <CalendarDays className="h-4 w-4" />
+                      <span>{appointment.date}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-900">
+                      <UserRound className="h-4 w-4" />
+                      <span className="font-semibold">{appointment.patient}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <CalendarDays className="h-4 w-4" />
-                    <span>{appointment.date}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-900">
-                    <UserRound className="h-4 w-4" />
-                    <span className="font-semibold">{appointment.patient}</span>
-                  </div>
+
+                  <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                    {appointment.status}
+                  </span>
                 </div>
 
-                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                  {appointment.status}
-                </span>
+                <p className="mt-3 text-sm text-gray-600">{appointment.reason}</p>
               </div>
-
-              <p className="mt-3 text-sm text-gray-600">{appointment.reason}</p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </Navbar>
   );

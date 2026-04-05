@@ -1,12 +1,13 @@
 const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "http://localhost:8080/api";
+  process.env.REACT_APP_API_URL || "http://127.0.0.1:8000/api";
 
 function getAuthHeaders() {
+  const tokenFromStorage = localStorage.getItem("token");
   const medicabinetUser = JSON.parse(
     localStorage.getItem("medicabinet_user") || "{}",
   );
   const legacyUser = JSON.parse(localStorage.getItem("user") || "{}");
-  const token = medicabinetUser.token || legacyUser.token;
+  const token = tokenFromStorage || medicabinetUser.token || legacyUser.token;
 
   return token ? { Authorization: `Bearer ${token}` } : {};
 }

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
+import api from "../../services/api";
 
 function getInitials(fullName = "") {
   return fullName
@@ -15,49 +16,49 @@ function getInitials(fullName = "") {
 export function DoctorDashboard() {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState("all");
+  const [appointments, setAppointments] = useState([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    completed: 0,
+    estimated: "0h",
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const appointments = [
-    {
-      id: 1,
-      time: "09:30",
-      patientName: "Jean Dupont",
-      meta: "45 ans, Homme",
-      reason: "Consultation de routine",
-      status: "En attente",
-      period: "morning",
-      canLaunch: true,
-    },
-    {
-      id: 2,
-      time: "10:00",
-      patientName: "Marie Laurent",
-      meta: "32 ans, Femme",
-      reason: "Suivi post-operatoire",
-      status: "Confirme",
-      period: "morning",
-      canLaunch: false,
-    },
-    {
-      id: 3,
-      time: "10:30",
-      patientName: "Robert Bernard",
-      meta: "68 ans, Homme",
-      reason: "Renouvellement ordonnance",
-      status: "Confirme",
-      period: "morning",
-      canLaunch: false,
-    },
-    {
-      id: 4,
-      time: "14:00",
-      patientName: "Sophie Morel",
-      meta: "29 ans, Femme",
-      reason: "Vaccination",
-      status: "Annule",
-      period: "afternoon",
-      canLaunch: false,
-    },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const response = await api.get(`/rendezvous?date=${today}`);
+        const data = Array.isArray(response.data?.data) ? response.data.data : response.data || [];
+        
+        const mapped = data.map((rdv) => ({
+          id: rdv.id,
+          time: new Date(rdv.date_heure).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          patientName: rdv.patient?.user?.prenom + " " + rdv.patient?.user?.nom || "—",
+          meta: "—",
+          reason: rdv.motif || "Consultation générale",
+          status: rdv.statut === 'confirme' ? 'Confirme' : rdv.statut === 'en_attente' ? 'En attente' : 'Annule',
+          period: parseInt(rdv.date_heure.split('T')[1].split(':')[0]) < 12 ? 'morning' : 'afternoon',
+          canLaunch: rdv.statut === 'en_attente',
+        }));
+        
+        setAppointments(mapped);
+        setStats({
+          total: mapped.length,
+          completed: mapped.filter((a) => a.status === 'Confirme').length,
+          estimated: "4h 20m",
+        });
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const displayedAppointments = (() => {
     if (activeFilter === "morning") {
@@ -69,7 +70,6 @@ export function DoctorDashboard() {
     return appointments;
   })();
 
-  const completedCount = appointments.filter((item) => item.status === "Confirme").length;
   const onlineUser = JSON.parse(localStorage.getItem("medicabinet_user") || "{}");
   const doctorName = onlineUser.firstName ? `Dr. ${onlineUser.firstName}` : "Dr. Martin";
 
@@ -106,15 +106,15 @@ export function DoctorDashboard() {
               <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Rendez-vous</p>
-                  <p className="mt-1 text-4xl font-extrabold text-slate-900">14</p>
+                  <p className="mt-1 text-4xl font-extrabold text-slate-900">{stats.total || 0}</p>
                 </div>
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Termines</p>
-                  <p className="mt-1 text-4xl font-extrabold text-blue-700">{String(completedCount).padStart(2, "0")}</p>
+                  <p className="mt-1 text-4xl font-extrabold text-blue-700">{String(stats.completed || 0).padStart(2, "0")}</p>
                 </div>
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Temps estime</p>
-                  <p className="mt-1 text-4xl font-extrabold text-slate-900">4h 20m</p>
+                  <p className="mt-1 text-4xl font-extrabold text-slate-900">{stats.estimated}</p>
                 </div>
               </div>
             </article>
@@ -187,7 +187,26 @@ export function DoctorDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {displayedAppointments.map((item) => (
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-8 text-center text-sm text-slate-500">
+                        Chargement des rendez-vous...
+                      </td>
+                    </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-8 text-center text-sm text-red-600">
+                        {error}
+                      </td>
+                    </tr>
+                  ) : displayedAppointments.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-8 text-center text-sm text-slate-500">
+                        Aucun rendez-vous pour ce filtre.
+                      </td>
+                    </tr>
+                  ) : (
+                    displayedAppointments.map((item) => (
                     <tr key={item.id} className="border-b border-slate-100 last:border-none hover:bg-slate-50">
                       <td className="px-6 py-5">
                         <span className={`text-2xl font-extrabold ${item.canLaunch ? "text-blue-600" : "text-slate-700"}`}>
@@ -243,7 +262,8 @@ export function DoctorDashboard() {
                         )}
                       </td>
                     </tr>
-                  ))}
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

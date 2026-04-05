@@ -1,36 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "../../components/Navbar";
 import { Calendar, Calendar as CalendarIcon, ChevronDown } from "lucide-react";
+import api from "../../services/api";
 
 export function PatientConsultationsList() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState("Toutes");
+  const [consultations, setConsultations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Sample data - will be replaced with API call
-  const consultations = [
-    {
-      id: 1,
-      date: "10 Mars 2026",
-      motif: "Consultation cardiaque",
-      diagnostic: "Hypertension artérielle légère",
-      status: "Complétée",
-    },
-    {
-      id: 2,
-      date: "15 Février 2026",
-      motif: "Suivi post-traitement",
-      diagnostic: "Évolution favorable",
-      status: "Complétée",
-    },
-    {
-      id: 3,
-      date: "20 Janvier 2026",
-      motif: "Consultation générale",
-      diagnostic: "Bilan de santé normal",
-      status: "Complétée",
-    },
-  ];
+  useEffect(() => {
+    const fetchConsultations = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await api.get("/consultations");
+        const data = Array.isArray(response.data?.data) ? response.data.data : response.data;
+        setConsultations(
+          data.map((c) => ({
+            id: c.id,
+            date: new Date(c.date).toLocaleDateString("fr-FR"),
+            motif: c.symptomes || "—",
+            diagnostic: c.diagnostic || "—",
+            status: "Complétée",
+            raw: c,
+          }))
+        );
+      } catch (err) {
+        setError(err.message || "Erreur lors du chargement");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchConsultations();
+  }, []);
 
   const pageContent = (
     <div className="p-6">
@@ -123,35 +128,49 @@ export function PatientConsultationsList() {
             </tr>
           </thead>
           <tbody>
-            {consultations.map((consultation) => (
-              <tr
-                key={consultation.id}
-                className="border-b border-gray-200 hover:bg-gray-50 transition"
-              >
-                <td className="px-6 py-4 text-sm text-gray-800">
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="w-4 h-4 text-gray-400" />
-                    {consultation.date}
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-800">
-                  {consultation.motif}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-800">
-                  {consultation.diagnostic}
-                </td>
-                <td className="px-6 py-4 text-sm">
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
-                    {consultation.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm">
-                  <button className="px-4 py-2 border border-blue-500 text-blue-500 rounded-md hover:bg-blue-50 transition font-medium">
-                    Voir détails
-                  </button>
-                </td>
+            {loading ? (
+              <tr>
+                <td colSpan="5" className="px-6 py-8 text-center text-gray-500">Chargement...</td>
               </tr>
-            ))}
+            ) : error ? (
+              <tr>
+                <td colSpan="5" className="px-6 py-8 text-center text-red-500">{error}</td>
+              </tr>
+            ) : consultations.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="px-6 py-8 text-center text-gray-500">Aucune consultation</td>
+              </tr>
+            ) : (
+              consultations.map((consultation) => (
+                <tr
+                  key={consultation.id}
+                  className="border-b border-gray-200 hover:bg-gray-50 transition"
+                >
+                  <td className="px-6 py-4 text-sm text-gray-800">
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="w-4 h-4 text-gray-400" />
+                      {consultation.date}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-800">
+                    {consultation.motif}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-800">
+                    {consultation.diagnostic}
+                  </td>
+                  <td className="px-6 py-4 text-sm">
+                    <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+                      {consultation.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm">
+                    <button className="px-4 py-2 border border-blue-500 text-blue-500 rounded-md hover:bg-blue-50 transition font-medium">
+                      Voir détails
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

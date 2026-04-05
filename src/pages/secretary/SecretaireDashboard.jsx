@@ -1,49 +1,58 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "../../components/Navbar";
+import api from "../../services/api";
 
 export function SecretaireDashboard() {
-  // TODO: fetch from API — GET /api/secretary/dashboard-stats
   const [stats, setStats] = useState({
-    appointmentsToday: 12,
-    totalPatients: 842,
-    waitingPatients: 4,
+    appointmentsToday: 0,
+    totalPatients: 0,
+    waitingPatients: 0,
   });
+  const [todayAppointments, setTodayAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // TODO: fetch from API — GET /api/secretary/today-appointments
-  const [todayAppointments, setTodayAppointments] = useState([
-    {
-      id: 1,
-      time: "09:00",
-      patientName: "Mme. Sophie Martin",
-      doctor: "Dr. Lefebvre",
-      reason: "Consultation générale",
-      status: "Confirmé",
-    },
-    {
-      id: 2,
-      time: "10:30",
-      patientName: "M. Pierre Durand",
-      doctor: "Dr. Antoine",
-      reason: "Suivi cardiaque",
-      status: "En cours",
-    },
-  ]);
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Fetch dashboard stats from admin endpoint
+        const statsRes = await api.get("/admin/dashboard");
+        const statsData = statsRes.data || {};
+        
+        // Fetch today's appointments
+        const today = new Date().toISOString().split('T')[0];
+        const rdvRes = await api.get(`/rendezvous?date=${today}`);
+        const rdvData = Array.isArray(rdvRes.data?.data) ? rdvRes.data.data : rdvRes.data || [];
 
-  // TODO: fetch from API — GET /api/secretary/recent-activity
-  const [recentActivity, setRecentActivity] = useState([
-    {
-      id: 1,
-      type: "appointment",
-      message: "Rendez-vous confirmé: Sophie Martin",
-      time: "Il y a 2 heures",
-    },
-    {
-      id: 2,
-      type: "patient",
-      message: "Nouveau patient enregistré: Jean Dupuis",
-      time: "Il y a 4 heures",
-    },
-  ]);
+        setStats({
+          appointmentsToday: statsData.rdv_aujourd_hui || rdvData.length,
+          totalPatients: statsData.total_patients || 0,
+          waitingPatients: statsData.rdv_en_attente || 0,
+        });
+
+        setTodayAppointments(
+          rdvData.slice(0, 5).map((rdv) => ({
+            id: rdv.id,
+            time: new Date(rdv.date_heure).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+            patientName: rdv.patient?.user?.prenom + " " + rdv.patient?.user?.nom || "—",
+            doctor: rdv.admin?.user?.prenom + " " + rdv.admin?.user?.nom || "—",
+            reason: rdv.motif || "—",
+            status: rdv.statut === 'en_attente' ? 'En attente' : rdv.statut === 'confirme' ? 'Confirmé' : 'En cours',
+          }))
+        );
+      } catch (err) {
+        setError(err.message);
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
+  
+  const recentActivity = [];
 
   const userData = JSON.parse(localStorage.getItem("medicabinet_user") || "{}");
   const secretaryName = userData.firstName ? userData.firstName : "Secrétaire";
@@ -111,41 +120,49 @@ export function SecretaireDashboard() {
             <h3 className="text-xl font-bold text-gray-800 mb-4">
               Rendez-vous de la journée
             </h3>
-            <div className="space-y-4">
-              {todayAppointments.map((apt) => (
-                <div
-                  key={apt.id}
-                  className="bg-white p-4 rounded-lg border border-gray-200 hover:shadow-md transition"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="flex items-center gap-4">
-                        <span className="text-lg font-bold text-blue-600 w-16">
-                          {apt.time}
-                        </span>
-                        <div>
-                          <h4 className="font-bold text-gray-900">
-                            {apt.patientName}
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            {apt.doctor} • {apt.reason}
-                          </p>
+            {loading ? (
+              <div className="text-gray-500">Chargement...</div>
+            ) : error ? (
+              <div className="text-red-500">{error}</div>
+            ) : todayAppointments.length === 0 ? (
+              <div className="text-gray-500">Aucun rendez-vous aujourd'hui</div>
+            ) : (
+              <div className="space-y-4">
+                {todayAppointments.map((apt) => (
+                  <div
+                    key={apt.id}
+                    className="bg-white p-4 rounded-lg border border-gray-200 hover:shadow-md transition"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="flex items-center gap-4">
+                          <span className="text-lg font-bold text-blue-600 w-16">
+                            {apt.time}
+                          </span>
+                          <div>
+                            <h4 className="font-bold text-gray-900">
+                              {apt.patientName}
+                            </h4>
+                            <p className="text-sm text-gray-600">
+                              {apt.doctor} • {apt.reason}
+                            </p>
+                          </div>
                         </div>
                       </div>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          apt.status === "En cours"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        {apt.status}
+                      </span>
                     </div>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        apt.status === "En cours"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
-                    >
-                      {apt.status}
-                    </span>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}

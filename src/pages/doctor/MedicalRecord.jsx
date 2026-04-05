@@ -294,8 +294,10 @@ export function MedicalRecord() {
   const { data: tabData, count, label } = getTabData();
 
   const handleExportPDF = () => {
-    // TODO: Implement PDF export
-    alert("Export PDF - Fonctionnalité à venir");
+    const previousTitle = document.title;
+    document.title = `Dossier_Medical_${fullName.replace(/\s+/g, "_")}`;
+    window.print();
+    document.title = previousTitle;
   };
 
   const fullName = patient

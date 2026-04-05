@@ -1,47 +1,50 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
-
-const reportsSeed = [
-  {
-    id: "RPT-23011",
-    patientName: "Jean Dupont",
-    type: "Consultation generale",
-    createdAt: "24 Nov. 2023 14:30",
-    doctor: "Dr. Claire Lefebvre",
-    status: "En attente signature",
-  },
-  {
-    id: "RPT-23008",
-    patientName: "Marie Laurent",
-    type: "Suivi post-operatoire",
-    createdAt: "22 Nov. 2023 10:00",
-    doctor: "Dr. Claire Lefebvre",
-    status: "Valide",
-  },
-  {
-    id: "RPT-22994",
-    patientName: "Robert Bernard",
-    type: "Renouvellement ordonnance",
-    createdAt: "18 Nov. 2023 11:45",
-    doctor: "Dr. Claire Lefebvre",
-    status: "Valide",
-  },
-];
+import api from "../../services/api";
 
 export function DoctorReports() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("all");
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await api.get("/consultations");
+        const data = Array.isArray(response.data?.data) ? response.data.data : response.data || [];
+        setReports(
+          data.map((c) => ({
+            id: c.id,
+            patientName: c.patient?.user?.prenom + " " + c.patient?.user?.nom || "—",
+            type: c.symptomes || "Consultation générale",
+            createdAt: new Date(c.date).toLocaleDateString('fr-FR'),
+            doctor: c.admin?.user?.prenom + " " + c.admin?.user?.nom || "—",
+            status: "Valide",
+          }))
+        );
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReports();
+  }, []);
 
   const displayedReports = useMemo(() => {
     if (activeTab === "pending") {
-      return reportsSeed.filter((report) => report.status === "En attente signature");
+      return reports.filter((report) => report.status === "En attente signature");
     }
     if (activeTab === "validated") {
-      return reportsSeed.filter((report) => report.status === "Valide");
+      return reports.filter((report) => report.status === "Valide");
     }
-    return reportsSeed;
-  }, [activeTab]);
+    return reports;
+  }, [activeTab, reports]);
 
   return (
     <Navbar userRole="medecin" pageTitle="Rapports">
@@ -124,44 +127,56 @@ export function DoctorReports() {
                   </tr>
                 </thead>
                 <tbody>
-                  {displayedReports.map((report) => (
-                    <tr key={report.id} className="border-b border-slate-100 last:border-none hover:bg-slate-50">
-                      <td className="px-6 py-5 text-sm font-extrabold text-slate-900">{report.id}</td>
-                      <td className="px-6 py-5">
-                        <p className="text-sm font-extrabold text-slate-900">{report.patientName}</p>
-                        <p className="text-xs text-slate-500">{report.doctor}</p>
-                      </td>
-                      <td className="px-6 py-5 text-sm font-semibold text-slate-600">{report.type}</td>
-                      <td className="px-6 py-5 text-sm font-semibold text-slate-600">{report.createdAt}</td>
-                      <td className="px-6 py-5">
-                        <span
-                          className={`inline-flex rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wider ${
-                            report.status === "Valide"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-orange-100 text-orange-700"
-                          }`}
-                        >
-                          {report.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/medecin/rapport/${report.id}`)}
-                          className="text-sm font-bold text-blue-600 transition hover:underline"
-                        >
-                          Ouvrir
-                        </button>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-sm font-semibold text-slate-500">
+                        Chargement...
                       </td>
                     </tr>
-                  ))}
-
-                  {displayedReports.length === 0 && (
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-sm font-semibold text-red-500">
+                        {error}
+                      </td>
+                    </tr>
+                  ) : displayedReports.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-6 py-12 text-center text-sm font-semibold text-slate-500">
                         Aucun rapport dans cette categorie.
                       </td>
                     </tr>
+                  ) : (
+                    displayedReports.map((report) => (
+                      <tr key={report.id} className="border-b border-slate-100 last:border-none hover:bg-slate-50">
+                        <td className="px-6 py-5 text-sm font-extrabold text-slate-900">{report.id}</td>
+                        <td className="px-6 py-5">
+                          <p className="text-sm font-extrabold text-slate-900">{report.patientName}</p>
+                          <p className="text-xs text-slate-500">{report.doctor}</p>
+                        </td>
+                        <td className="px-6 py-5 text-sm font-semibold text-slate-600">{report.type}</td>
+                        <td className="px-6 py-5 text-sm font-semibold text-slate-600">{report.createdAt}</td>
+                        <td className="px-6 py-5">
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wider ${
+                              report.status === "Valide"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-orange-100 text-orange-700"
+                            }`}
+                          >
+                            {report.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/medecin/rapport/${report.id}`)}
+                            className="text-sm font-bold text-blue-600 transition hover:underline"
+                          >
+                            Ouvrir
+                          </button>
+                        </td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>

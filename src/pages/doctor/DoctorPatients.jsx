@@ -1,45 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
-
-const patientsSeed = [
-  {
-    id: "MC-99420",
-    firstName: "Jean",
-    lastName: "Dupont",
-    age: 68,
-    sex: "Homme",
-    lastVisit: "12 Oct. 2023",
-    risk: "Urgent",
-  },
-  {
-    id: "MC-10471",
-    firstName: "Marie",
-    lastName: "Laurent",
-    age: 32,
-    sex: "Femme",
-    lastVisit: "08 Oct. 2023",
-    risk: "Suivi",
-  },
-  {
-    id: "MC-86114",
-    firstName: "Robert",
-    lastName: "Bernard",
-    age: 59,
-    sex: "Homme",
-    lastVisit: "05 Oct. 2023",
-    risk: "Stable",
-  },
-  {
-    id: "MC-22016",
-    firstName: "Sophie",
-    lastName: "Morel",
-    age: 29,
-    sex: "Femme",
-    lastVisit: "02 Oct. 2023",
-    risk: "Suivi",
-  },
-];
+import api from "../../services/api";
 
 function initials(firstName, lastName) {
   return `${firstName?.[0] || ""}${lastName?.[0] || ""}`.toUpperCase();
@@ -48,16 +10,46 @@ function initials(firstName, lastName) {
 export function DoctorPatients() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const [patients, setPatients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchPatients = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await api.get("/patients");
+        const data = Array.isArray(response.data?.data) ? response.data.data : response.data || [];
+        setPatients(
+          data.map((p) => ({
+            id: p.id,
+            firstName: p.user?.prenom || "",
+            lastName: p.user?.nom || "",
+            age: new Date().getFullYear() - new Date(p.date_naissance || "2000-01-01").getFullYear(),
+            sex: "—",
+            lastVisit: p.updated_at ? new Date(p.updated_at).toLocaleDateString('fr-FR') : "—",
+            risk: "Stable",
+          }))
+        );
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPatients();
+  }, []);
 
   const filteredPatients = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return patientsSeed;
+    if (!q) return patients;
 
-    return patientsSeed.filter((patient) => {
+    return patients.filter((patient) => {
       const full = `${patient.firstName} ${patient.lastName}`.toLowerCase();
-      return full.includes(q) || patient.id.toLowerCase().includes(q);
+      return full.includes(q) || patient.id.toString().toLowerCase().includes(q);
     });
-  }, [query]);
+  }, [query, patients]);
 
   return (
     <Navbar userRole="medecin" pageTitle="Patients">
@@ -97,15 +89,15 @@ export function DoctorPatients() {
             <div className="grid grid-cols-1 gap-4 border-b border-slate-200 px-6 py-5 sm:grid-cols-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Patients actifs</p>
-                <p className="mt-1 text-3xl font-extrabold text-slate-900">156</p>
+                <p className="mt-1 text-3xl font-extrabold text-slate-900">{patients.length}</p>
               </div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Suivi critique</p>
-                <p className="mt-1 text-3xl font-extrabold text-orange-600">09</p>
+                <p className="mt-1 text-3xl font-extrabold text-orange-600">—</p>
               </div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Nouveaux ce mois</p>
-                <p className="mt-1 text-3xl font-extrabold text-blue-700">14</p>
+                <p className="mt-1 text-3xl font-extrabold text-blue-700">—</p>
               </div>
             </div>
 
@@ -122,57 +114,69 @@ export function DoctorPatients() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPatients.map((patient) => (
-                    <tr key={patient.id} className="border-b border-slate-100 last:border-none hover:bg-slate-50">
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-extrabold text-blue-700">
-                            {initials(patient.firstName, patient.lastName)}
-                          </div>
-                          <div>
-                            <p className="text-base font-extrabold text-slate-900">
-                              {patient.firstName} {patient.lastName}
-                            </p>
-                            <p className="text-xs text-slate-500">Dossier medical</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-sm font-semibold text-slate-600">{patient.id}</td>
-                      <td className="px-6 py-5 text-sm font-semibold text-slate-600">
-                        {patient.age} ans, {patient.sex}
-                      </td>
-                      <td className="px-6 py-5 text-sm font-semibold text-slate-600">{patient.lastVisit}</td>
-                      <td className="px-6 py-5">
-                        <span
-                          className={`inline-flex rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wider ${
-                            patient.risk === "Urgent"
-                              ? "bg-orange-100 text-orange-700"
-                              : patient.risk === "Suivi"
-                                ? "bg-blue-100 text-blue-700"
-                                : "bg-emerald-100 text-emerald-700"
-                          }`}
-                        >
-                          {patient.risk}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/medecin/medical-record/${patient.id}`)}
-                          className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-700"
-                        >
-                          Ouvrir dossier
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-
-                  {filteredPatients.length === 0 && (
+                  {loading ? (
                     <tr>
                       <td colSpan={6} className="px-6 py-12 text-center text-sm font-semibold text-slate-500">
-                        Aucun patient trouve pour cette recherche.
+                        Chargement...
                       </td>
                     </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-sm font-semibold text-red-500">
+                        {error}
+                      </td>
+                    </tr>
+                  ) : filteredPatients.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-sm font-semibold text-slate-500">
+                        {query ? "Aucun patient trouvé pour cette recherche." : "Aucun patient"}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredPatients.map((patient) => (
+                      <tr key={patient.id} className="border-b border-slate-100 last:border-none hover:bg-slate-50">
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-extrabold text-blue-700">
+                              {initials(patient.firstName, patient.lastName)}
+                            </div>
+                            <div>
+                              <p className="text-base font-extrabold text-slate-900">
+                                {patient.firstName} {patient.lastName}
+                              </p>
+                              <p className="text-xs text-slate-500">Dossier medical</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5 text-sm font-semibold text-slate-600">{patient.id}</td>
+                        <td className="px-6 py-5 text-sm font-semibold text-slate-600">
+                          {patient.age} ans, {patient.sex}
+                        </td>
+                        <td className="px-6 py-5 text-sm font-semibold text-slate-600">{patient.lastVisit}</td>
+                        <td className="px-6 py-5">
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wider ${
+                              patient.risk === "Urgent"
+                                ? "bg-orange-100 text-orange-700"
+                                : patient.risk === "Suivi"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : "bg-emerald-100 text-emerald-700"
+                            }`}
+                          >
+                            {patient.risk}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/medecin/medical-record/${patient.id}`)}
+                            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-700"
+                          >
+                            Ouvrir dossier
+                          </button>
+                        </td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>
