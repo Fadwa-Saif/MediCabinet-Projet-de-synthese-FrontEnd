@@ -36,12 +36,21 @@ export function DoctorDashboard() {
         
         const mapped = data.map((rdv) => ({
           id: rdv.id,
-          time: new Date(rdv.date_heure).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-          patientName: rdv.patient?.user?.prenom + " " + rdv.patient?.user?.nom || "—",
+          time: rdv.date_heure
+            ? new Date(rdv.date_heure).toLocaleTimeString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : '—',
+          patientName: [rdv.patient?.user?.prenom, rdv.patient?.user?.nom]
+            .filter(Boolean)
+            .join(' ') || 'Patient inconnu',
           meta: "—",
           reason: rdv.motif || "Consultation générale",
           status: rdv.statut === 'confirme' ? 'Confirme' : rdv.statut === 'en_attente' ? 'En attente' : 'Annule',
-          period: parseInt(rdv.date_heure.split('T')[1].split(':')[0]) < 12 ? 'morning' : 'afternoon',
+          period: rdv.date_heure && parseInt(rdv.date_heure.split('T')[1]?.split(':')[0], 10) < 12
+            ? 'morning'
+            : 'afternoon',
           canLaunch: rdv.statut === 'en_attente',
         }));
         
@@ -121,9 +130,9 @@ export function DoctorDashboard() {
 
             <article className="rounded-2xl bg-gradient-to-b from-blue-700 to-blue-600 p-6 text-white shadow-lg lg:col-span-4">
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-100">Prochain patient</p>
-              <h3 className="mt-3 text-3xl font-extrabold">{nextPatient.patientName}</h3>
+              <h3 className="mt-3 text-3xl font-extrabold">{nextPatient?.patientName || "Aucun rendez-vous"}</h3>
               <p className="mt-1 text-sm font-medium text-blue-100">
-                {nextPatient.time} - Consultation Generale
+                {nextPatient?.time || "—"} - Consultation Generale
               </p>
 
               <button
