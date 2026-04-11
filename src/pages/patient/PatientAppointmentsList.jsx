@@ -129,7 +129,7 @@ export function PatientAppointmentsList() {
         const now = new Date();
         const next = data.find(
           (r) =>
-            r.statut?.toLowerCase() === "confirmé" &&
+            ["confirme", "confirmé"].includes(r.statut?.toLowerCase()) &&
             new Date(r.date_heure) > now,
         );
         setProchain(next ?? null);
