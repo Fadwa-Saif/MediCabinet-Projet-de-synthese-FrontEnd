@@ -71,7 +71,7 @@ export function ConsultationReportNew() {
         setError(null);
 
         // Fetch rendez-vous details to get patient info
-        if (rdvId) {
+        if (rdvId && rdvId !== "new") {
           const rdvRes = await api.get(`/rendezvous/${rdvId}`);
           const rdv = rdvRes.data.data || rdvRes.data;
           
@@ -128,7 +128,8 @@ export function ConsultationReportNew() {
 
     try {
       await api.post("/consultations", {
-        rendezvous_id: rdvId,
+        rendezvous_id: rdvId === "new" ? null : rdvId,
+        patient_id: patientData?.id || 1, // TODO: Replace hardcoded 1 with selected patient if needed
         diagnostic: formData.diagnosis,
         traitement: formData.treatment,
         notes: formData.notes,
