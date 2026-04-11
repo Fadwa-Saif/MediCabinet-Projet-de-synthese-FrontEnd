@@ -85,11 +85,6 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
           labelAr: "المواعيد",
           path: "/secretaire/rendezvous",
         },
-        {
-          label: "Notifications",
-          labelAr: "الإشعارات",
-          path: "/secretaire/notifications",
-        },
       ],
     };
     return menus[userRole] || menus.patient;
@@ -204,7 +199,6 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
                 <p className="text-sm font-semibold text-gray-800 leading-tight">
                   {userName}
                 </p>
-                <p className="text-xs text-gray-400">{getRoleLabel()}</p>
               </div>
               <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
                 {initials}
