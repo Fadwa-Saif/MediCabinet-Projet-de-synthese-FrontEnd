@@ -34,25 +34,26 @@ export function DoctorDashboard() {
         const response = await api.get(`/rendezvous?date=${today}`);
         const data = Array.isArray(response.data?.data) ? response.data.data : response.data || [];
         
-        const mapped = data.map((rdv) => ({
-          id: rdv.id,
-          time: rdv.date_heure
-            ? new Date(rdv.date_heure).toLocaleTimeString('fr-FR', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })
-            : '—',
-          patientName: [rdv.patient?.user?.prenom, rdv.patient?.user?.nom]
-            .filter(Boolean)
-            .join(' ') || 'Patient inconnu',
-          meta: "—",
-          reason: rdv.motif || "Consultation générale",
-          status: rdv.statut === 'confirme' ? 'Confirme' : rdv.statut === 'en_attente' ? 'En attente' : 'Annule',
-          period: rdv.date_heure && parseInt(rdv.date_heure.split('T')[1]?.split(':')[0], 10) < 12
-            ? 'morning'
-            : 'afternoon',
-          canLaunch: rdv.statut === 'en_attente',
-        }));
+        const mapped = data.map((rdv) => {
+          const safeDate = rdv.date_heure ? rdv.date_heure.replace(' ', 'T') : null;
+          return {
+            id: rdv.id,
+            patientName: `${rdv.patient?.user?.prenom || ""} ${rdv.patient?.user?.nom || ""}`.trim() || "Patient Inconnu",
+            patientId: rdv.patient?.id,
+            time: safeDate
+              ? new Date(safeDate).toLocaleTimeString("fr-FR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "—",
+            reason: rdv.motif || "Consultation générale",
+            status: rdv.statut === 'confirme' ? 'Confirme' : rdv.statut === 'en_attente' ? 'En attente' : 'Annule',
+            period: safeDate && parseInt(safeDate.split("T")[1]?.split(":")[0], 10) < 12
+              ? 'morning'
+              : 'afternoon',
+            canLaunch: rdv.statut === 'en_attente',
+          };
+        });
         
         setAppointments(mapped);
         setStats({
@@ -94,7 +95,7 @@ export function DoctorDashboard() {
                 Bonjour, {doctorName}
               </h1>
               <p className="mt-1 text-sm font-medium text-slate-500 sm:text-base">
-                Voici votre planning pour aujourd&apos;hui, <span className="text-blue-600">12 Octobre 2023</span>.
+                Voici votre planning pour aujourd&apos;hui, <span className="text-blue-600">{new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</span>.
               </p>
             </div>
 
@@ -137,9 +138,11 @@ export function DoctorDashboard() {
 
               <button
                 type="button"
-                className="mt-8 w-full rounded-xl bg-white px-4 py-3 text-sm font-bold text-blue-700 transition hover:bg-blue-50"
+                onClick={() => nextPatient?.patientId && navigate(`/medecin/medical-record/${nextPatient.patientId}`)}
+                disabled={!nextPatient}
+                className="mt-8 w-full rounded-xl bg-white px-4 py-3 text-sm font-bold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Lancer l&apos;appel
+                Lancer la consultation
               </button>
             </article>
           </section>

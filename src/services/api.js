@@ -51,6 +51,8 @@ const api = {
       body: body === undefined ? undefined : JSON.stringify(body),
       ...options,
     }),
+  delete: (path, options = {}) =>
+    request(path, { method: "DELETE", ...options }),
 };
 
 export default api;
