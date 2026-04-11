@@ -138,7 +138,7 @@ export function DoctorDashboard() {
 
               <button
                 type="button"
-                onClick={() => nextPatient?.patientId && navigate(`/medecin/medical-record/${nextPatient.patientId}`)}
+                onClick={() => nextPatient?.id && navigate(`/medecin/rapport/${nextPatient.id}`)}
                 disabled={!nextPatient}
                 className="mt-8 w-full rounded-xl bg-white px-4 py-3 text-sm font-bold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
