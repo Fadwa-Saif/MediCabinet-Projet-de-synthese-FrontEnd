@@ -16,28 +16,26 @@ export function AppointmentBooking() {
         const response = await api.get("/rendezvous");
         const data = Array.isArray(response.data?.data) ? response.data.data : response.data || [];
         
-        // Filter for today's appointments
-        const today = new Date().toISOString().split('T')[0];
-        const todayAppointments = data.filter((rdv) => {
-          const rdvDate = rdv.date_heure?.split('T')[0];
-          return rdvDate === today;
-        }).map((rdv) => ({
-          id: rdv.id,
-          date: new Date(rdv.date_heure).toLocaleDateString("fr-FR", {
-            day: "2-digit",
-            month: "long",
-            year: "numeric",
-          }),
-          time: new Date(rdv.date_heure).toLocaleTimeString("fr-FR", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          patient: `${rdv.patient?.user?.prenom || ""} ${rdv.patient?.user?.nom || ""}`.trim() || "—",
-          reason: rdv.motif || "Consultation générale",
-          status: rdv.statut === "confirme" ? "Confirme" : rdv.statut === "en_attente" ? "En attente" : "Annule",
-        }));
+        const allAppointments = data.map((rdv) => {
+          const safeDate = rdv.date_heure ? rdv.date_heure.replace(' ', 'T') : null;
+          return {
+            id: rdv.id,
+            date: safeDate ? new Date(safeDate).toLocaleDateString("fr-FR", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            }) : "—",
+            time: safeDate ? new Date(safeDate).toLocaleTimeString("fr-FR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }) : "—",
+            patient: `${rdv.patient?.user?.prenom || ""} ${rdv.patient?.user?.nom || ""}`.trim() || "—",
+            reason: rdv.motif || "Consultation générale",
+            status: rdv.statut === "confirme" ? "Confirme" : rdv.statut === "en_attente" ? "En attente" : "Annule",
+          };
+        });
         
-        setAppointments(todayAppointments);
+        setAppointments(allAppointments);
       } catch (err) {
         setError(err.response?.data?.message || "Erreur lors du chargement des rendez-vous.");
         setAppointments([]);

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLanguage } from "../../context/LanguageContext.jsx";
-import { translations } from "../../context/LanguageContext.jsx";
+import { useLanguage, translations } from "../../context/LanguageContext.jsx";
 import authService from "../../services/authService";
 
 export function LoginPage() {

@@ -25,6 +25,7 @@ import { MedicalRecord } from "./pages/doctor/MedicalRecord";
 import { SecretaireDashboard } from "./pages/secretary/SecretaireDashboard";
 import SecretaryPatients from "./pages/secretary/SecretaryPatientsList";
 import { SecretaryAppointments } from "./pages/secretary/SecretaryAppointments";
+import { SecretaryPatientDetail } from "./pages/secretary/SecretaryPatientDetail";
 
 export default function App() {
   return (
@@ -135,14 +136,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/medecin/medicalrecord/:patientId"
-            element={
-              <ProtectedRoute requiredRole="medecin">
-                <MedicalRecord />
-              </ProtectedRoute>
-            }
-          />
 
           {/* Secretary (secrétaire) routes - protected, role: secretaire */}
           <Route
@@ -166,6 +159,14 @@ export default function App() {
             element={
               <ProtectedRoute requiredRole="secretaire">
                 <SecretaryAppointments />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/secretaire/patients/:patientId"
+            element={
+              <ProtectedRoute requiredRole="secretaire">
+                <SecretaryPatientDetail />
               </ProtectedRoute>
             }
           />
