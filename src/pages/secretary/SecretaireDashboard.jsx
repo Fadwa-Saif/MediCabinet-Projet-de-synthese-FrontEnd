@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
+import ChatBot from "../shared/ChatBot";
 
 export function SecretaireDashboard() {
   const [stats, setStats] = useState({
@@ -20,11 +21,13 @@ export function SecretaireDashboard() {
         // Fetch dashboard stats from admin endpoint
         const statsRes = await api.get("/admin/dashboard");
         const statsData = statsRes.data || {};
-        
+
         // Fetch today's appointments
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toISOString().split("T")[0];
         const rdvRes = await api.get(`/rendezvous?date=${today}`);
-        const rdvData = Array.isArray(rdvRes.data?.data) ? rdvRes.data.data : rdvRes.data || [];
+        const rdvData = Array.isArray(rdvRes.data?.data)
+          ? rdvRes.data.data
+          : rdvRes.data || [];
 
         setStats({
           appointmentsToday: statsData.rdv_aujourd_hui || rdvData.length,
@@ -35,12 +38,21 @@ export function SecretaireDashboard() {
         setTodayAppointments(
           rdvData.slice(0, 5).map((rdv) => ({
             id: rdv.id,
-            time: new Date(rdv.date_heure).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-            patientName: rdv.patient?.user?.prenom + " " + rdv.patient?.user?.nom || "—",
+            time: new Date(rdv.date_heure).toLocaleTimeString("fr-FR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            patientName:
+              rdv.patient?.user?.prenom + " " + rdv.patient?.user?.nom || "—",
             doctor: rdv.admin?.user?.prenom + " " + rdv.admin?.user?.nom || "—",
             reason: rdv.motif || "—",
-            status: rdv.statut === 'en_attente' ? 'En attente' : rdv.statut === 'confirme' ? 'Confirmé' : 'En cours',
-          }))
+            status:
+              rdv.statut === "en_attente"
+                ? "En attente"
+                : rdv.statut === "confirme"
+                  ? "Confirmé"
+                  : "En cours",
+          })),
         );
       } catch (err) {
         setError(err.message);
@@ -51,7 +63,7 @@ export function SecretaireDashboard() {
     };
     fetchDashboard();
   }, []);
-  
+
   const recentActivity = [];
 
   const userData = JSON.parse(localStorage.getItem("medicabinet_user") || "{}");
@@ -97,7 +109,9 @@ export function SecretaireDashboard() {
             <p className="text-4xl font-bold text-gray-900">
               {stats.totalPatients}
             </p>
-            <p className="text-xs text-gray-600 mt-2">Mis à jour il y a 5 min</p>
+            <p className="text-xs text-gray-600 mt-2">
+              Mis à jour il y a 5 min
+            </p>
           </div>
 
           <div className="bg-white p-6 rounded-lg shadow border-l-4 border-orange-500">
@@ -188,7 +202,10 @@ export function SecretaireDashboard() {
               <h3 className="font-bold text-gray-800 mb-4">Activité Récente</h3>
               <div className="space-y-3">
                 {recentActivity.map((activity) => (
-                  <div key={activity.id} className="text-sm border-l-2 border-gray-200 pl-3">
+                  <div
+                    key={activity.id}
+                    className="text-sm border-l-2 border-gray-200 pl-3"
+                  >
                     <p className="text-gray-800">{activity.message}</p>
                     <p className="text-xs text-gray-500">{activity.time}</p>
                   </div>
@@ -197,6 +214,7 @@ export function SecretaireDashboard() {
             </div>
           </div>
         </div>
+        <ChatBot userName="Marie" userRole="Secrétaire" />
       </div>
     </Navbar>
   );
