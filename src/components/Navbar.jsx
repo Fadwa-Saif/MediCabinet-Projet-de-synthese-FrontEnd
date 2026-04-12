@@ -85,11 +85,6 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
           labelAr: "المواعيد",
           path: "/secretaire/rendezvous",
         },
-        {
-          label: "Notifications",
-          labelAr: "الإشعارات",
-          path: "/secretaire/notifications",
-        },
       ],
     };
     return menus[userRole] || menus.patient;
@@ -157,7 +152,6 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
                     : "text-blue-100 hover:bg-blue-500 hover:text-white"
                 }`}
             >
-              <span className="text-base">{item.icon}</span>
               <span>{language === "ar" ? item.labelAr : item.label}</span>
               {isActive(item.path) && (
                 <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600" />

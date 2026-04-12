@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLanguage } from "../../context/LanguageContext.jsx";
-import { translations } from "../../context/LanguageContext.jsx";
+import { useLanguage, translations } from "../../context/LanguageContext.jsx";
 import authService from "../../services/authService";
 
 export function InscriptionPage() {
@@ -143,125 +142,125 @@ export function InscriptionPage() {
         )}
 
         {/* Form */}
-<form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
 
-  {/* Row 1: Nom + Prénom */}
-  <div className="grid grid-cols-2 gap-3">
-    <div>
-      <label htmlFor="lastName" className="block text-sm font-semibold mb-1 text-gray-700">
-        {t.lastName}
-      </label>
-      <input
-        id="lastName" name="lastName" type="text"
-        placeholder={t.lastNamePlaceholder}
-        value={formData.lastName} onChange={handleChange}
-        className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-        style={{ borderColor: errors.lastName ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
-      />
-      {errors.lastName && <p className="text-xs mt-1 text-red-600">{errors.lastName}</p>}
-    </div>
+          {/* Row 1: Nom + Prénom */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="lastName" className="block text-sm font-semibold mb-1 text-gray-700">
+                {t.lastName}
+              </label>
+              <input
+                id="lastName" name="lastName" type="text"
+                placeholder={t.lastNamePlaceholder}
+                value={formData.lastName} onChange={handleChange}
+                className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
+                style={{ borderColor: errors.lastName ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
+              />
+              {errors.lastName && <p className="text-xs mt-1 text-red-600">{errors.lastName}</p>}
+            </div>
 
-    <div>
-      <label htmlFor="firstName" className="block text-sm font-semibold mb-1 text-gray-700">
-        {t.firstName}
-      </label>
-      <input
-        id="firstName" name="firstName" type="text"
-        placeholder={t.firstNamePlaceholder}
-        value={formData.firstName} onChange={handleChange}
-        className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-        style={{ borderColor: errors.firstName ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
-      />
-      {errors.firstName && <p className="text-xs mt-1 text-red-600">{errors.firstName}</p>}
-    </div>
-  </div>
+            <div>
+              <label htmlFor="firstName" className="block text-sm font-semibold mb-1 text-gray-700">
+                {t.firstName}
+              </label>
+              <input
+                id="firstName" name="firstName" type="text"
+                placeholder={t.firstNamePlaceholder}
+                value={formData.firstName} onChange={handleChange}
+                className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
+                style={{ borderColor: errors.firstName ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
+              />
+              {errors.firstName && <p className="text-xs mt-1 text-red-600">{errors.firstName}</p>}
+            </div>
+          </div>
 
-  {/* Row 2: Téléphone + Email */}
-  <div className="grid grid-cols-2 gap-3">
-    <div>
-      <label htmlFor="phone" className="block text-sm font-semibold mb-1 text-gray-700">
-        {t.phone}
-      </label>
-      <input
-        id="phone" name="phone" type="tel"
-        placeholder={t.phonePlaceholder}
-        value={formData.phone} onChange={handleChange}
-        className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-        style={{ borderColor: errors.phone ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
-      />
-      {errors.phone && <p className="text-xs mt-1 text-red-600">{errors.phone}</p>}
-    </div>
+          {/* Row 2: Téléphone + Email */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="phone" className="block text-sm font-semibold mb-1 text-gray-700">
+                {t.phone}
+              </label>
+              <input
+                id="phone" name="phone" type="tel"
+                placeholder={t.phonePlaceholder}
+                value={formData.phone} onChange={handleChange}
+                className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
+                style={{ borderColor: errors.phone ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
+              />
+              {errors.phone && <p className="text-xs mt-1 text-red-600">{errors.phone}</p>}
+            </div>
 
-    <div>
-      <label htmlFor="email" className="block text-sm font-semibold mb-1 text-gray-700">
-        {t.email}
-      </label>
-      <input
-        id="email" name="email" type="email"
-        placeholder="votreemail@exemple.ma"
-        value={formData.email} onChange={handleChange}
-        className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-        style={{ borderColor: errors.email ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
-      />
-      {errors.email && <p className="text-xs mt-1 text-red-600">{errors.email}</p>}
-    </div>
-  </div>
+            <div>
+              <label htmlFor="email" className="block text-sm font-semibold mb-1 text-gray-700">
+                {t.email}
+              </label>
+              <input
+                id="email" name="email" type="email"
+                placeholder="votreemail@exemple.ma"
+                value={formData.email} onChange={handleChange}
+                className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
+                style={{ borderColor: errors.email ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
+              />
+              {errors.email && <p className="text-xs mt-1 text-red-600">{errors.email}</p>}
+            </div>
+          </div>
 
-  {/* Row 3: CIN */}
-  <div>
-    <label htmlFor="cin" className="block text-sm font-semibold mb-1 text-gray-700">
-      {t.cin}
-    </label>
-    <input
-      id="cin" name="cin" type="text"
-      placeholder={t.cinPlaceholder}
-      value={formData.cin} onChange={handleChange}
-      className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-      style={{ borderColor: errors.cin ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
-    />
-    {errors.cin && <p className="text-xs mt-1 text-red-600">{errors.cin}</p>}
-  </div>
+          {/* Row 3: CIN */}
+          <div>
+            <label htmlFor="cin" className="block text-sm font-semibold mb-1 text-gray-700">
+              {t.cin}
+            </label>
+            <input
+              id="cin" name="cin" type="text"
+              placeholder={t.cinPlaceholder}
+              value={formData.cin} onChange={handleChange}
+              className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
+              style={{ borderColor: errors.cin ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
+            />
+            {errors.cin && <p className="text-xs mt-1 text-red-600">{errors.cin}</p>}
+          </div>
 
-  {/* Row 4: Mot de passe */}
-  <div>
-    <label htmlFor="password" className="block text-sm font-semibold mb-1 text-gray-700">
-      {t.password}
-    </label>
-    <input
-      id="password" name="password" type="password"
-      placeholder={t.passwordPlaceholder}
-      value={formData.password} onChange={handleChange}
-      className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-      style={{ borderColor: errors.password ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
-    />
-    {errors.password && <p className="text-xs mt-1 text-red-600">{errors.password}</p>}
-  </div>
+          {/* Row 4: Mot de passe */}
+          <div>
+            <label htmlFor="password" className="block text-sm font-semibold mb-1 text-gray-700">
+              {t.password}
+            </label>
+            <input
+              id="password" name="password" type="password"
+              placeholder={t.passwordPlaceholder}
+              value={formData.password} onChange={handleChange}
+              className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
+              style={{ borderColor: errors.password ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
+            />
+            {errors.password && <p className="text-xs mt-1 text-red-600">{errors.password}</p>}
+          </div>
 
-  {/* Row 5: Confirmer mot de passe */}
-  <div>
-    <label htmlFor="confirmPassword" className="block text-sm font-semibold mb-1 text-gray-700">
-      {t.confirmPassword}
-    </label>
-    <input
-      id="confirmPassword" name="confirmPassword" type="password"
-      placeholder={t.confirmPasswordPlaceholder}
-      value={formData.confirmPassword} onChange={handleChange}
-      className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-      style={{ borderColor: errors.confirmPassword ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
-    />
-    {errors.confirmPassword && <p className="text-xs mt-1 text-red-600">{errors.confirmPassword}</p>}
-  </div>
+          {/* Row 5: Confirmer mot de passe */}
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-semibold mb-1 text-gray-700">
+              {t.confirmPassword}
+            </label>
+            <input
+              id="confirmPassword" name="confirmPassword" type="password"
+              placeholder={t.confirmPasswordPlaceholder}
+              value={formData.confirmPassword} onChange={handleChange}
+              className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
+              style={{ borderColor: errors.confirmPassword ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
+            />
+            {errors.confirmPassword && <p className="text-xs mt-1 text-red-600">{errors.confirmPassword}</p>}
+          </div>
 
-  {/* Submit */}
-  <button
-    type="submit" disabled={isLoading}
-    className="w-full py-2.5 rounded text-white font-semibold transition-all hover:opacity-90 disabled:opacity-70 mt-6 tracking-wide uppercase text-sm"
-    style={{ backgroundColor: "#007BFF" }}
-  >
-    {isLoading ? "En cours..." : t.register}
-  </button>
+          {/* Submit */}
+          <button
+            type="submit" disabled={isLoading}
+            className="w-full py-2.5 rounded text-white font-semibold transition-all hover:opacity-90 disabled:opacity-70 mt-6 tracking-wide uppercase text-sm"
+            style={{ backgroundColor: "#007BFF" }}
+          >
+            {isLoading ? "En cours..." : t.register}
+          </button>
 
-</form>
+        </form>
 
         {/* Login Link */}
         <div className="mt-6 text-center text-sm text-gray-700">
@@ -277,6 +276,5 @@ export function InscriptionPage() {
         </div>
       </div>
     </div>
-    );
-    }
-
+  );
+}
