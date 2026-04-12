@@ -12,6 +12,7 @@ import { PatientAppointmentsList } from "./pages/patient/PatientAppointmentsList
 import { AppointmentBooking as PatientAppointmentBooking } from "./pages/patient/AppointmentBooking";
 import { PatientConsultationsList } from "./pages/patient/PatientConsultationsList";
 import { PatientUploadAnalysis } from "./pages/patient/PatientUploadAnalysis";
+import { PatientConsultationDetails } from "./pages/patient/PatientConsultationsDetails";
 
 // Doctor Pages
 import { DoctorDashboard } from "./pages/doctor/DoctorDashboard";
@@ -69,6 +70,10 @@ export default function App() {
                 <PatientConsultationsList />
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="/patient/consultations/:id"
+            element={<PatientConsultationDetails />}
           />
           <Route
             path="/patient/dossier"

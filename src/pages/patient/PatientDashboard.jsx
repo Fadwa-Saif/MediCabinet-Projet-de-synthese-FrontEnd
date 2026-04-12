@@ -203,7 +203,8 @@ export function PatientDashboard() {
         // Fetch notifications/non-lues
         try {
           const notifResponse = await api.get("/notifications/non-lues");
-          setNotifications(notifResponse.data.data ?? notifResponse.data ?? []);
+          const notifData = notifResponse.data.data ?? notifResponse.data ?? [];
+          setNotifications(Array.isArray(notifData) ? notifData : []);
         } catch (notifErr) {
           console.warn("Failed to fetch notifications:", notifErr);
           setNotifications([]);

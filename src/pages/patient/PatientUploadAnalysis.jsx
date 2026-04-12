@@ -243,7 +243,7 @@ export function PatientUploadAnalysis() {
 
   return (
     <Navbar userRole="patient" pageTitle="Envoyer une Analyse">
-      <main className="pt-6 pb-12 px-6 max-w-4xl mx-auto min-h-screen">
+      <main className="pt-6 pb-12 px-6 max-w-7xl mx-auto min-h-screen">
         {/* Header */}
         <header className="mb-8">
           <p className="text-primary font-label text-sm uppercase tracking-widest font-bold mb-2">
