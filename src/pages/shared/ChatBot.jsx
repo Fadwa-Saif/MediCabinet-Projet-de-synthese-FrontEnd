@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_KEY;
-
+const GROQ_API_KEY = process.env.REACT_APP_GROQ_KEY;
+console.log("Groq Key:", GROQ_API_KEY); // cette ligne existe encore ?
 const SYSTEM_PROMPT = `Tu es un assistant médical virtuel intégré dans MediCabinet, un système de gestion de cabinet médical.
 Tu aides les utilisateurs (Patients, Secrétaires, Médecins) avec leurs questions liées au cabinet :
 - Gestion des rendez-vous
@@ -58,7 +58,7 @@ export default function ChatBot({
           Authorization: `Bearer ${GROQ_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "llama3-8b-8192",
+          model: "llama-3.3-70b-versatile",
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             ...updatedMessages.map(({ role, content }) => ({ role, content })),
@@ -85,6 +85,7 @@ export default function ChatBot({
         },
       ]);
     } catch (error) {
+      console.error("Erreur Groq:", error);
       setMessages((prev) => [
         ...prev,
         {
