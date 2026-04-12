@@ -42,9 +42,8 @@ function MiniCalendar({ selectedDate, onSelect, availableDates }) {
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
 
-  const firstDay = new Date(viewYear, viewMonth, 1).getDay(); // 0=Sun
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  // Monday-first offset
   const offset = (firstDay + 6) % 7;
 
   const prevMonth = () => {
@@ -66,7 +65,6 @@ function MiniCalendar({ selectedDate, onSelect, availableDates }) {
 
   return (
     <div className="bg-surface-container rounded-lg p-4 border border-outline-variant/15">
-      {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <span className="font-bold text-on-surface">
           {MOIS[viewMonth]} {viewYear}
@@ -91,14 +89,12 @@ function MiniCalendar({ selectedDate, onSelect, availableDates }) {
         </div>
       </div>
 
-      {/* Day labels */}
       <div className="grid grid-cols-7 gap-1 text-center text-xs mb-2 text-on-surface-variant font-medium font-label">
         {JOURS.map((j) => (
           <div key={j}>{j}</div>
         ))}
       </div>
 
-      {/* Cells */}
       <div className="grid grid-cols-7 gap-1">
         {cells.map((day, idx) => {
           if (!day) return <div key={idx} />;
@@ -140,12 +136,10 @@ function MiniCalendar({ selectedDate, onSelect, availableDates }) {
 export function AppointmentBooking() {
   const navigate = useNavigate();
 
-  // ── State ────────────────────────────────────────────────────────────────
   const [creneaux, setCreneaux] = useState([]);
   const [availableDates, setAvailDates] = useState([]);
   const [loadingCreneaux, setLoadingCren] = useState(true);
-  const [doctors, setDoctors] = useState([]);
-  const [selectedAdminId, setSelectedAdminId] = useState("");
+  const [adminId, setAdminId] = useState(null); // fetched automatically
 
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedCreneau, setSelectedCreneau] = useState("");
@@ -154,91 +148,47 @@ export function AppointmentBooking() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  const medecin =
-    doctors.find((d) => String(d.id) === String(selectedAdminId)) ?? null;
-
-  // ── Fetch médecins disponibles ───────────────────────────────────────────
+  // ── Fetch the single médecin's admin_id automatically ───────────────────
   useEffect(() => {
-    const fetchDoctors = async () => {
+    const fetchAdminId = async () => {
       try {
         setLoadingCren(true);
         setError(null);
 
-        const rdvRes = await api.get("/rendezvous");
-        const rdvData = Array.isArray(rdvRes.data?.data)
-          ? rdvRes.data.data
-          : rdvRes.data || [];
+        const dispoRes = await api.get("/disponibilites");
+        const dispoData = Array.isArray(dispoRes.data?.data)
+          ? dispoRes.data.data
+          : dispoRes.data || [];
 
-        const fromRdv = rdvData
-          .filter((r) => r.admin_id)
-          .map((r) => ({
-            id: r.admin_id,
-            nom:
-              `Dr. ${r.admin?.user?.prenom || ""} ${r.admin?.user?.nom || ""}`.trim() ||
-              `Medecin #${r.admin_id}`,
-            specialite: r.admin?.specialite || "Medecine generale",
-          }));
-
-        const uniqMap = new Map();
-        fromRdv.forEach((d) => {
-          if (!uniqMap.has(d.id)) uniqMap.set(d.id, d);
-        });
-
-        // Fallback for first booking users: use disponibilites to discover admin ids.
-        if (uniqMap.size === 0) {
-          const dispoRes = await api.get("/disponibilites");
-          const dispoData = Array.isArray(dispoRes.data?.data)
-            ? dispoRes.data.data
-            : dispoRes.data || [];
-
-          dispoData.forEach((slot) => {
-            if (slot.admin_id && !uniqMap.has(slot.admin_id)) {
-              uniqMap.set(slot.admin_id, {
-                id: slot.admin_id,
-                nom: `Medecin #${slot.admin_id}`,
-                specialite: "Medecine generale",
-              });
-            }
-          });
-        }
-
-        const doctorsList = Array.from(uniqMap.values());
-        setDoctors(doctorsList);
-        if (doctorsList[0]) {
-          setSelectedAdminId(String(doctorsList[0].id));
-        }
+        const firstAdminId =
+          dispoData.find((d) => d.admin_id)?.admin_id ?? null;
+        setAdminId(firstAdminId);
       } catch {
-        setError("Impossible de charger les medecins disponibles.");
+        setError("Impossible de charger les disponibilités du médecin.");
       } finally {
         setLoadingCren(false);
       }
     };
 
-    fetchDoctors();
+    fetchAdminId();
   }, []);
 
-  // ── Compute available dates based on doctor's weekly availability ────────
+  // ── Compute available dates ──────────────────────────────────────────────
   useEffect(() => {
-    const dayMap = {
-      Lun: 1,
-      Mar: 2,
-      Mer: 3,
-      Jeu: 4,
-      Ven: 5,
-      Sam: 6,
-      Dim: 0,
-    };
+    const dayMap = { Lun: 1, Mar: 2, Mer: 3, Jeu: 4, Ven: 5, Sam: 6, Dim: 0 };
 
     const fetchAvailableDates = async () => {
-      if (!selectedAdminId) {
+      if (!adminId) {
         setAvailDates([]);
         return;
       }
 
       try {
         setLoadingCren(true);
-        const res = await api.get(`/disponibilites?admin_id=${selectedAdminId}`);
-        const data = Array.isArray(res.data?.data) ? res.data.data : res.data || [];
+        const res = await api.get(`/disponibilites?admin_id=${adminId}`);
+        const data = Array.isArray(res.data?.data)
+          ? res.data.data
+          : res.data || [];
 
         const weeklyDays = data
           .filter((d) => d.est_disponible !== false)
@@ -259,9 +209,7 @@ export function AppointmentBooking() {
             date.getMonth(),
             date.getDate(),
           );
-
           if (exceptionDates.has(dateStr)) continue;
-
           const jsDay = date.getDay();
           const hasDay = weeklyDays.some((d) => dayMap[d] === jsDay);
           if (hasDay) dates.push(dateStr);
@@ -272,19 +220,19 @@ export function AppointmentBooking() {
         setSelectedCreneau("");
         setCreneaux([]);
       } catch {
-        setError("Impossible de charger les disponibilites du medecin.");
+        setError("Impossible de charger les disponibilités du médecin.");
       } finally {
         setLoadingCren(false);
       }
     };
 
     fetchAvailableDates();
-  }, [selectedAdminId]);
+  }, [adminId]);
 
   // ── Fetch slots for selected date ────────────────────────────────────────
   useEffect(() => {
     const fetchSlots = async () => {
-      if (!selectedAdminId || !selectedDate) {
+      if (!adminId || !selectedDate) {
         setCreneaux([]);
         return;
       }
@@ -292,14 +240,14 @@ export function AppointmentBooking() {
       try {
         setLoadingCren(true);
         const res = await api.get(
-          `/rendezvous/creneaux?admin_id=${selectedAdminId}&date=${selectedDate}`,
+          `/rendezvous/creneaux?admin_id=${adminId}&date=${selectedDate}`,
         );
         const slots = Array.isArray(res.data?.creneaux)
           ? res.data.creneaux
           : [];
         setCreneaux(slots.map((heure) => ({ date: selectedDate, heure })));
       } catch {
-        setError("Impossible de charger les creneaux disponibles.");
+        setError("Impossible de charger les créneaux disponibles.");
         setCreneaux([]);
       } finally {
         setLoadingCren(false);
@@ -307,12 +255,10 @@ export function AppointmentBooking() {
     };
 
     fetchSlots();
-  }, [selectedAdminId, selectedDate]);
+  }, [adminId, selectedDate]);
 
-  // Créneaux du jour sélectionné
   const creneauxDuJour = creneaux.filter((c) => c.date === selectedDate);
 
-  // Reset créneau si on change de date
   const handleSelectDate = (date) => {
     setSelectedDate(date);
     setSelectedCreneau("");
@@ -328,7 +274,7 @@ export function AppointmentBooking() {
       setSubmitting(true);
       setError(null);
       await api.post("/rendezvous", {
-        admin_id: Number(selectedAdminId),
+        admin_id: Number(adminId),
         date_heure: `${selectedDate}T${selectedCreneau}:00`,
         motif: motif.trim(),
         duree_minutes: 30,
@@ -375,24 +321,6 @@ export function AppointmentBooking() {
                 <h2 className="text-xl font-bold font-headline">
                   Choix de la date
                 </h2>
-              </div>
-
-              <div className="mb-6">
-                <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-on-surface-variant font-label">
-                  Medecin
-                </label>
-                <select
-                  value={selectedAdminId}
-                  onChange={(e) => setSelectedAdminId(e.target.value)}
-                  className="w-full rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-3 text-on-surface outline-none focus:border-primary"
-                >
-                  <option value="">Selectionner un medecin</option>
-                  {doctors.map((doc) => (
-                    <option key={doc.id} value={doc.id}>
-                      {doc.nom} - {doc.specialite}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               {loadingCreneaux ? (
@@ -493,38 +421,13 @@ export function AppointmentBooking() {
           {/* ── Résumé sticky ───────────────────────────────────────────── */}
           <aside className="lg:col-span-4 sticky top-24">
             <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/15 shadow-[0_20px_40px_rgba(0,26,65,0.05)] overflow-hidden">
-              {/* Header gradient */}
               <div className="signature-gradient p-6 text-white">
                 <h3 className="text-xl font-bold font-headline mb-1">Résumé</h3>
                 <p className="text-white/80 text-sm">Consultation médicale</p>
               </div>
 
               <div className="p-6 space-y-6">
-                {/* Médecin */}
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold text-lg">
-                    {(medecin?.nom || "Dr")
-                      .replace("Dr.", "")
-                      .trim()
-                      .split(" ")
-                      .map((w) => w[0])
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-tighter text-on-surface-variant">
-                      Praticien
-                    </p>
-                    <p className="font-bold text-on-surface">{medecin?.nom || "—"}</p>
-                    <p className="text-xs text-on-surface-variant">
-                      {medecin?.specialite || "—"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Détails */}
-                <div className="space-y-4 pt-4 border-t border-surface-container-high">
+                <div className="space-y-4 border-t border-surface-container-high pt-4">
                   <div className="flex justify-between items-center">
                     <span className="text-on-surface-variant text-sm">
                       Date
@@ -557,7 +460,6 @@ export function AppointmentBooking() {
                   </div>
                 </div>
 
-                {/* Bouton confirmer */}
                 <button
                   onClick={handleSubmit}
                   disabled={
@@ -579,7 +481,6 @@ export function AppointmentBooking() {
                   .
                 </p>
 
-                {/* Annuler */}
                 <button
                   onClick={() => navigate("/patient/rendezvous")}
                   className="w-full py-3 text-on-surface-variant font-medium border border-outline-variant/30 rounded-xl hover:bg-surface-container-low transition-colors text-sm"
@@ -589,7 +490,6 @@ export function AppointmentBooking() {
               </div>
             </div>
 
-            {/* Help box */}
             <div className="mt-6 p-6 rounded-xl bg-surface-container-high/50 border border-outline-variant/10 text-center">
               <p className="text-sm font-bold text-on-surface mb-1">
                 Besoin d'aide ?

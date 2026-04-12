@@ -298,24 +298,6 @@ export function PatientAppointmentsList() {
                 )}
               </div>
 
-              {/* Téléconsultation promo card */}
-              <div className="signature-gradient p-6 rounded-xl text-white relative overflow-hidden">
-                <div className="relative z-10">
-                  <h4 className="font-bold text-xl mb-2 font-headline">
-                    Téléconsultation ?
-                  </h4>
-                  <p className="text-white/80 text-sm mb-4 leading-relaxed">
-                    Gagnez du temps en optant pour un rendez-vous vidéo depuis
-                    chez vous.
-                  </p>
-                  <button className="bg-white text-primary px-4 py-2 rounded-lg font-bold text-sm hover:bg-primary/5 transition-colors">
-                    En savoir plus
-                  </button>
-                </div>
-                <span className="material-symbols-outlined absolute -bottom-4 -right-4 text-9xl text-white/10 rotate-12">
-                  videocam
-                </span>
-              </div>
             </div>
 
             {/* ── Colonne droite : tableau ────────────────────────────────── */}

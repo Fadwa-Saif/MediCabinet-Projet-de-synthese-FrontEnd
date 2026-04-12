@@ -120,9 +120,13 @@ export default function ChatBot({
       {/* Floating Action Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-8 right-8 w-16 h-16 bg-primary rounded-full flex items-center justify-center text-on-primary shadow-xl hover:scale-105 transition-transform z-40 ${isOpen ? "hidden" : ""}`}
+        className={`fixed bottom-8 right-8 w-16 h-16 rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform z-40 ${isOpen ? "hidden" : ""}`}
       >
-        <span className="material-symbols-outlined text-3xl">chat</span>
+        <img
+          src="/Chatbot-logo.png"
+          alt="Chatbot"
+          className="w-14 h-14 object-contain"
+        />
       </button>
 
       {/* Chatbot Drawer */}
@@ -140,13 +144,12 @@ export default function ChatBot({
             <header className="p-6 flex items-center justify-between border-b border-surface-container-high bg-white/80 backdrop-blur-md sticky top-0 z-10">
               <div className="flex items-center gap-4">
                 <div className="relative">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary-container flex items-center justify-center text-white shadow-md">
-                    <span
-                      className="material-symbols-outlined text-2xl"
-                      style={{ fontVariationSettings: "'FILL' 1" }}
-                    >
-                      smart_toy
-                    </span>
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-md bg-white p-1">
+                    <img
+                      src="/Chatbot-logo.png"
+                      alt="Chatbot"
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                   <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
                 </div>
@@ -175,10 +178,12 @@ export default function ChatBot({
               {messages.map((msg, idx) =>
                 msg.role === "assistant" ? (
                   <div key={idx} className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary shrink-0">
-                      <span className="material-symbols-outlined text-sm">
-                        smart_toy
-                      </span>
+                    <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 p-0.5">
+                      <img
+                        src="/Chatbot-logo.png"
+                        alt="Chatbot"
+                        className="w-full h-full object-contain"
+                      />
                     </div>
                     <div className="max-w-[85%]">
                       <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm text-sm leading-relaxed border border-outline-variant/10 whitespace-pre-wrap">
