@@ -10,6 +10,7 @@ function initials(firstName, lastName) {
 export function DoctorPatients() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const [selectedPatientId, setSelectedPatientId] = useState(null);
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -51,6 +52,23 @@ export function DoctorPatients() {
     });
   }, [query, patients]);
 
+  const openMedicalRecord = (patientId) => {
+    navigate(`/medecin/medical-record/${patientId}`);
+  };
+
+  const handleSelectPatient = (patient) => {
+    setSelectedPatientId(patient.id);
+    setQuery(`${patient.firstName} ${patient.lastName} (${patient.id})`.trim());
+  };
+
+  const handleCreateReport = () => {
+    if (!selectedPatientId) {
+      window.alert("Sélectionnez un patient avec un simple clic avant de créer un rapport.");
+      return;
+    }
+    navigate(`/medecin/rapport/new?patientId=${selectedPatientId}`);
+  };
+
   return (
     <Navbar userRole="medecin" pageTitle="Patients">
       <div className="min-h-full bg-[#f2f4f8] px-4 py-6 sm:px-6 lg:px-8">
@@ -70,14 +88,18 @@ export function DoctorPatients() {
                 <input
                   type="text"
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    setSelectedPatientId(null);
+                  }}
                   placeholder="Rechercher nom ou ID patient"
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white sm:w-72"
                 />
                 <button
                   type="button"
-                  onClick={() => navigate("/medecin/rapport/new")}
-                  className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
+                  onClick={handleCreateReport}
+                  className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  disabled={!selectedPatientId}
                 >
                   Nouveau rapport
                 </button>
@@ -134,7 +156,14 @@ export function DoctorPatients() {
                     </tr>
                   ) : (
                     filteredPatients.map((patient) => (
-                      <tr key={patient.id} className="border-b border-slate-100 last:border-none hover:bg-slate-50">
+                      <tr
+                        key={patient.id}
+                        className={`cursor-pointer border-b border-slate-100 last:border-none hover:bg-slate-50 ${
+                          selectedPatientId === patient.id ? "bg-blue-50" : ""
+                        }`}
+                        onClick={() => handleSelectPatient(patient)}
+                        onDoubleClick={() => openMedicalRecord(patient.id)}
+                      >
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-extrabold text-blue-700">
@@ -169,10 +198,13 @@ export function DoctorPatients() {
                         <td className="px-6 py-5 text-right">
                           <button
                             type="button"
-                            onClick={() => navigate(`/medecin/medical-record/${patient.id}`)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleSelectPatient(patient);
+                            }}
                             className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-700"
                           >
-                            Ouvrir dossier
+                            Sélectionner
                           </button>
                         </td>
                       </tr>

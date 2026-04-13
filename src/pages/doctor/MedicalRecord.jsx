@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
 import {
@@ -180,6 +180,8 @@ const SkeletonCard = () => (
 
 export function MedicalRecord() {
   const navigate = useNavigate();
+  const { patientId } = useParams();
+  const isDoctorView = Boolean(patientId);
   const [activeTab, setActiveTab] = useState("historique");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -197,6 +199,71 @@ export function MedicalRecord() {
       try {
         setLoading(true);
         setError(null);
+
+        if (isDoctorView) {
+          const patientRes = await api.get(`/patients/${patientId}`);
+          const patientData = patientRes.data?.data || patientRes.data;
+
+          setPatient({
+            nom: patientData?.user?.nom,
+            prenom: patientData?.user?.prenom,
+            patient: patientData,
+          });
+
+          const consultations = Array.isArray(patientData?.consultations)
+            ? [...patientData.consultations].sort(
+                (a, b) => new Date(b.date || 0) - new Date(a.date || 0),
+              )
+            : [];
+
+          try {
+            const historiqueRes = await api.get(`/patients/${patientId}/historique`);
+            const historiqueData = historiqueRes.data?.data?.data || historiqueRes.data?.data || [];
+            setHistorique(Array.isArray(historiqueData) ? historiqueData : []);
+          } catch {
+            setHistorique(consultations);
+          }
+
+          const ordonnancesFromConsultations = consultations.flatMap((consultation) =>
+            (consultation.ordonnances || []).map((ordonnance) => ({
+              ...ordonnance,
+              date: ordonnance.date || consultation.date,
+              medecin_nom:
+                consultation.admin?.user
+                  ? `${consultation.admin.user.prenom || ""} ${consultation.admin.user.nom || ""}`.trim()
+                  : ordonnance.medecin_nom,
+            })),
+          );
+          setPrescriptions(ordonnancesFromConsultations);
+
+          const analysesFromConsultations = consultations.flatMap((consultation) =>
+            (consultation.analyses || []).map((analyse) => ({
+              ...analyse,
+              date: analyse.date_analyse || consultation.date,
+              titre: analyse.type_analyse || "Analyse médicale",
+              medecin_nom: consultation.admin?.user
+                ? `${consultation.admin.user.prenom || ""} ${consultation.admin.user.nom || ""}`.trim()
+                : undefined,
+            })),
+          );
+          setAnalyses(analysesFromConsultations);
+
+          const notesFromConsultations = consultations
+            .filter((consultation) => consultation.notes_medecin || consultation.diagnostic || consultation.symptomes)
+            .map((consultation) => ({
+              id: consultation.id,
+              titre: `Consultation du ${formatDate(consultation.date)}`,
+              date: consultation.date,
+              description: consultation.notes_medecin || consultation.diagnostic || consultation.symptomes,
+              medecin_nom: consultation.admin?.user
+                ? `${consultation.admin.user.prenom || ""} ${consultation.admin.user.nom || ""}`.trim()
+                : undefined,
+              statut: "Complété",
+            }));
+          setNotes(notesFromConsultations);
+
+          return;
+        }
 
         // Fetch patient profile
         const patientRes = await api.get("/auth/me");
@@ -268,7 +335,7 @@ export function MedicalRecord() {
     };
 
     fetchMedicalRecord();
-  }, []);
+  }, [isDoctorView, patientId]);
 
   const getTabData = () => {
     switch (activeTab) {
@@ -312,7 +379,7 @@ export function MedicalRecord() {
     : "—";
 
   return (
-    <Navbar userRole="patient" pageTitle="Dossier Médical">
+    <Navbar userRole={isDoctorView ? "medecin" : "patient"} pageTitle="Dossier Médical">
       <main className="pt-6 pb-12 px-6 max-w-7xl mx-auto min-h-screen">
         {/* Header */}
         <header className="mb-8">
@@ -320,10 +387,12 @@ export function MedicalRecord() {
             Dossier Médical
           </p>
           <h1 className="text-4xl md:text-5xl font-headline font-extrabold tracking-tight text-on-background">
-            Mon Dossier de Santé
+            {isDoctorView ? "Dossier de Santé du patient" : "Mon Dossier de Santé"}
           </h1>
           <p className="text-on-surface-variant mt-2">
-            Consultez votre historique médical complet et vos documents
+            {isDoctorView
+              ? "Consultez l'historique médical complet de ce patient."
+              : "Consultez votre historique médical complet et vos documents"}
           </p>
         </header>
 
@@ -408,7 +477,7 @@ export function MedicalRecord() {
                 label="Dernière consultation"
                 value={
                   historique[0]
-                    ? formatDate(historique[0].date_heure)
+                    ? formatDate(historique[0].date_heure || historique[0].date)
                     : "Aucune"
                 }
                 icon={FileText}
@@ -513,6 +582,9 @@ export function MedicalRecord() {
                   item={item}
                   type={activeTab}
                   onClick={() => {
+                    if (isDoctorView) {
+                      return;
+                    }
                     if (activeTab === "prescriptions") {
                       navigate(`/patient/ordonnances/${item.id}`);
                     } else if (activeTab === "analyses") {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
 
@@ -49,9 +50,9 @@ function StatCard({ icon, value, label, colorClass, loading }) {
     <div className="p-6 bg-white rounded-xl shadow-sm ring-1 ring-gray-200">
       <div className="flex items-center gap-4">
         <div
-          className={`w-12 h-12 rounded-full flex items-center justify-center ${colorClass}`}
+          className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${colorClass}`}
         >
-          <span className="material-symbols-outlined">{icon}</span>
+          <span className="material-symbols-outlined text-[24px] leading-none">{icon}</span>
         </div>
         <div>
           {loading ? (
@@ -153,6 +154,7 @@ function TableSkeleton({ rows = 5 }) {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function PatientsPage() {
+  const navigate = useNavigate();
   // ── State ────────────────────────────────────────────────────────────────
   const [patients, setPatients] = useState([]);
   const [stats, setStats] = useState({
@@ -279,7 +281,10 @@ export default function PatientsPage() {
               Gérez et suivez les dossiers médicaux de vos patients
             </p>
           </div>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-md shadow-blue-200 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm">
+          <button
+            onClick={() => navigate("/secretaire/patients/nouveau")}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-md shadow-blue-200 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm"
+          >
             <span className="material-symbols-outlined text-[20px]">
               person_add
             </span>

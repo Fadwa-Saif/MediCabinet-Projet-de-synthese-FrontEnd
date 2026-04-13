@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
 
 export function SecretaireDashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     appointmentsToday: 0,
     totalPatients: 0,
@@ -168,17 +170,29 @@ export function SecretaireDashboard() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Quick Actions */}
-            <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
-              <h3 className="font-bold text-gray-800 mb-4">Actions Rapides</h3>
-              <div className="space-y-2">
-                <button className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded text-blue-600 font-medium transition">
-                  ➕ Nouveau Patient
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <span className="material-symbols-outlined text-blue-600">bolt</span>
+                Actions Rapides
+              </h3>
+              <div className="space-y-3">
+                <button
+                  onClick={() => navigate("/secretaire/patients/nouveau")}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-50 rounded-xl text-blue-700 font-bold transition-all border border-transparent hover:border-blue-100 group"
+                >
+                  <span className="material-symbols-outlined text-blue-500 group-hover:scale-110 transition-transform">person_add</span>
+                  Nouveau Patient
                 </button>
-                <button className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded text-blue-600 font-medium transition">
-                  📅 Nouveau Rendez-vous
+                <button
+                  onClick={() => navigate("/secretaire/rendezvous/nouveau")}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-50 rounded-xl text-blue-700 font-bold transition-all border border-transparent hover:border-blue-100 group"
+                >
+                  <span className="material-symbols-outlined text-blue-500 group-hover:scale-110 transition-transform">calendar_add_on</span>
+                  Nouveau Rendez-vous
                 </button>
-                <button className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded text-blue-600 font-medium transition">
-                  📞 Appels à faire
+                <button className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 rounded-xl text-slate-600 font-bold transition-all border border-transparent hover:border-slate-100 group">
+                  <span className="material-symbols-outlined text-slate-400 group-hover:scale-110 transition-transform">call</span>
+                  Appels à faire
                 </button>
               </div>
             </div>

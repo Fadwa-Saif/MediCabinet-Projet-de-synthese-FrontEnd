@@ -26,6 +26,8 @@ import { SecretaireDashboard } from "./pages/secretary/SecretaireDashboard";
 import SecretaryPatients from "./pages/secretary/SecretaryPatientsList";
 import { SecretaryAppointments } from "./pages/secretary/SecretaryAppointments";
 import { SecretaryPatientDetail } from "./pages/secretary/SecretaryPatientDetail";
+import { SecretaryPatientAdd } from "./pages/secretary/SecretaryPatientAdd";
+import { SecretaryAppointmentAdd } from "./pages/secretary/SecretaryAppointmentAdd";
 
 export default function App() {
   return (
@@ -155,10 +157,26 @@ export default function App() {
             }
           />
           <Route
+            path="/secretaire/patients/nouveau"
+            element={
+              <ProtectedRoute requiredRole="secretaire">
+                <SecretaryPatientAdd />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/secretaire/rendezvous"
             element={
               <ProtectedRoute requiredRole="secretaire">
                 <SecretaryAppointments />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/secretaire/rendezvous/nouveau"
+            element={
+              <ProtectedRoute requiredRole="secretaire">
+                <SecretaryAppointmentAdd />
               </ProtectedRoute>
             }
           />
