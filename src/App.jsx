@@ -37,7 +37,6 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/inscription" element={<InscriptionPage />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
-
           {/* Patient routes - protected, role: patient */}
           <Route
             path="/patient/dashboard"
@@ -57,6 +56,14 @@ export default function App() {
           />
           <Route
             path="/patient/rendezvous/nouveau"
+            element={
+              <ProtectedRoute requiredRole="patient">
+                <PatientAppointmentBooking />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/patient/rendezvous/modifier/:id"
             element={
               <ProtectedRoute requiredRole="patient">
                 <PatientAppointmentBooking />
@@ -91,7 +98,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
           {/* Doctor (médecin) routes - protected, role: medecin */}
           <Route
             path="/medecin/dashboard"
@@ -141,7 +147,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
           {/* Secretary (secrétaire) routes - protected, role: secretaire */}
           <Route
             path="/secretaire/dashboard"
@@ -175,7 +180,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
           {/* Catch-all - redirect to login */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
