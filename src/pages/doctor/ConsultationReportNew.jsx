@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
   Bell,
@@ -47,9 +47,22 @@ const formatDateShort = (dateStr) => {
   });
 };
 
+const getInitials = (fullName) => {
+  if (!fullName) return "PT";
+  return fullName
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+};
+
 export function ConsultationReportNew() {
   const { rdvId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const selectedPatientId = searchParams.get("patientId");
 
   const [formData, setFormData] = useState({
     diagnosis: "",
@@ -70,6 +83,39 @@ export function ConsultationReportNew() {
         setLoading(true);
         setError(null);
 
+        if (rdvId === "new" && selectedPatientId) {
+          const patientRes = await api.get(`/patients/${selectedPatientId}`);
+          const patient = patientRes.data?.data || patientRes.data;
+
+          setPatientData({
+            id: patient.id,
+            name: `${patient.user?.prenom || ""} ${patient.user?.nom || ""}`.trim(),
+            age: calculateAge(patient.date_naissance),
+            bloodType: patient.groupe_sanguin || "—",
+            lastVisit: patient.dossier_updated_at ? formatDateShort(patient.dossier_updated_at) : "—",
+            tension: "—",
+            weight: patient.poids_kg ? `${patient.poids_kg} kg` : "—",
+            height: patient.taille_cm ? `${patient.taille_cm} cm` : "—",
+            avatar: patient.user?.photo_profil || null,
+          });
+
+          try {
+            const histRes = await api.get(`/patients/${patient.id}/historique`);
+            const consultations = histRes.data?.data?.data || histRes.data?.data || [];
+            const history = consultations.slice(0, 3).map((c) => ({
+              date: formatDateShort(c.date_heure || c.date),
+              title: c.motif || "Consultation",
+              description: c.diagnostic || c.notes_medecin || "—",
+            }));
+            setRecentHistory(history);
+          } catch (histErr) {
+            console.warn("Failed to fetch patient history:", histErr);
+            setRecentHistory([]);
+          }
+
+          return;
+        }
+
         // Fetch rendez-vous details to get patient info
         if (rdvId && rdvId !== "new") {
           const rdvRes = await api.get(`/rendezvous/${rdvId}`);
@@ -78,6 +124,7 @@ export function ConsultationReportNew() {
           if (rdv && rdv.patient) {
             const patient = rdv.patient;
             setPatientData({
+              id: patient.id,
               name: `${patient.user?.prenom || ""} ${patient.user?.nom || ""}`.trim(),
               age: calculateAge(patient.date_naissance),
               bloodType: patient.groupe_sanguin || "—",
@@ -85,7 +132,7 @@ export function ConsultationReportNew() {
               tension: "—",
               weight: "—",
               height: "—",
-              avatar: "https://via.placeholder.com/150",
+              avatar: patient.user?.photo_profil || null,
             });
 
             // Fetch patient history
@@ -113,7 +160,7 @@ export function ConsultationReportNew() {
     };
 
     fetchConsultationData();
-  }, [rdvId]);
+  }, [rdvId, selectedPatientId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -127,13 +174,26 @@ export function ConsultationReportNew() {
     setError(null);
 
     try {
+      if (!patientData?.id) {
+        setError("Veuillez sélectionner un patient avant d'enregistrer la consultation.");
+        setSubmitting(false);
+        return;
+      }
+
+      const notesConcatenees = [
+        formData.notes,
+        formData.prescription ? `Ordonnance: ${formData.prescription}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
       await api.post("/consultations", {
-        rendezvous_id: rdvId === "new" ? null : rdvId,
-        patient_id: patientData?.id || 1, // TODO: Replace hardcoded 1 with selected patient if needed
+        rdv_id: rdvId === "new" ? null : Number(rdvId),
+        patient_id: patientData.id,
+        date: new Date().toISOString().slice(0, 10),
         diagnostic: formData.diagnosis,
-        traitement: formData.treatment,
-        notes: formData.notes,
-        ordonnance: formData.prescription,
+        symptomes: formData.treatment || null,
+        notes_medecin: notesConcatenees || null,
       });
 
       navigate("/medecin/dashboard");
@@ -207,11 +267,17 @@ export function ConsultationReportNew() {
             ) : patientData ? (
               <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-                  <img
-                    src={patientData.avatar}
-                    alt={patientData.name}
-                    className="h-24 w-24 rounded-3xl object-cover ring-4 ring-slate-100"
-                  />
+                  {patientData.avatar ? (
+                    <img
+                      src={patientData.avatar}
+                      alt={patientData.name}
+                      className="h-24 w-24 rounded-3xl object-cover ring-4 ring-slate-100"
+                    />
+                  ) : (
+                    <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-blue-100 text-2xl font-extrabold text-blue-700 ring-4 ring-slate-100">
+                      {getInitials(patientData.name)}
+                    </div>
+                  )}
 
                   <div>
                     <h2 className="text-2xl font-bold text-slate-900">
@@ -439,6 +505,11 @@ export function ConsultationReportNew() {
 
                 <button
                   type="button"
+                  onClick={() => {
+                    if (patientData?.id) {
+                      navigate(`/medecin/medical-record/${patientData.id}`);
+                    }
+                  }}
                   className="mt-5 w-full rounded-2xl px-4 py-3 text-sm font-semibold text-blue-600 transition hover:bg-blue-50"
                 >
                   Voir tout le dossier

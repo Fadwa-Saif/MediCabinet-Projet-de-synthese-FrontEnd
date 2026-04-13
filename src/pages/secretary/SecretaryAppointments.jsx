@@ -43,10 +43,11 @@ export function SecretaryAppointments() {
             Rendez-vous
           </h1>
           <button
-            onClick={() => navigate("/secretaire/rendezvous")}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition"
+            onClick={() => navigate("/secretaire/rendezvous/nouveau")}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-md shadow-blue-100"
           >
-            ➕ Nouveau Rendez-vous
+            <span className="material-symbols-outlined text-[20px]">calendar_add_on</span>
+            Nouveau Rendez-vous
           </button>
         </div>
 
