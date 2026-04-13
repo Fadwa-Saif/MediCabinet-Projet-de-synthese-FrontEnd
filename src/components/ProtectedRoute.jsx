@@ -3,8 +3,9 @@ import { Navigate } from "react-router-dom";
 export function ProtectedRoute({ children, requiredRole }) {
   // Get user from localStorage
   const userJSON = localStorage.getItem("medicabinet_user");
+  const token = localStorage.getItem("token");
 
-  if (!userJSON) {
+  if (!userJSON || !token) {
     // Not logged in, redirect to login
     return <Navigate to="/login" replace />;
   }
