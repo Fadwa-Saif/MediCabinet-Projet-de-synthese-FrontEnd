@@ -169,7 +169,7 @@ export function DoctorReports() {
                         <td className="px-6 py-5 text-right">
                           <button
                             type="button"
-                            onClick={() => navigate(`/medecin/rapport/${report.id}`)}
+                            onClick={() => navigate(`/medecin/rapport/${report.id}?source=consultation`)}
                             className="text-sm font-bold text-blue-600 transition hover:underline"
                           >
                             Ouvrir

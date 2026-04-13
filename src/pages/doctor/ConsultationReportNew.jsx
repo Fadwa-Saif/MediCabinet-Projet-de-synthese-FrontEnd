@@ -63,6 +63,7 @@ export function ConsultationReportNew() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const selectedPatientId = searchParams.get("patientId");
+  const source = searchParams.get("source");
 
   const [formData, setFormData] = useState({
     diagnosis: "",
@@ -118,31 +119,64 @@ export function ConsultationReportNew() {
 
         // Fetch rendez-vous details to get patient info
         if (rdvId && rdvId !== "new") {
-          const rdvRes = await api.get(`/rendezvous/${rdvId}`);
-          const rdv = rdvRes.data.data || rdvRes.data;
-          
-          if (rdv && rdv.patient) {
-            const patient = rdv.patient;
+          let patient = null;
+          let lastVisit = "—";
+
+          const loadFromConsultation = async () => {
+            const consultationRes = await api.get(`/consultations/${rdvId}`);
+            const consultation = consultationRes.data?.data || consultationRes.data;
+            if (consultation?.patient) {
+              patient = consultation.patient;
+              lastVisit = formatDateShort(consultation.date);
+
+              setFormData((current) => ({
+                ...current,
+                diagnosis: consultation.diagnostic || current.diagnosis,
+                treatment: consultation.symptomes || current.treatment,
+                notes: consultation.notes_medecin || current.notes,
+              }));
+            }
+          };
+
+          if (source === "consultation") {
+            await loadFromConsultation();
+          } else {
+            try {
+              const rdvRes = await api.get(`/rendezvous/${rdvId}`);
+              const rdv = rdvRes.data.data || rdvRes.data;
+              if (rdv && rdv.patient) {
+                patient = rdv.patient;
+                lastVisit = formatDateShort(rdv.date_heure);
+              }
+            } catch (rdvErr) {
+              if (rdvErr?.response?.status === 404) {
+                await loadFromConsultation();
+              } else {
+                throw rdvErr;
+              }
+            }
+          }
+
+          if (patient) {
             setPatientData({
               id: patient.id,
               name: `${patient.user?.prenom || ""} ${patient.user?.nom || ""}`.trim(),
               age: calculateAge(patient.date_naissance),
               bloodType: patient.groupe_sanguin || "—",
-              lastVisit: formatDateShort(rdv.date_heure),
+              lastVisit,
               tension: "—",
-              weight: "—",
-              height: "—",
+              weight: patient.poids_kg ? `${patient.poids_kg} kg` : "—",
+              height: patient.taille_cm ? `${patient.taille_cm} cm` : "—",
               avatar: patient.user?.photo_profil || null,
             });
 
-            // Fetch patient history
             try {
               const histRes = await api.get(`/patients/${patient.id}/historique`);
-              const consultations = histRes.data.data || histRes.data || [];
+              const consultations = histRes.data?.data?.data || histRes.data?.data || [];
               const history = consultations.slice(0, 3).map((c) => ({
                 date: formatDateShort(c.date_heure || c.date),
                 title: c.motif || "Consultation",
-                description: c.diagnostic || "—",
+                description: c.diagnostic || c.notes_medecin || "—",
               }));
               setRecentHistory(history);
             } catch (histErr) {
@@ -160,7 +194,7 @@ export function ConsultationReportNew() {
     };
 
     fetchConsultationData();
-  }, [rdvId, selectedPatientId]);
+  }, [rdvId, selectedPatientId, source]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
