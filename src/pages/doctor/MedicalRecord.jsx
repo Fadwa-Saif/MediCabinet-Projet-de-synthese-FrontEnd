@@ -203,18 +203,26 @@ export function MedicalRecord() {
         const userData = patientRes.data.user || patientRes.data;
         setPatient(userData);
 
-        // Fetch consultations/historique
-        const historiqueRes = await api.get("/rendezvous");
-        const allRdv = historiqueRes.data.data || historiqueRes.data || [];
-        // Filter completed/cancelled appointments for history
-        const pastConsultations = allRdv
-          .filter(
-            (r) =>
-              r.statut?.toLowerCase().includes("terminé") ||
-              r.statut?.toLowerCase().includes("complété") ||
-              new Date(r.date_heure) < new Date(),
-          )
-          .sort((a, b) => new Date(b.date_heure) - new Date(a.date_heure));
+       const historiqueRes = await api.get("/consultations");
+       const allConsultations =
+         historiqueRes.data.data || historiqueRes.data || [];
+       const pastConsultations = allConsultations
+         .map((c) => ({
+           id: c.id,
+           titre: `Consultation du ${new Date(c.date).toLocaleDateString(
+             "fr-FR",
+             {
+               day: "numeric",
+               month: "short",
+               year: "numeric",
+             },
+           )}`,
+           date: c.date,
+           description: c.diagnostic || c.symptomes || "Consultation médicale",
+           medecin_nom: c.medecin_nom || "Médecin",
+           statut: c.statut || "Complétée",
+         }))
+         .sort((a, b) => new Date(b.date) - new Date(a.date));
         setHistorique(pastConsultations);
 
         // Fetch prescriptions

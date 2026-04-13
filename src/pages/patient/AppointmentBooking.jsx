@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
 
@@ -135,11 +135,15 @@ function MiniCalendar({ selectedDate, onSelect, availableDates }) {
 
 export function AppointmentBooking() {
   const navigate = useNavigate();
+  const { id } = useParams(); // Get rendezvous ID from URL if editing
+
+  const isEditMode = Boolean(id); // Check if we're in edit mode
 
   const [creneaux, setCreneaux] = useState([]);
   const [availableDates, setAvailDates] = useState([]);
   const [loadingCreneaux, setLoadingCren] = useState(true);
-  const [adminId, setAdminId] = useState(null); // fetched automatically
+  const [loadingRdv, setLoadingRdv] = useState(isEditMode); // Loading existing data if editing
+  const [adminId, setAdminId] = useState(null);
 
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedCreneau, setSelectedCreneau] = useState("");
@@ -148,8 +152,40 @@ export function AppointmentBooking() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  // ── Fetch the single médecin's admin_id automatically ───────────────────
+  // ── Fetch existing rendezvous data if in edit mode ───────────────────────
   useEffect(() => {
+    const fetchExistingRdv = async () => {
+      if (!isEditMode) return;
+
+      try {
+        setLoadingRdv(true);
+        const res = await api.get(`/rendezvous/${id}`);
+        const rdv = res.data;
+
+        // Extract date and time from date_heure (format: "2024-01-15T09:30:00")
+        const dateHeure = rdv.date_heure;
+        const [datePart, timePart] = dateHeure.split("T");
+        const heure = timePart.substring(0, 5); // "09:30"
+
+        setSelectedDate(datePart);
+        setSelectedCreneau(heure);
+        setMotif(rdv.motif || "");
+        setAdminId(rdv.admin_id);
+      } catch (err) {
+        setError("Impossible de charger les données du rendez-vous.");
+        console.error(err);
+      } finally {
+        setLoadingRdv(false);
+      }
+    };
+
+    fetchExistingRdv();
+  }, [id, isEditMode]);
+
+  // ── Fetch admin_id only if not in edit mode (edit mode gets it from rdv) ─
+  useEffect(() => {
+    if (isEditMode) return; // Skip if editing, adminId comes from existing rdv
+
     const fetchAdminId = async () => {
       try {
         setLoadingCren(true);
@@ -171,7 +207,7 @@ export function AppointmentBooking() {
     };
 
     fetchAdminId();
-  }, []);
+  }, [isEditMode]);
 
   // ── Compute available dates ──────────────────────────────────────────────
   useEffect(() => {
@@ -201,6 +237,13 @@ export function AppointmentBooking() {
 
         const dates = [];
         const today = new Date();
+
+        // If editing, include the currently selected date even if it's in the past
+        // or outside the 45-day window
+        if (isEditMode && selectedDate) {
+          dates.push(selectedDate);
+        }
+
         for (let i = 0; i < 45; i++) {
           const date = new Date(today);
           date.setDate(today.getDate() + i);
@@ -212,13 +255,17 @@ export function AppointmentBooking() {
           if (exceptionDates.has(dateStr)) continue;
           const jsDay = date.getDay();
           const hasDay = weeklyDays.some((d) => dayMap[d] === jsDay);
-          if (hasDay) dates.push(dateStr);
+          if (hasDay && !dates.includes(dateStr)) dates.push(dateStr);
         }
 
         setAvailDates(dates);
-        setSelectedDate("");
-        setSelectedCreneau("");
-        setCreneaux([]);
+
+        // Only reset selection if not in edit mode
+        if (!isEditMode) {
+          setSelectedDate("");
+          setSelectedCreneau("");
+          setCreneaux([]);
+        }
       } catch {
         setError("Impossible de charger les disponibilités du médecin.");
       } finally {
@@ -227,7 +274,7 @@ export function AppointmentBooking() {
     };
 
     fetchAvailableDates();
-  }, [adminId]);
+  }, [adminId, isEditMode, selectedDate]);
 
   // ── Fetch slots for selected date ────────────────────────────────────────
   useEffect(() => {
@@ -245,7 +292,20 @@ export function AppointmentBooking() {
         const slots = Array.isArray(res.data?.creneaux)
           ? res.data.creneaux
           : [];
-        setCreneaux(slots.map((heure) => ({ date: selectedDate, heure })));
+
+        // If editing and the current time slot is not in available slots,
+        // add it so it can be selected
+        const creneauxList = slots.map((heure) => ({
+          date: selectedDate,
+          heure,
+        }));
+
+        if (isEditMode && selectedCreneau && !slots.includes(selectedCreneau)) {
+          creneauxList.push({ date: selectedDate, heure: selectedCreneau });
+          creneauxList.sort((a, b) => a.heure.localeCompare(b.heure));
+        }
+
+        setCreneaux(creneauxList);
       } catch {
         setError("Impossible de charger les créneaux disponibles.");
         setCreneaux([]);
@@ -255,7 +315,7 @@ export function AppointmentBooking() {
     };
 
     fetchSlots();
-  }, [adminId, selectedDate]);
+  }, [adminId, selectedDate, isEditMode, selectedCreneau]);
 
   const creneauxDuJour = creneaux.filter((c) => c.date === selectedDate);
 
@@ -270,34 +330,57 @@ export function AppointmentBooking() {
       setError("Veuillez remplir tous les champs obligatoires.");
       return;
     }
+
     try {
       setSubmitting(true);
       setError(null);
-      await api.post("/rendezvous", {
+
+      const payload = {
         admin_id: Number(adminId),
         date_heure: `${selectedDate}T${selectedCreneau}:00`,
         motif: motif.trim(),
         duree_minutes: 30,
-      });
+      };
+
+      if (isEditMode) {
+        // Update existing rendezvous
+        await api.patch(`/rendezvous/${id}`, payload);
+      } else {
+        // Create new rendezvous
+        await api.post("/rendezvous", payload);
+      }
+
       navigate("/patient/rendezvous");
     } catch (err) {
-      setError(err.response?.data?.message ?? "Erreur lors de la réservation.");
+      setError(
+        err.response?.data?.message ??
+          `Erreur lors de ${isEditMode ? "la modification" : "la réservation"}.`,
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
+  const isLoading = loadingCreneaux || loadingRdv;
+
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <Navbar userRole="patient" pageTitle="Prendre un Rendez-vous">
+    <Navbar
+      userRole="patient"
+      pageTitle={
+        isEditMode ? "Modifier le Rendez-vous" : "Prendre un Rendez-vous"
+      }
+    >
       <main className="pt-24 pb-16 px-4 md:px-8 max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-12">
           <h1 className="text-4xl md:text-5xl font-extrabold font-headline text-on-surface tracking-tight mb-2">
-            Réserver un Rendez-vous
+            {isEditMode ? "Modifier le Rendez-vous" : "Réserver un Rendez-vous"}
           </h1>
           <p className="text-on-surface-variant text-lg">
-            Sélectionnez vos disponibilités pour votre prochaine consultation.
+            {isEditMode
+              ? "Modifiez les détails de votre rendez-vous existant."
+              : "Sélectionnez vos disponibilités pour votre prochaine consultation."}
           </p>
         </div>
 
@@ -323,7 +406,7 @@ export function AppointmentBooking() {
                 </h2>
               </div>
 
-              {loadingCreneaux ? (
+              {isLoading ? (
                 <p className="text-on-surface-variant text-sm animate-pulse">
                   Chargement des disponibilités...
                 </p>
@@ -423,7 +506,11 @@ export function AppointmentBooking() {
             <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/15 shadow-[0_20px_40px_rgba(0,26,65,0.05)] overflow-hidden">
               <div className="signature-gradient p-6 text-white">
                 <h3 className="text-xl font-bold font-headline mb-1">Résumé</h3>
-                <p className="text-white/80 text-sm">Consultation médicale</p>
+                <p className="text-white/80 text-sm">
+                  {isEditMode
+                    ? "Modification de la consultation"
+                    : "Consultation médicale"}
+                </p>
               </div>
 
               <div className="p-6 space-y-6">
@@ -470,15 +557,25 @@ export function AppointmentBooking() {
                   }
                   className="w-full signature-gradient text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all font-headline disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
                 >
-                  {submitting ? "Confirmation..." : "Confirmer le rendez-vous"}
+                  {submitting
+                    ? isEditMode
+                      ? "Modification..."
+                      : "Confirmation..."
+                    : isEditMode
+                      ? "Modifier le rendez-vous"
+                      : "Confirmer le rendez-vous"}
                 </button>
 
                 <p className="text-center text-xs text-on-surface-variant px-4">
-                  En confirmant, vous acceptez nos{" "}
-                  <span className="text-primary underline cursor-pointer">
-                    conditions d'utilisation
-                  </span>
-                  .
+                  {isEditMode
+                    ? "En confirmant, vous modifiez votre rendez-vous existant."
+                    : "En confirmant, vous acceptez nos "}
+                  {!isEditMode && (
+                    <span className="text-primary underline cursor-pointer">
+                      conditions d'utilisation
+                    </span>
+                  )}
+                  {!isEditMode && "."}
                 </p>
 
                 <button
