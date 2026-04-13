@@ -19,6 +19,8 @@ import {
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
 
+
+
 const quickActions = [
   { label: "Ordonnance", icon: Pill },
   { label: "Envoyer", icon: Mail },
@@ -64,6 +66,27 @@ export function ConsultationReportNew() {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // After the existing useState declarations
+  const [analysesList, setAnalysesList] = useState([]); // analyses to prescribe
+
+  // Add after the existing analysesList state
+  const [savedAnalyses, setSavedAnalyses] = useState([]);
+  const [consultationId, setConsultationId] = useState(null); // track saved consultation
+
+  const addAnalyse = () =>
+    setAnalysesList((prev) => [
+      ...prev,
+      { type_analyse: "", commentaire_medecin: "" },
+    ]);
+
+  const removeAnalyse = (idx) =>
+    setAnalysesList((prev) => prev.filter((_, i) => i !== idx));
+
+  const updateAnalyse = (idx, field, value) =>
+    setAnalysesList((prev) =>
+      prev.map((a, i) => (i === idx ? { ...a, [field]: value } : a)),
+    );
+
   useEffect(() => {
     const fetchConsultationData = async () => {
       try {
@@ -74,10 +97,11 @@ export function ConsultationReportNew() {
         if (rdvId && rdvId !== "new") {
           const rdvRes = await api.get(`/rendezvous/${rdvId}`);
           const rdv = rdvRes.data.data || rdvRes.data;
-          
+
           if (rdv && rdv.patient) {
             const patient = rdv.patient;
             setPatientData({
+              id: patient.id,
               name: `${patient.user?.prenom || ""} ${patient.user?.nom || ""}`.trim(),
               age: calculateAge(patient.date_naissance),
               bloodType: patient.groupe_sanguin || "—",
@@ -90,14 +114,20 @@ export function ConsultationReportNew() {
 
             // Fetch patient history
             try {
-              const histRes = await api.get(`/patients/${patient.id}/historique`);
-              const consultations = histRes.data.data || histRes.data || [];
-              const history = consultations.slice(0, 3).map((c) => ({
-                date: formatDateShort(c.date_heure || c.date),
-                title: c.motif || "Consultation",
-                description: c.diagnostic || "—",
-              }));
-              setRecentHistory(history);
+              const consultRes = await api.get("/consultations");
+              const all = consultRes.data.data || consultRes.data || [];
+              const existing = all.find(
+                (c) => String(c.rdv_id) === String(rdvId),
+              );
+              if (existing) {
+                setConsultationId(existing.id);
+                const analysesRes = await api.get(
+                  `/consultations/${existing.id}/analyses`,
+                );
+                setSavedAnalyses(
+                  analysesRes.data.data || analysesRes.data || [],
+                );
+              }
             } catch (histErr) {
               console.warn("Failed to fetch patient history:", histErr);
               setRecentHistory([]);
@@ -106,7 +136,10 @@ export function ConsultationReportNew() {
         }
       } catch (err) {
         console.error("Consultation data fetch error:", err);
-        setError(err.response?.data?.message || "Erreur lors du chargement des données.");
+        setError(
+          err.response?.data?.message ||
+            "Erreur lors du chargement des données.",
+        );
       } finally {
         setLoading(false);
       }
@@ -117,30 +150,55 @@ export function ConsultationReportNew() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!formData.diagnosis.trim()) {
       setError("Veuillez indiquer un diagnostic.");
       return;
     }
-
     setSubmitting(true);
     setError(null);
 
     try {
-      await api.post("/consultations", {
-        rendezvous_id: rdvId === "new" ? null : rdvId,
-        patient_id: patientData?.id || 1, // TODO: Replace hardcoded 1 with selected patient if needed
+      // ── 1. Save consultation ──────────────────────────────
+      const res = await api.post("/consultations", {
+        rdv_id: rdvId === "new" ? null : rdvId,
+        patient_id: patientData?.id,
+        date: new Date().toISOString().slice(0, 19).replace("T", " "),
         diagnostic: formData.diagnosis,
-        traitement: formData.treatment,
-        notes: formData.notes,
-        ordonnance: formData.prescription,
+        symptomes: formData.treatment,
+        notes_medecin: formData.notes,
       });
+
+      const consultationId = res.data?.data?.id ?? res.data?.id;
+
+      // ── 2. Create ordonnance if prescription is filled ────
+      if (formData.prescription.trim()) {
+        await api.post("/ordonnances", {
+          consultation_id: consultationId,
+          // admin_id resolved server-side from auth token (recommended)
+          // if your backend requires it from frontend, add: admin_id: patientData?.adminId
+          date: new Date().toISOString().split("T")[0], // "2024-01-15"
+          instructions: formData.prescription,
+        });
+      }
+
+      // ── 3. Create prescribed analyses ────────────────────
+      const analysePromises = analysesList
+        .filter((a) => a.type_analyse)
+        .map((a) =>
+          api.post("/analyses/prescrire", {
+            consultation_id: consultationId,
+            type_analyse: a.type_analyse,
+            notes_medecin: a.commentaire_medecin, // ← matches controller field name
+          }),
+        );
+      await Promise.all(analysePromises);
 
       navigate("/medecin/dashboard");
     } catch (err) {
+      console.error("Errors:", err.response?.data?.errors);
       setError(
         err.response?.data?.message ||
-          "Erreur lors de la création de la consultation."
+          "Erreur lors de la création de la consultation.",
       );
     } finally {
       setSubmitting(false);
@@ -344,7 +402,8 @@ export function ConsultationReportNew() {
                     value={formData.prescription}
                     onChange={updateField("prescription")}
                     rows={4}
-                    placeholder="Precisez l'ordonnance medicale..."
+                    placeholder="Instructions de l'ordonnance (posologie générale, consignes...)
+Ex: Prendre le médicament après les repas, éviter l'alcool..."
                     className="min-h-[110px] w-full resize-none bg-transparent text-slate-900 outline-none placeholder:text-slate-400"
                   />
                 </div>
@@ -374,6 +433,149 @@ export function ConsultationReportNew() {
                   />
                 </div>
               </div>
+              {/* ── Analyses ─────────────────────────────────────── */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+                    <FlaskConical className="h-4 w-4" />
+                    Analyses à prescrire
+                  </label>
+                  <button
+                    type="button"
+                    onClick={addAnalyse}
+                    className="text-sm text-blue-600 hover:underline font-semibold"
+                  >
+                    + Ajouter
+                  </button>
+                </div>
+
+                {/* Already saved analyses for this consultation */}
+                {savedAnalyses.length > 0 && (
+                  <div className="space-y-2 mb-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Prescrites ({savedAnalyses.length})
+                    </p>
+                    {savedAnalyses.map((a) => {
+                      const hasFichier = !!a.fichier;
+                      const typeLabel = [
+                        {
+                          value: "blood",
+                          label: "Analyse Sanguine",
+                          icon: "🩸",
+                        },
+                        {
+                          value: "urine",
+                          label: "Analyse d'Urine",
+                          icon: "💧",
+                        },
+                        {
+                          value: "imaging",
+                          label: "Imagerie Médicale",
+                          icon: "🩻",
+                        },
+                        { value: "biopsy", label: "Biopsie", icon: "🔬" },
+                        {
+                          value: "genetic",
+                          label: "Test Génétique",
+                          icon: "🧬",
+                        },
+                        { value: "other", label: "Autre", icon: "📋" },
+                      ].find((t) => t.value === a.type_analyse);
+
+                      return (
+                        <div
+                          key={a.id}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">
+                              {typeLabel?.icon || "📋"}
+                            </span>
+                            <div>
+                              <p className="text-sm font-semibold text-slate-800">
+                                {typeLabel?.label ||
+                                  a.type_analyse ||
+                                  `Analyse #${a.id}`}
+                              </p>
+                              {a.commentaire_medecin && (
+                                <p className="text-xs text-slate-500">
+                                  {a.commentaire_medecin}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          {hasFichier ? (
+                            <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold shrink-0">
+                              ✓ Résultat reçu
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold shrink-0">
+                              ⏳ En attente
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* New analyses to add */}
+                {analysesList.length === 0 && savedAnalyses.length === 0 && (
+                  <p className="text-sm text-slate-400 italic">
+                    Aucune analyse prescrite pour cette consultation.
+                  </p>
+                )}
+
+                {analysesList.map((a, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-slate-700">
+                        Nouvelle analyse #{idx + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeAnalyse(idx)}
+                        className="text-red-400 hover:text-red-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <select
+                      value={a.type_analyse}
+                      onChange={(e) =>
+                        updateAnalyse(idx, "type_analyse", e.target.value)
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none"
+                    >
+                      <option value="">-- Type d'analyse --</option>
+                      <option value="blood"> Analyse Sanguine</option>
+                      <option value="urine"> Analyse d'Urine</option>
+                      <option value="imaging"> Imagerie Médicale</option>
+                      <option value="biopsy">Biopsie</option>
+                      <option value="genetic"> Test Génétique</option>
+                      <option value="other"> Autre</option>
+                    </select>
+
+                    <input
+                      type="text"
+                      value={a.commentaire_medecin}
+                      onChange={(e) =>
+                        updateAnalyse(
+                          idx,
+                          "commentaire_medecin",
+                          e.target.value,
+                        )
+                      }
+                      placeholder="Note pour le patient (optionnel)"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+                ))}
+              </div>
 
               <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row">
                 <button
@@ -382,7 +584,9 @@ export function ConsultationReportNew() {
                   className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-4 font-semibold text-white shadow-lg shadow-blue-200 transition hover:scale-[1.01] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className="h-5 w-5" />
-                  {submitting ? "Enregistrement..." : "Enregistrer la consultation"}
+                  {submitting
+                    ? "Enregistrement..."
+                    : "Enregistrer la consultation"}
                 </button>
                 <button
                   type="button"
@@ -408,14 +612,13 @@ export function ConsultationReportNew() {
                 {loading ? (
                   <div className="animate-pulse space-y-3">
                     {[1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        className="h-24 rounded-2xl bg-slate-200"
-                      />
+                      <div key={i} className="h-24 rounded-2xl bg-slate-200" />
                     ))}
                   </div>
                 ) : recentHistory.length === 0 ? (
-                  <p className="text-sm text-slate-600">Aucun historique disponible.</p>
+                  <p className="text-sm text-slate-600">
+                    Aucun historique disponible.
+                  </p>
                 ) : (
                   <div className="space-y-4">
                     {recentHistory.map((item, idx) => (

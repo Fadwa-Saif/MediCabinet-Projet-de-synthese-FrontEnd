@@ -24,8 +24,8 @@ const isUpcoming = (dateStr) =>
 // Valeurs exactes de l'enum Laravel : en_attente | confirme | annule | termine
 
 const STATUS_STYLES = {
-  en_attente: "bg-tertiary-fixed text-on-tertiary-fixed",
-  confirme: "bg-primary-fixed text-on-primary-fixed",
+  en_attente: "bg-amber-100 text-amber-800",
+  confirme: "bg-green-100 text-green-800",
   annule: "bg-error-container text-on-error-container",
   termine: "bg-surface-container-highest text-on-surface-variant",
 };

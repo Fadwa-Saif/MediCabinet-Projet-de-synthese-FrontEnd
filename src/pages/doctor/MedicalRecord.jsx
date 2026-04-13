@@ -195,6 +195,8 @@ export function MedicalRecord() {
   useEffect(() => {
     const fetchMedicalRecord = async () => {
       try {
+        
+
         setLoading(true);
         setError(null);
 
@@ -236,9 +238,19 @@ export function MedicalRecord() {
 
         // Fetch analyses
         try {
-          // Try to fetch from consultation analyses endpoint
           const analysesRes = await api.get("/analyses");
-          setAnalyses(analysesRes.data.data || analysesRes.data || []);
+          const rawAnalyses = analysesRes.data.data || analysesRes.data || [];
+          setAnalyses(
+            rawAnalyses.map((a) => ({
+              id: a.id,
+              titre: a.type_analyse || `Analyse #${a.id}`,
+              date: a.created_at,
+              description: a.commentaire_medecin || a.description || "",
+              statut: a.fichier ? "Résultat reçu" : "En attente",
+              fichier: a.fichier ?? null,
+              consultation_id: a.consultation_id,
+            })),
+          );
         } catch (err) {
           console.warn("Failed to fetch analyses:", err);
           setAnalyses([]);
@@ -415,9 +427,7 @@ export function MedicalRecord() {
               <InfoCard
                 label="Dernière consultation"
                 value={
-                  historique[0]
-                    ? formatDate(historique[0].date_heure)
-                    : "Aucune"
+                  historique[0] ? formatDate(historique[0].date) : "Aucune"
                 }
                 icon={FileText}
               />
@@ -441,11 +451,7 @@ export function MedicalRecord() {
               />
               <TabButton
                 active={activeTab === "analyses"}
-                onClick={() => {if (activeTab === "analyses") {
-    if (item.fichier_url) {
-      window.open(item.fichier_url, "_blank");
-    }
-    return;}}}
+                onClick={() => setActiveTab("analyses")}
                 icon={FlaskConical}
                 label="Analyses"
                 count={analyses.length}
@@ -524,11 +530,18 @@ export function MedicalRecord() {
                   key={item.id}
                   item={item}
                   type={activeTab}
+                  // In the RecordCard onClick inside the tabData.map:
                   onClick={() => {
                     if (activeTab === "prescriptions") {
                       navigate(`/patient/ordonnances/${item.id}`);
                     } else if (activeTab === "analyses") {
-                      navigate(`/patient/analyses/${item.id}`);
+                      if (!item.fichier) {
+                        navigate(
+                          `/patient/analyses/upload?prescribedId=${item.id}`,
+                        );
+                      } else {
+                        navigate(`/patient/analyses/${item.id}`);
+                      }
                     } else {
                       navigate(`/patient/rendezvous/${item.id}`);
                     }
