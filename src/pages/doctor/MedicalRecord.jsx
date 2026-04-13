@@ -441,7 +441,11 @@ export function MedicalRecord() {
               />
               <TabButton
                 active={activeTab === "analyses"}
-                onClick={() => setActiveTab("analyses")}
+                onClick={() => {if (activeTab === "analyses") {
+    if (item.fichier_url) {
+      window.open(item.fichier_url, "_blank");
+    }
+    return;}}}
                 icon={FlaskConical}
                 label="Analyses"
                 count={analyses.length}

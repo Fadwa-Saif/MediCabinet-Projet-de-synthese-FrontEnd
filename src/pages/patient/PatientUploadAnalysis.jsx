@@ -28,7 +28,10 @@ const ANALYSIS_TYPES = [
   { value: "other", label: "Autre", icon: "📋" },
 ];
 
-// ─── Form Input Component ───────────────────────────────────────────────────
+const MAX_FILE_MB = 10;
+const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
+
+// ─── Form Field ─────────────────────────────────────────────────────────────
 
 const FormField = ({ label, icon: Icon, children, error }) => (
   <div className="mb-6">
@@ -46,7 +49,7 @@ const FormField = ({ label, icon: Icon, children, error }) => (
   </div>
 );
 
-// ─── File Preview Component ─────────────────────────────────────────────────
+// ─── File Preview ────────────────────────────────────────────────────────────
 
 const FilePreview = ({ file, onRemove }) => {
   const isImage = file.type.startsWith("image/");
@@ -84,20 +87,20 @@ const FilePreview = ({ file, onRemove }) => {
   );
 };
 
-// ─── Main Component ─────────────────────────────────────────────────────────
+// ─── Main Component ──────────────────────────────────────────────────────────
 
 export function PatientUploadAnalysis() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
-    analysisType: "",
-    laboratory: "",
-    analysisDate: "",
-    resultDate: "",
-    comment: "",
-    isUrgent: false,
-    consultationId: "", // Optional: link to existing consultation
+    type_analyse: "", // ← was "analysisType"
+    laboratoire: "",
+    date_analyse: "",
+    date_resultat: "",
+    commentaire_patient: "", // ← was "comment"
+    is_urgent: false,
+    consultation_id: "",
   });
 
   const [uploadedFile, setUploadedFile] = useState(null);
@@ -106,19 +109,18 @@ export function PatientUploadAnalysis() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
 
+  // ── Handlers ──────────────────────────────────────────────────────────
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-    // Clear error when user starts typing
     if (error) setError(null);
   };
 
   const handleFileSelect = (file) => {
-    // Validate file
-    const maxSize = 10 * 1024 * 1024; // 10MB
     const allowedTypes = [
       "image/jpeg",
       "image/png",
@@ -129,11 +131,10 @@ export function PatientUploadAnalysis() {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
 
-    if (file.size > maxSize) {
-      setError("Le fichier ne doit pas dépasser 10 Mo");
+    if (file.size > MAX_FILE_BYTES) {
+      setError(`Le fichier ne doit pas dépasser ${MAX_FILE_MB} Mo`);
       return;
     }
-
     if (!allowedTypes.includes(file.type)) {
       setError("Format accepté : PDF, JPG, PNG, GIF, WEBP, DOC, DOCX");
       return;
@@ -144,25 +145,22 @@ export function PatientUploadAnalysis() {
   };
 
   const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (file) handleFileSelect(file);
+    const f = e.target.files?.[0];
+    if (f) handleFileSelect(f);
   };
-
   const handleDragOver = (e) => {
     e.preventDefault();
     setIsDragging(true);
   };
-
   const handleDragLeave = (e) => {
     e.preventDefault();
     setIsDragging(false);
   };
-
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) handleFileSelect(file);
+    const f = e.dataTransfer.files?.[0];
+    if (f) handleFileSelect(f);
   };
 
   const handleRemoveFile = () => {
@@ -170,14 +168,18 @@ export function PatientUploadAnalysis() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  // ── Validation ────────────────────────────────────────────────────────
+
   const validateForm = () => {
-    if (!formData.analysisType)
+    if (!formData.type_analyse)
       return "Veuillez sélectionner le type d'analyse";
-    if (!formData.laboratory.trim()) return "Veuillez indiquer le laboratoire";
-    if (!formData.analysisDate) return "Veuillez indiquer la date de l'analyse";
+    if (!formData.laboratoire.trim()) return "Veuillez indiquer le laboratoire";
+    if (!formData.date_analyse) return "Veuillez indiquer la date de l'analyse";
     if (!uploadedFile) return "Veuillez joindre un fichier";
     return null;
   };
+
+  // ── Submit ────────────────────────────────────────────────────────────
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -192,35 +194,26 @@ export function PatientUploadAnalysis() {
     setError(null);
 
     try {
-      // Create FormData for multipart upload
+      // Build multipart payload — field names must match the backend's validate() keys
       const submitData = new FormData();
       submitData.append("fichier", uploadedFile);
-      submitData.append("type", formData.analysisType);
-      submitData.append("laboratoire", formData.laboratory);
-      submitData.append("date_analyse", formData.analysisDate);
+      submitData.append("type_analyse", formData.type_analyse); // ← fixed
+      submitData.append("laboratoire", formData.laboratoire);
+      submitData.append("date_analyse", formData.date_analyse);
       submitData.append(
         "date_resultat",
-        formData.resultDate || formData.analysisDate,
+        formData.date_resultat || formData.date_analyse,
       );
-      submitData.append("commentaire", formData.comment);
-      submitData.append("is_urgent", formData.isUrgent ? "1" : "0");
-      if (formData.consultationId) {
-        submitData.append("consultation_id", formData.consultationId);
+      submitData.append("commentaire_patient", formData.commentaire_patient); // ← fixed
+      submitData.append("is_urgent", formData.is_urgent ? "1" : "0");
+      if (formData.consultation_id) {
+        submitData.append("consultation_id", formData.consultation_id);
       }
 
-      // API call to upload analysis
-      await api.post("/analyses", submitData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      await api.post("/analyses", submitData);
 
       setSuccess(true);
-
-      // Reset form after short delay
-      setTimeout(() => {
-        navigate("/patient/analyses");
-      }, 2000);
+      setTimeout(() => navigate("/patient/dossier"), 2000);
     } catch (err) {
       console.error("Upload error:", err);
       setError(
@@ -233,13 +226,12 @@ export function PatientUploadAnalysis() {
     }
   };
 
-  const handleCancel = () => {
-    navigate("/patient/analyses");
-  };
-
+  const handleCancel = () => navigate("/patient/analyses");
   const selectedType = ANALYSIS_TYPES.find(
-    (t) => t.value === formData.analysisType,
+    (t) => t.value === formData.type_analyse,
   );
+
+  // ── Render ────────────────────────────────────────────────────────────
 
   return (
     <Navbar userRole="patient" pageTitle="Envoyer une Analyse">
@@ -258,7 +250,7 @@ export function PatientUploadAnalysis() {
           </p>
         </header>
 
-        {/* Success Message */}
+        {/* Success Banner */}
         {success && (
           <div className="mb-6 p-4 rounded-xl bg-primary-fixed text-on-primary-fixed font-medium flex items-center gap-3 border border-primary/20 animate-in slide-in-from-top-2">
             <CheckCircle2 size={24} />
@@ -271,7 +263,7 @@ export function PatientUploadAnalysis() {
           </div>
         )}
 
-        {/* Error Message */}
+        {/* Error Banner */}
         {error && !success && (
           <div className="mb-6 p-4 rounded-xl bg-error-container text-on-error-container font-medium flex items-center gap-3 border border-error/20">
             <AlertCircle size={24} />
@@ -280,13 +272,10 @@ export function PatientUploadAnalysis() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Main Card */}
+          {/* ── Info Card ──────────────────────────────────────────────── */}
           <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/20 overflow-hidden">
-            {/* Card Header */}
             <div className="h-1 bg-primary-container" />
-
             <div className="p-6 lg:p-8">
-              {/* Section Title */}
               <div className="flex items-center gap-3 mb-8">
                 <div className="w-10 h-10 rounded-xl bg-primary-container flex items-center justify-center text-primary">
                   <Cloud size={20} />
@@ -296,25 +285,20 @@ export function PatientUploadAnalysis() {
                 </h2>
               </div>
 
-              {/* Form Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
                 {/* Type d'analyse */}
-                <FormField
-                  label="Type d'analyse"
-                  icon={Microscope}
-                  error={error && !formData.analysisType ? error : null}
-                >
+                <FormField label="Type d'analyse" icon={Microscope}>
                   <div className="relative">
                     <select
-                      name="analysisType"
-                      value={formData.analysisType}
+                      name="type_analyse"
+                      value={formData.type_analyse}
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 bg-surface-container-low border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all appearance-none cursor-pointer"
                     >
                       <option value="">Sélectionner le type</option>
-                      {ANALYSIS_TYPES.map((type) => (
-                        <option key={type.value} value={type.value}>
-                          {type.icon} {type.label}
+                      {ANALYSIS_TYPES.map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.icon} {t.label}
                         </option>
                       ))}
                     </select>
@@ -344,15 +328,11 @@ export function PatientUploadAnalysis() {
                 </FormField>
 
                 {/* Laboratoire */}
-                <FormField
-                  label="Laboratoire"
-                  icon={Building2}
-                  error={error && !formData.laboratory ? error : null}
-                >
+                <FormField label="Laboratoire" icon={Building2}>
                   <input
                     type="text"
-                    name="laboratory"
-                    value={formData.laboratory}
+                    name="laboratoire"
+                    value={formData.laboratoire}
                     onChange={handleInputChange}
                     placeholder="Nom du laboratoire"
                     className="w-full px-4 py-3 bg-surface-container-low border border-outline-variant rounded-xl text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
@@ -360,15 +340,11 @@ export function PatientUploadAnalysis() {
                 </FormField>
 
                 {/* Date de l'analyse */}
-                <FormField
-                  label="Date de l'analyse"
-                  icon={Calendar}
-                  error={error && !formData.analysisDate ? error : null}
-                >
+                <FormField label="Date de l'analyse" icon={Calendar}>
                   <input
                     type="date"
-                    name="analysisDate"
-                    value={formData.analysisDate}
+                    name="date_analyse"
+                    value={formData.date_analyse}
                     onChange={handleInputChange}
                     max={new Date().toISOString().split("T")[0]}
                     className="w-full px-4 py-3 bg-surface-container-low border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
@@ -379,8 +355,8 @@ export function PatientUploadAnalysis() {
                 <FormField label="Date du résultat (optionnel)" icon={Calendar}>
                   <input
                     type="date"
-                    name="resultDate"
-                    value={formData.resultDate}
+                    name="date_resultat"
+                    value={formData.date_resultat}
                     onChange={handleInputChange}
                     max={new Date().toISOString().split("T")[0]}
                     className="w-full px-4 py-3 bg-surface-container-low border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
@@ -388,15 +364,11 @@ export function PatientUploadAnalysis() {
                 </FormField>
               </div>
 
-              {/* Commentaire - Full width */}
-              <FormField
-                label="Commentaire (optionnel)"
-                icon={MessageSquare}
-                className="mt-6"
-              >
+              {/* Commentaire */}
+              <FormField label="Commentaire (optionnel)" icon={MessageSquare}>
                 <textarea
-                  name="comment"
-                  value={formData.comment}
+                  name="commentaire_patient"
+                  value={formData.commentaire_patient}
                   onChange={handleInputChange}
                   placeholder="Ajoutez des précisions utiles pour votre médecin..."
                   rows={4}
@@ -404,12 +376,12 @@ export function PatientUploadAnalysis() {
                 />
               </FormField>
 
-              {/* Urgent Checkbox */}
+              {/* Urgent */}
               <div className="mt-6 flex items-center gap-3 p-4 bg-tertiary-container/10 rounded-xl border border-tertiary/20">
                 <input
                   type="checkbox"
-                  name="isUrgent"
-                  checked={formData.isUrgent}
+                  name="is_urgent"
+                  checked={formData.is_urgent}
                   onChange={handleInputChange}
                   id="urgent"
                   className="w-5 h-5 rounded border-2 border-tertiary text-tertiary focus:ring-tertiary/30 cursor-pointer"
@@ -430,10 +402,9 @@ export function PatientUploadAnalysis() {
             </div>
           </div>
 
-          {/* File Upload Card */}
+          {/* ── File Upload Card ────────────────────────────────────────── */}
           <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/20 overflow-hidden">
             <div className="p-6 lg:p-8">
-              {/* Section Title */}
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-secondary-container flex items-center justify-center text-secondary">
                   <Upload size={20} />
@@ -443,7 +414,6 @@ export function PatientUploadAnalysis() {
                 </h2>
               </div>
 
-              {/* File Upload Zone */}
               {!uploadedFile ? (
                 <div
                   onDragOver={handleDragOver}
@@ -462,7 +432,6 @@ export function PatientUploadAnalysis() {
                     accept="image/*,.pdf,.doc,.docx"
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
-
                   <div className="pointer-events-none">
                     <div
                       className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center transition-colors ${
@@ -473,23 +442,20 @@ export function PatientUploadAnalysis() {
                     >
                       <Cloud size={32} />
                     </div>
-
                     <p className="font-headline font-semibold text-lg text-on-surface mb-2">
                       {isDragging
                         ? "Déposez le fichier ici"
                         : "Glissez votre fichier ici"}
                     </p>
                     <p className="text-on-surface-variant mb-4">ou</p>
-
                     <button
                       type="button"
                       className="inline-flex items-center gap-2 px-6 py-3 bg-surface-container-high hover:bg-secondary-container text-secondary hover:text-on-secondary-container rounded-xl font-medium transition-colors border border-outline-variant"
                     >
                       Parcourir les fichiers
                     </button>
-
                     <p className="text-xs text-outline mt-4">
-                      PDF, JPG, PNG, GIF, WEBP — Max 10 Mo
+                      PDF, JPG, PNG, GIF, WEBP, DOC, DOCX — Max {MAX_FILE_MB} Mo
                     </p>
                   </div>
                 </div>
@@ -500,7 +466,7 @@ export function PatientUploadAnalysis() {
               {/* Divider */}
               <div className="relative my-8">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-outline-variant"></div>
+                  <div className="w-full border-t border-outline-variant" />
                 </div>
                 <div className="relative flex justify-center">
                   <span className="px-4 bg-surface-container-lowest text-sm text-outline">
@@ -509,7 +475,7 @@ export function PatientUploadAnalysis() {
                 </div>
               </div>
 
-              {/* Camera Button */}
+              {/* Camera */}
               <div className="text-center">
                 <button
                   type="button"
@@ -525,7 +491,7 @@ export function PatientUploadAnalysis() {
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* ── Actions ─────────────────────────────────────────────────── */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
             <button
               type="button"
@@ -566,16 +532,6 @@ export function PatientUploadAnalysis() {
           </div>
         </form>
       </main>
-
-      {/* Material Icons Styles */}
-      <style>{`
-        .material-symbols-outlined {
-          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-        .signature-gradient {
-          background: linear-gradient(135deg, #0059bb 0%, #0070ea 100%);
-        }
-      `}</style>
     </Navbar>
   );
 }
