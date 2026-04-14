@@ -12,7 +12,7 @@ export function SecretaryAppointmentAdd() {
 
   // Data for selection
   const [patients, setPatients] = useState([]);
-  const [doctors, setDoctors] = useState([]);
+  const [doctor, setDoctor] = useState(null);
   const [slots, setSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
@@ -33,10 +33,19 @@ export function SecretaryAppointmentAdd() {
           api.get("/admin/admins"),
         ]);
         setPatients(patientsRes.data.data || patientsRes.data || []);
-        setDoctors((adminsRes.data || []).filter(admin => admin.role === "medecin"));
+        const medecins = (adminsRes.data || []).filter((admin) => admin.role === "medecin");
+
+        if (medecins.length === 0) {
+          setError("Aucun médecin n'est disponible pour créer un rendez-vous.");
+          return;
+        }
+
+        const uniqueDoctor = medecins[0];
+        setDoctor(uniqueDoctor);
+        setFormData((prev) => ({ ...prev, admin_id: uniqueDoctor.id }));
       } catch (err) {
         console.error("Failed to fetch form data", err);
-        setError("Impossible de charger les listes de patients ou de médecins.");
+        setError("Impossible de charger les listes de patients ou le médecin du cabinet.");
       }
     };
     fetchData();
@@ -49,7 +58,25 @@ export function SecretaryAppointmentAdd() {
         setLoadingSlots(true);
         try {
           const res = await api.get(`/rendezvous/creneaux?admin_id=${formData.admin_id}&date=${formData.date}`);
-          setSlots(res.data.creneaux || []);
+          const normalizedSlots = (res.data.creneaux || [])
+            .map((slot, index) => {
+              if (typeof slot === "string") {
+                return {
+                  id: `${slot}-${index}`,
+                  heure: slot,
+                  disponible: true,
+                };
+              }
+
+              return {
+                id: slot.id || `${slot.heure || "slot"}-${index}`,
+                heure: slot.heure || "",
+                disponible: slot.disponible ?? true,
+              };
+            })
+            .filter((slot) => Boolean(slot.heure));
+
+          setSlots(normalizedSlots);
         } catch (err) {
           console.error("Failed to fetch slots", err);
           setSlots([]);
@@ -63,13 +90,22 @@ export function SecretaryAppointmentAdd() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === "date" ? { time: "" } : {}),
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.time) {
       setError("Veuillez sélectionner un créneau horaire.");
+      return;
+    }
+
+    if (!formData.admin_id) {
+      setError("Le médecin du cabinet n'a pas pu être déterminé.");
       return;
     }
 
@@ -167,25 +203,17 @@ export function SecretaryAppointmentAdd() {
                 <section>
                   <div className="flex items-center gap-2 mb-6">
                     <User className="text-indigo-600" size={20} />
-                    <h2 className="text-lg font-bold text-slate-900">Médecin & Date</h2>
+                    <h2 className="text-lg font-bold text-slate-900">Médecin du cabinet & Date</h2>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Médecin</label>
-                      <select
-                        required
-                        name="admin_id"
-                        value={formData.admin_id}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
-                      >
-                        <option value="">Choisir un médecin...</option>
-                        {doctors.map((d) => (
-                          <option key={d.id} value={d.id}>
-                            Dr. {d.user?.prenom} {d.user?.nom}
-                          </option>
-                        ))}
-                      </select>
+                  <div className="space-y-4">
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                      {doctor ? (
+                        <>
+                          Médecin attribué: <span className="font-bold">Dr. {doctor.user?.prenom} {doctor.user?.nom}</span>
+                        </>
+                      ) : (
+                        "Chargement du médecin du cabinet..."
+                      )}
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Date</label>
@@ -231,7 +259,7 @@ export function SecretaryAppointmentAdd() {
                 {!formData.admin_id || !formData.date ? (
                   <div className="flex flex-col items-center justify-center h-64 text-center text-slate-400 p-4">
                     <Calendar size={48} className="mb-4 opacity-20" />
-                    <p className="text-sm font-medium">Sélectionnez un médecin et une date pour voir les disponibilités</p>
+                    <p className="text-sm font-medium">Sélectionnez une date pour voir les disponibilités</p>
                   </div>
                 ) : loadingSlots ? (
                   <div className="flex items-center justify-center h-64">
@@ -241,13 +269,13 @@ export function SecretaryAppointmentAdd() {
                   <div className="flex flex-col items-center justify-center h-64 text-center text-slate-500 p-4 bg-slate-50 rounded-2xl">
                     <AlertCircle size={32} className="mb-2 text-slate-400" />
                     <p className="text-sm font-bold">Aucune disponibilité</p>
-                    <p className="text-xs">Dr. peut ne pas avoir défini de planning pour ce jour.</p>
+                    <p className="text-xs">Le médecin du cabinet n'a peut-être pas défini de planning pour ce jour.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-3">
                     {slots.map((s) => (
                       <button
-                        key={s.heure}
+                        key={s.id}
                         type="button"
                         disabled={!s.disponible}
                         onClick={() => setFormData(prev => ({ ...prev, time: s.heure }))}
