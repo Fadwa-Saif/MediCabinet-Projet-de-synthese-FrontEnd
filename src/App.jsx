@@ -13,6 +13,7 @@ import { AppointmentBooking as PatientAppointmentBooking } from "./pages/patient
 import { PatientConsultationsList } from "./pages/patient/PatientConsultationsList";
 import { PatientUploadAnalysis } from "./pages/patient/PatientUploadAnalysis";
 import { PatientConsultationDetails } from "./pages/patient/PatientConsultationsDetails";
+import { AnalysisDetails } from "./pages/patient/AnalysisDetails"; // ← new
 
 // Doctor Pages
 import { DoctorDashboard } from "./pages/doctor/DoctorDashboard";
@@ -21,6 +22,7 @@ import { ConsultationReportNew } from "./pages/doctor/ConsultationReportNew";
 import { DoctorPatients } from "./pages/doctor/DoctorPatients";
 import { DoctorReports } from "./pages/doctor/DoctorReports";
 import { MedicalRecord } from "./pages/doctor/MedicalRecord";
+import { DoctorAnalysisDetails } from "./pages/doctor/DoctorAnalysisDetails";
 
 // Secretary Pages
 import { SecretaireDashboard } from "./pages/secretary/SecretaireDashboard";
@@ -37,6 +39,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/inscription" element={<InscriptionPage />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
+
           {/* Patient routes - protected, role: patient */}
           <Route
             path="/patient/dashboard"
@@ -90,6 +93,27 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* ── Analyses ──────────────────────────────────────────────── */}
+          {/* Upload / pending list — must come BEFORE the :id route */}
+          <Route
+            path="/patient/analyses/upload"
+            element={
+              <ProtectedRoute requiredRole="patient">
+                <PatientUploadAnalysis />
+              </ProtectedRoute>
+            }
+          />
+          {/* Detail page for a single analysis */}
+          <Route
+            path="/patient/analyses/:id"
+            element={
+              <ProtectedRoute requiredRole="patient">
+                <AnalysisDetails />
+              </ProtectedRoute>
+            }
+          />
+          {/* Legacy catch-all for /patient/analyses → upload form */}
           <Route
             path="/patient/analyses"
             element={
@@ -98,6 +122,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
           {/* Doctor (médecin) routes - protected, role: medecin */}
           <Route
             path="/medecin/dashboard"
@@ -147,6 +172,15 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/medecin/analyses/:id"
+            element={
+              <ProtectedRoute requiredRole="medecin">
+                <DoctorAnalysisDetails />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Secretary (secrétaire) routes - protected, role: secretaire */}
           <Route
             path="/secretaire/dashboard"
@@ -180,6 +214,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
           {/* Catch-all - redirect to login */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
