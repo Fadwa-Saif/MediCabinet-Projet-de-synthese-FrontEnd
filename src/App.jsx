@@ -12,6 +12,8 @@ import { PatientAppointmentsList } from "./pages/patient/PatientAppointmentsList
 import { AppointmentBooking as PatientAppointmentBooking } from "./pages/patient/AppointmentBooking";
 import { PatientConsultationsList } from "./pages/patient/PatientConsultationsList";
 import { PatientUploadAnalysis } from "./pages/patient/PatientUploadAnalysis";
+import { PatientConsultationDetails } from "./pages/patient/PatientConsultationsDetails";
+import { AnalysisDetails } from "./pages/patient/AnalysisDetails"; // ← new
 
 // Doctor Pages
 import { DoctorDashboard } from "./pages/doctor/DoctorDashboard";
@@ -20,6 +22,7 @@ import { ConsultationReportNew } from "./pages/doctor/ConsultationReportNew";
 import { DoctorPatients } from "./pages/doctor/DoctorPatients";
 import { DoctorReports } from "./pages/doctor/DoctorReports";
 import { MedicalRecord } from "./pages/doctor/MedicalRecord";
+import { DoctorAnalysisDetails } from "./pages/doctor/DoctorAnalysisDetails";
 
 // Secretary Pages
 import { SecretaireDashboard } from "./pages/secretary/SecretaireDashboard";
@@ -65,12 +68,24 @@ export default function App() {
             }
           />
           <Route
+            path="/patient/rendezvous/modifier/:id"
+            element={
+              <ProtectedRoute requiredRole="patient">
+                <PatientAppointmentBooking />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/patient/consultations"
             element={
               <ProtectedRoute requiredRole="patient">
                 <PatientConsultationsList />
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="/patient/consultations/:id"
+            element={<PatientConsultationDetails />}
           />
           <Route
             path="/patient/dossier"
@@ -80,6 +95,27 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* ── Analyses ──────────────────────────────────────────────── */}
+          {/* Upload / pending list — must come BEFORE the :id route */}
+          <Route
+            path="/patient/analyses/upload"
+            element={
+              <ProtectedRoute requiredRole="patient">
+                <PatientUploadAnalysis />
+              </ProtectedRoute>
+            }
+          />
+          {/* Detail page for a single analysis */}
+          <Route
+            path="/patient/analyses/:id"
+            element={
+              <ProtectedRoute requiredRole="patient">
+                <AnalysisDetails />
+              </ProtectedRoute>
+            }
+          />
+          {/* Legacy catch-all for /patient/analyses → upload form */}
           <Route
             path="/patient/analyses"
             element={
@@ -95,6 +131,14 @@ export default function App() {
             element={
               <ProtectedRoute requiredRole="medecin">
                 <DoctorDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/medecin/rapport/patient/:patientId"
+            element={
+              <ProtectedRoute requiredRole="medecin">
+                <ConsultationReportNew />
               </ProtectedRoute>
             }
           />
@@ -135,6 +179,14 @@ export default function App() {
             element={
               <ProtectedRoute requiredRole="medecin">
                 <MedicalRecord />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/medecin/analyses/:id"
+            element={
+              <ProtectedRoute requiredRole="medecin">
+                <DoctorAnalysisDetails />
               </ProtectedRoute>
             }
           />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
 import {
@@ -14,6 +14,7 @@ import {
   User,
   Droplet,
   AlertTriangle,
+  Eye,
 } from "lucide-react";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -100,7 +101,7 @@ const InfoCard = ({
 
 // ─── Record Card Component ──────────────────────────────────────────────────
 
-const RecordCard = ({ item, type, onClick }) => {
+const RecordCard = ({ item, type, onClick, onVoir }) => {
   const icons = {
     historique: FileText,
     prescriptions: Pill,
@@ -108,6 +109,7 @@ const RecordCard = ({ item, type, onClick }) => {
     notes: StickyNote,
   };
   const Icon = icons[type] || FileText;
+  const isAnalyse = type === "analyses";
 
   return (
     <div
@@ -145,16 +147,32 @@ const RecordCard = ({ item, type, onClick }) => {
             </p>
           </div>
         </div>
+
         <div className="flex flex-col items-end gap-2 shrink-0">
           <span
             className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getStatusColor(item.statut)}`}
           >
             {item.statut || "Actif"}
           </span>
-          <ChevronRight
-            size={20}
-            className="text-outline group-hover:text-primary group-hover:translate-x-1 transition-all"
-          />
+
+          {/* ── "Voir" button for analyses ── */}
+          {isAnalyse ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onVoir?.();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary-container/50 hover:bg-secondary-container text-secondary text-xs font-bold uppercase tracking-wide transition-all group-hover:shadow-sm"
+            >
+              <Eye size={14} />
+              Voir
+            </button>
+          ) : (
+            <ChevronRight
+              size={20}
+              className="text-outline group-hover:text-primary group-hover:translate-x-1 transition-all"
+            />
+          )}
         </div>
       </div>
     </div>
@@ -181,8 +199,14 @@ const SkeletonCard = () => (
 export function MedicalRecord() {
   const navigate = useNavigate();
   const { patientId } = useParams();
-  const isDoctorView = Boolean(patientId);
-  const [activeTab, setActiveTab] = useState("historique");
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(
+    searchParams.get("tab") || "historique",
+  );
+
+  // Determine if this is doctor viewing a patient or patient viewing their own record
+  const isDoctorView = !!patientId;
+  const userRole = isDoctorView ? "medecin" : "patient";
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -270,18 +294,26 @@ export function MedicalRecord() {
         const userData = patientRes.data.user || patientRes.data;
         setPatient(userData);
 
-        // Fetch consultations/historique
-        const historiqueRes = await api.get("/rendezvous");
-        const allRdv = historiqueRes.data.data || historiqueRes.data || [];
-        // Filter completed/cancelled appointments for history
-        const pastConsultations = allRdv
-          .filter(
-            (r) =>
-              r.statut?.toLowerCase().includes("terminé") ||
-              r.statut?.toLowerCase().includes("complété") ||
-              new Date(r.date_heure) < new Date(),
-          )
-          .sort((a, b) => new Date(b.date_heure) - new Date(a.date_heure));
+        const historiqueRes = await api.get("/consultations");
+        const allConsultations =
+          historiqueRes.data.data || historiqueRes.data || [];
+        const pastConsultations = allConsultations
+          .map((c) => ({
+            id: c.id,
+            titre: `Consultation du ${new Date(c.date).toLocaleDateString(
+              "fr-FR",
+              {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              },
+            )}`,
+            date: c.date,
+            description: c.diagnostic || c.symptomes || "Consultation médicale",
+            medecin_nom: c.medecin_nom || "Médecin",
+            statut: c.statut || "Complétée",
+          }))
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
         setHistorique(pastConsultations);
 
         // Fetch prescriptions
@@ -295,9 +327,19 @@ export function MedicalRecord() {
 
         // Fetch analyses
         try {
-          // Try to fetch from consultation analyses endpoint
           const analysesRes = await api.get("/analyses");
-          setAnalyses(analysesRes.data.data || analysesRes.data || []);
+          const rawAnalyses = analysesRes.data.data || analysesRes.data || [];
+          setAnalyses(
+            rawAnalyses.map((a) => ({
+              id: a.id,
+              titre: a.type_analyse || `Analyse #${a.id}`,
+              date: a.created_at,
+              description: a.commentaire_medecin || a.description || "",
+              statut: a.fichier ? "Résultat reçu" : "En attente",
+              fichier: a.fichier ?? null,
+              consultation_id: a.consultation_id,
+            })),
+          );
         } catch (err) {
           console.warn("Failed to fetch analyses:", err);
           setAnalyses([]);
@@ -378,8 +420,23 @@ export function MedicalRecord() {
     ? formatDate(patientInfo.date_naissance)
     : "—";
 
+  // ─── Navigate from card ──────────────────────────────────────────────────
+  const handleCardClick = (item) => {
+    if (activeTab === "prescriptions") {
+      navigate(`/patient/ordonnances/${item.id}`);
+    } else if (activeTab === "analyses") {
+      navigate(
+        isDoctorView
+          ? `/medecin/analyses/${item.id}`
+          : `/patient/analyses/${item.id}`,
+      );
+    } else {
+      navigate(`/patient/rendezvous/${item.id}`);
+    }
+  };
+
   return (
-    <Navbar userRole={isDoctorView ? "medecin" : "patient"} pageTitle="Dossier Médical">
+    <Navbar userRole={userRole} pageTitle="Dossier Médical">
       <main className="pt-6 pb-12 px-6 max-w-7xl mx-auto min-h-screen">
         {/* Header */}
         <header className="mb-8">
@@ -476,9 +533,7 @@ export function MedicalRecord() {
               <InfoCard
                 label="Dernière consultation"
                 value={
-                  historique[0]
-                    ? formatDate(historique[0].date_heure || historique[0].date)
-                    : "Aucune"
+                  historique[0] ? formatDate(historique[0].date) : "Aucune"
                 }
                 icon={FileText}
               />
@@ -581,18 +636,14 @@ export function MedicalRecord() {
                   key={item.id}
                   item={item}
                   type={activeTab}
-                  onClick={() => {
-                    if (isDoctorView) {
-                      return;
-                    }
-                    if (activeTab === "prescriptions") {
-                      navigate(`/patient/ordonnances/${item.id}`);
-                    } else if (activeTab === "analyses") {
-                      navigate(`/patient/analyses/${item.id}`);
-                    } else {
-                      navigate(`/patient/rendezvous/${item.id}`);
-                    }
-                  }}
+                  onClick={() => handleCardClick(item)}
+                  onVoir={() =>
+                    navigate(
+                      isDoctorView
+                        ? `/medecin/analyses/${item.id}`
+                        : `/patient/analyses/${item.id}`,
+                    )
+                  }
                 />
               ))}
             </div>

@@ -19,6 +19,8 @@ import {
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
 
+
+
 const quickActions = [
   { label: "Ordonnance", icon: Pill },
   { label: "Envoyer", icon: Mail },
@@ -59,8 +61,7 @@ const getInitials = (fullName) => {
 };
 
 export function ConsultationReportNew() {
-  const { rdvId } = useParams();
-  const [searchParams] = useSearchParams();
+  const { rdvId, patientId } = useParams();
   const navigate = useNavigate();
   const selectedPatientId = searchParams.get("patientId");
   const source = searchParams.get("source");
@@ -78,86 +79,40 @@ export function ConsultationReportNew() {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // After the existing useState declarations
+  const [analysesList, setAnalysesList] = useState([]); // analyses to prescribe
+
+  // Add after the existing analysesList state
+  const [savedAnalyses, setSavedAnalyses] = useState([]);
+  const [consultationId, setConsultationId] = useState(null); // track saved consultation
+
+  const addAnalyse = () =>
+    setAnalysesList((prev) => [
+      ...prev,
+      { type_analyse: "", commentaire_medecin: "" },
+    ]);
+
+  const removeAnalyse = (idx) =>
+    setAnalysesList((prev) => prev.filter((_, i) => i !== idx));
+
+  const updateAnalyse = (idx, field, value) =>
+    setAnalysesList((prev) =>
+      prev.map((a, i) => (i === idx ? { ...a, [field]: value } : a)),
+    );
+
   useEffect(() => {
     const fetchConsultationData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        if (rdvId === "new" && selectedPatientId) {
-          const patientRes = await api.get(`/patients/${selectedPatientId}`);
-          const patient = patientRes.data?.data || patientRes.data;
-
-          setPatientData({
-            id: patient.id,
-            name: `${patient.user?.prenom || ""} ${patient.user?.nom || ""}`.trim(),
-            age: calculateAge(patient.date_naissance),
-            bloodType: patient.groupe_sanguin || "—",
-            lastVisit: patient.dossier_updated_at ? formatDateShort(patient.dossier_updated_at) : "—",
-            tension: "—",
-            weight: patient.poids_kg ? `${patient.poids_kg} kg` : "—",
-            height: patient.taille_cm ? `${patient.taille_cm} cm` : "—",
-            avatar: patient.user?.photo_profil || null,
-          });
-
-          try {
-            const histRes = await api.get(`/patients/${patient.id}/historique`);
-            const consultations = histRes.data?.data?.data || histRes.data?.data || [];
-            const history = consultations.slice(0, 3).map((c) => ({
-              date: formatDateShort(c.date_heure || c.date),
-              title: c.motif || "Consultation",
-              description: c.diagnostic || c.notes_medecin || "—",
-            }));
-            setRecentHistory(history);
-          } catch (histErr) {
-            console.warn("Failed to fetch patient history:", histErr);
-            setRecentHistory([]);
-          }
-
-          return;
-        }
-
-        // Fetch rendez-vous details to get patient info
+        // ── Case 1: Fetch from rendez-vous (rdvId provided) ──
         if (rdvId && rdvId !== "new") {
-          let patient = null;
-          let lastVisit = "—";
+          const rdvRes = await api.get(`/rendezvous/${rdvId}`);
+          const rdv = rdvRes.data.data || rdvRes.data;
 
-          const loadFromConsultation = async () => {
-            const consultationRes = await api.get(`/consultations/${rdvId}`);
-            const consultation = consultationRes.data?.data || consultationRes.data;
-            if (consultation?.patient) {
-              patient = consultation.patient;
-              lastVisit = formatDateShort(consultation.date);
-
-              setFormData((current) => ({
-                ...current,
-                diagnosis: consultation.diagnostic || current.diagnosis,
-                treatment: consultation.symptomes || current.treatment,
-                notes: consultation.notes_medecin || current.notes,
-              }));
-            }
-          };
-
-          if (source === "consultation") {
-            await loadFromConsultation();
-          } else {
-            try {
-              const rdvRes = await api.get(`/rendezvous/${rdvId}`);
-              const rdv = rdvRes.data.data || rdvRes.data;
-              if (rdv && rdv.patient) {
-                patient = rdv.patient;
-                lastVisit = formatDateShort(rdv.date_heure);
-              }
-            } catch (rdvErr) {
-              if (rdvErr?.response?.status === 404) {
-                await loadFromConsultation();
-              } else {
-                throw rdvErr;
-              }
-            }
-          }
-
-          if (patient) {
+          if (rdv && rdv.patient) {
+            const patient = rdv.patient;
             setPatientData({
               id: patient.id,
               name: `${patient.user?.prenom || ""} ${patient.user?.nom || ""}`.trim(),
@@ -171,70 +126,131 @@ export function ConsultationReportNew() {
             });
 
             try {
-              const histRes = await api.get(`/patients/${patient.id}/historique`);
-              const consultations = histRes.data?.data?.data || histRes.data?.data || [];
-              const history = consultations.slice(0, 3).map((c) => ({
-                date: formatDateShort(c.date_heure || c.date),
-                title: c.motif || "Consultation",
-                description: c.diagnostic || c.notes_medecin || "—",
-              }));
-              setRecentHistory(history);
+              const consultRes = await api.get("/consultations");
+              const all = consultRes.data.data || consultRes.data || [];
+              const existing = all.find(
+                (c) => String(c.rdv_id) === String(rdvId),
+              );
+              if (existing) {
+                setConsultationId(existing.id);
+                const analysesRes = await api.get(
+                  `/consultations/${existing.id}/analyses`,
+                );
+                setSavedAnalyses(
+                  analysesRes.data.data || analysesRes.data || [],
+                );
+              }
             } catch (histErr) {
               console.warn("Failed to fetch patient history:", histErr);
               setRecentHistory([]);
             }
           }
         }
+        // ── Case 2: Fetch from patientId (direct patient page) ──
+        else if (patientId) {
+          try {
+            const patientRes = await api.get(`/patients/${patientId}`);
+            const patient = patientRes.data.data || patientRes.data;
+
+            if (patient) {
+              setPatientData({
+                id: patient.id,
+                name: `${patient.user?.prenom || ""} ${patient.user?.nom || ""}`.trim(),
+                age: calculateAge(patient.date_naissance),
+                bloodType: patient.groupe_sanguin || "—",
+                lastVisit: "—",
+                tension: "—",
+                weight: "—",
+                height: "—",
+                avatar: "https://via.placeholder.com/150",
+              });
+
+              // Fetch existing consultations for this patient
+              try {
+                const consultRes = await api.get("/consultations");
+                const all = consultRes.data.data || consultRes.data || [];
+                const existing = all.filter(
+                  (c) => String(c.patient_id) === String(patientId),
+                );
+                if (existing.length > 0) {
+                  setSavedAnalyses(existing[0].analyses || []);
+                }
+              } catch (histErr) {
+                console.warn("Failed to fetch consultations:", histErr);
+              }
+            } else {
+              setError("Patient introuvable.");
+            }
+          } catch (err) {
+            console.error("Patient fetch error:", err);
+            setError("Erreur lors du chargement du patient.");
+          }
+        }
       } catch (err) {
         console.error("Consultation data fetch error:", err);
-        setError(err.response?.data?.message || "Erreur lors du chargement des données.");
+        setError(
+          err.response?.data?.message ||
+            "Erreur lors du chargement des données.",
+        );
       } finally {
         setLoading(false);
       }
     };
 
     fetchConsultationData();
-  }, [rdvId, selectedPatientId, source]);
+  }, [rdvId, patientId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!formData.diagnosis.trim()) {
       setError("Veuillez indiquer un diagnostic.");
       return;
     }
-
     setSubmitting(true);
     setError(null);
 
     try {
-      if (!patientData?.id) {
-        setError("Veuillez sélectionner un patient avant d'enregistrer la consultation.");
-        setSubmitting(false);
-        return;
+      // ── 1. Save consultation ──────────────────────────────
+      const res = await api.post("/consultations", {
+        rdv_id: rdvId === "new" ? null : rdvId,
+        patient_id: patientData?.id,
+        date: new Date().toISOString().slice(0, 19).replace("T", " "),
+        diagnostic: formData.diagnosis,
+        symptomes: formData.treatment,
+        notes_medecin: formData.notes,
+      });
+
+      const consultationId = res.data?.data?.id ?? res.data?.id;
+
+      // ── 2. Create ordonnance if prescription is filled ────
+      if (formData.prescription.trim()) {
+        await api.post("/ordonnances", {
+          consultation_id: consultationId,
+          // admin_id resolved server-side from auth token (recommended)
+          // if your backend requires it from frontend, add: admin_id: patientData?.adminId
+          date: new Date().toISOString().split("T")[0], // "2024-01-15"
+          instructions: formData.prescription,
+        });
       }
 
-      const notesConcatenees = [
-        formData.notes,
-        formData.prescription ? `Ordonnance: ${formData.prescription}` : "",
-      ]
-        .filter(Boolean)
-        .join("\n\n");
-
-      await api.post("/consultations", {
-        rdv_id: rdvId === "new" ? null : Number(rdvId),
-        patient_id: patientData.id,
-        date: new Date().toISOString().slice(0, 10),
-        diagnostic: formData.diagnosis,
-        symptomes: formData.treatment || null,
-        notes_medecin: notesConcatenees || null,
-      });
+      // ── 3. Create prescribed analyses ────────────────────
+      const analysePromises = analysesList
+        .filter((a) => a.type_analyse)
+        .map((a) =>
+          api.post("/analyses/prescrire", {
+            consultation_id: consultationId,
+            type_analyse: a.type_analyse,
+            notes_medecin: a.commentaire_medecin, // ← matches controller field name
+          }),
+        );
+      await Promise.all(analysePromises);
 
       navigate("/medecin/dashboard");
     } catch (err) {
+      console.error("Errors:", err.response?.data?.errors);
       setError(
         err.response?.data?.message ||
-          "Erreur lors de la création de la consultation."
+          "Erreur lors de la création de la consultation.",
       );
     } finally {
       setSubmitting(false);
@@ -444,7 +460,8 @@ export function ConsultationReportNew() {
                     value={formData.prescription}
                     onChange={updateField("prescription")}
                     rows={4}
-                    placeholder="Precisez l'ordonnance medicale..."
+                    placeholder="Instructions de l'ordonnance (posologie générale, consignes...)
+Ex: Prendre le médicament après les repas, éviter l'alcool..."
                     className="min-h-[110px] w-full resize-none bg-transparent text-slate-900 outline-none placeholder:text-slate-400"
                   />
                 </div>
@@ -474,6 +491,149 @@ export function ConsultationReportNew() {
                   />
                 </div>
               </div>
+              {/* ── Analyses ─────────────────────────────────────── */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+                    <FlaskConical className="h-4 w-4" />
+                    Analyses à prescrire
+                  </label>
+                  <button
+                    type="button"
+                    onClick={addAnalyse}
+                    className="text-sm text-blue-600 hover:underline font-semibold"
+                  >
+                    + Ajouter
+                  </button>
+                </div>
+
+                {/* Already saved analyses for this consultation */}
+                {savedAnalyses.length > 0 && (
+                  <div className="space-y-2 mb-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Prescrites ({savedAnalyses.length})
+                    </p>
+                    {savedAnalyses.map((a) => {
+                      const hasFichier = !!a.fichier;
+                      const typeLabel = [
+                        {
+                          value: "blood",
+                          label: "Analyse Sanguine",
+                          icon: "🩸",
+                        },
+                        {
+                          value: "urine",
+                          label: "Analyse d'Urine",
+                          icon: "💧",
+                        },
+                        {
+                          value: "imaging",
+                          label: "Imagerie Médicale",
+                          icon: "🩻",
+                        },
+                        { value: "biopsy", label: "Biopsie", icon: "🔬" },
+                        {
+                          value: "genetic",
+                          label: "Test Génétique",
+                          icon: "🧬",
+                        },
+                        { value: "other", label: "Autre", icon: "📋" },
+                      ].find((t) => t.value === a.type_analyse);
+
+                      return (
+                        <div
+                          key={a.id}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">
+                              {typeLabel?.icon || "📋"}
+                            </span>
+                            <div>
+                              <p className="text-sm font-semibold text-slate-800">
+                                {typeLabel?.label ||
+                                  a.type_analyse ||
+                                  `Analyse #${a.id}`}
+                              </p>
+                              {a.commentaire_medecin && (
+                                <p className="text-xs text-slate-500">
+                                  {a.commentaire_medecin}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          {hasFichier ? (
+                            <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold shrink-0">
+                              ✓ Résultat reçu
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold shrink-0">
+                              ⏳ En attente
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* New analyses to add */}
+                {analysesList.length === 0 && savedAnalyses.length === 0 && (
+                  <p className="text-sm text-slate-400 italic">
+                    Aucune analyse prescrite pour cette consultation.
+                  </p>
+                )}
+
+                {analysesList.map((a, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-slate-700">
+                        Nouvelle analyse #{idx + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeAnalyse(idx)}
+                        className="text-red-400 hover:text-red-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <select
+                      value={a.type_analyse}
+                      onChange={(e) =>
+                        updateAnalyse(idx, "type_analyse", e.target.value)
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none"
+                    >
+                      <option value="">-- Type d'analyse --</option>
+                      <option value="blood"> Analyse Sanguine</option>
+                      <option value="urine"> Analyse d'Urine</option>
+                      <option value="imaging"> Imagerie Médicale</option>
+                      <option value="biopsy">Biopsie</option>
+                      <option value="genetic"> Test Génétique</option>
+                      <option value="other"> Autre</option>
+                    </select>
+
+                    <input
+                      type="text"
+                      value={a.commentaire_medecin}
+                      onChange={(e) =>
+                        updateAnalyse(
+                          idx,
+                          "commentaire_medecin",
+                          e.target.value,
+                        )
+                      }
+                      placeholder="Note pour le patient (optionnel)"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+                ))}
+              </div>
 
               <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row">
                 <button
@@ -482,7 +642,9 @@ export function ConsultationReportNew() {
                   className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-4 font-semibold text-white shadow-lg shadow-blue-200 transition hover:scale-[1.01] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className="h-5 w-5" />
-                  {submitting ? "Enregistrement..." : "Enregistrer la consultation"}
+                  {submitting
+                    ? "Enregistrement..."
+                    : "Enregistrer la consultation"}
                 </button>
                 <button
                   type="button"
@@ -508,14 +670,13 @@ export function ConsultationReportNew() {
                 {loading ? (
                   <div className="animate-pulse space-y-3">
                     {[1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        className="h-24 rounded-2xl bg-slate-200"
-                      />
+                      <div key={i} className="h-24 rounded-2xl bg-slate-200" />
                     ))}
                   </div>
                 ) : recentHistory.length === 0 ? (
-                  <p className="text-sm text-slate-600">Aucun historique disponible.</p>
+                  <p className="text-sm text-slate-600">
+                    Aucun historique disponible.
+                  </p>
                 ) : (
                   <div className="space-y-4">
                     {recentHistory.map((item, idx) => (

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
+import ChatBot from "../shared/ChatBot";
 
 function getInitials(fullName = "") {
   return fullName
@@ -30,7 +31,7 @@ export function DoctorDashboard() {
       setLoading(true);
       setError(null);
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toISOString().split("T")[0];
         const response = await api.get(`/rendezvous?date=${today}`);
         const data = Array.isArray(response.data?.data) ? response.data.data : response.data || [];
         
@@ -58,7 +59,7 @@ export function DoctorDashboard() {
         setAppointments(mapped);
         setStats({
           total: mapped.length,
-          completed: mapped.filter((a) => a.status === 'Confirme').length,
+          completed: mapped.filter((a) => a.status === "Confirme").length,
           estimated: "4h 20m",
         });
       } catch (err) {
@@ -80,10 +81,15 @@ export function DoctorDashboard() {
     return appointments;
   })();
 
-  const onlineUser = JSON.parse(localStorage.getItem("medicabinet_user") || "{}");
-  const doctorName = onlineUser.firstName ? `Dr. ${onlineUser.firstName}` : "Dr. Martin";
+  const onlineUser = JSON.parse(
+    localStorage.getItem("medicabinet_user") || "{}",
+  );
+  const doctorName = onlineUser.firstName
+    ? `Dr. ${onlineUser.firstName}`
+    : "Dr. Martin";
 
-  const nextPatient = appointments.find((item) => item.canLaunch) || appointments[0];
+  const nextPatient =
+    appointments.find((item) => item.canLaunch) || appointments[0];
 
   return (
     <Navbar userRole="medecin" pageTitle="Rendez-vous du jour">
@@ -101,7 +107,9 @@ export function DoctorDashboard() {
 
             <div className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 sm:w-auto sm:gap-4">
               <div className="text-right">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Statut</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                  Statut
+                </p>
                 <p className="text-sm font-bold text-blue-700">En ligne</p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-blue-500 bg-blue-100 text-sm font-extrabold text-blue-700">
@@ -112,19 +120,33 @@ export function DoctorDashboard() {
 
           <section className="grid grid-cols-1 gap-5 lg:grid-cols-12">
             <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-8">
-              <h2 className="text-2xl font-extrabold text-slate-900">Vue d&apos;ensemble de la journee</h2>
+              <h2 className="text-2xl font-extrabold text-slate-900">
+                Vue d&apos;ensemble de la journee
+              </h2>
               <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Rendez-vous</p>
-                  <p className="mt-1 text-4xl font-extrabold text-slate-900">{stats.total || 0}</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+                    Rendez-vous
+                  </p>
+                  <p className="mt-1 text-4xl font-extrabold text-slate-900">
+                    {stats.total || 0}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Termines</p>
-                  <p className="mt-1 text-4xl font-extrabold text-blue-700">{String(stats.completed || 0).padStart(2, "0")}</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+                    Termines
+                  </p>
+                  <p className="mt-1 text-4xl font-extrabold text-blue-700">
+                    {String(stats.completed || 0).padStart(2, "0")}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Temps estime</p>
-                  <p className="mt-1 text-4xl font-extrabold text-slate-900">{stats.estimated}</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+                    Temps estime
+                  </p>
+                  <p className="mt-1 text-4xl font-extrabold text-slate-900">
+                    {stats.estimated}
+                  </p>
                 </div>
               </div>
             </article>
@@ -149,7 +171,9 @@ export function DoctorDashboard() {
 
           <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
-              <h3 className="text-2xl font-extrabold text-slate-900">Liste des Rendez-vous</h3>
+              <h3 className="text-2xl font-extrabold text-slate-900">
+                Liste des Rendez-vous
+              </h3>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -191,89 +215,121 @@ export function DoctorDashboard() {
               <table className="min-w-full">
                 <thead className="bg-slate-100">
                   <tr>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Heure</th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Patient</th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Motif</th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Statut</th>
-                    <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Actions</th>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      Heure
+                    </th>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      Patient
+                    </th>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      Motif
+                    </th>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      Statut
+                    </th>
+                    <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-sm text-slate-500">
+                      <td
+                        colSpan={5}
+                        className="px-6 py-8 text-center text-sm text-slate-500"
+                      >
                         Chargement des rendez-vous...
                       </td>
                     </tr>
                   ) : error ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-sm text-red-600">
+                      <td
+                        colSpan={5}
+                        className="px-6 py-8 text-center text-sm text-red-600"
+                      >
                         {error}
                       </td>
                     </tr>
                   ) : displayedAppointments.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-sm text-slate-500">
+                      <td
+                        colSpan={5}
+                        className="px-6 py-8 text-center text-sm text-slate-500"
+                      >
                         Aucun rendez-vous pour ce filtre.
                       </td>
                     </tr>
                   ) : (
                     displayedAppointments.map((item) => (
-                    <tr key={item.id} className="border-b border-slate-100 last:border-none hover:bg-slate-50">
-                      <td className="px-6 py-5">
-                        <span className={`text-2xl font-extrabold ${item.canLaunch ? "text-blue-600" : "text-slate-700"}`}>
-                          {item.time}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-extrabold text-blue-700">
-                            {getInitials(item.patientName)}
-                          </div>
-                          <div>
-                            <p className="text-base font-extrabold text-slate-900">{item.patientName}</p>
-                            <p className="text-xs font-medium text-slate-500">{item.meta}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
-                          {item.reason}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <span
-                          className={`inline-flex rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wider ${
-                            item.status === "En attente"
-                              ? "bg-orange-100 text-orange-700"
-                              : item.status === "Annule"
-                                ? "bg-red-100 text-red-600"
-                                : "bg-blue-100 text-blue-700"
-                          }`}
-                        >
-                          {item.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        {item.canLaunch ? (
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/medecin/rapport/${item.id}`)}
-                            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-700"
+                      <tr
+                        key={item.id}
+                        className="border-b border-slate-100 last:border-none hover:bg-slate-50"
+                      >
+                        <td className="px-6 py-5">
+                          <span
+                            className={`text-2xl font-extrabold ${item.canLaunch ? "text-blue-600" : "text-slate-700"}`}
                           >
-                            Lancer la consultation
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/medecin/rapport/${item.id}`)}
-                            className="text-sm font-bold text-blue-600 transition hover:underline"
+                            {item.time}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-extrabold text-blue-700">
+                              {getInitials(item.patientName)}
+                            </div>
+                            <div>
+                              <p className="text-base font-extrabold text-slate-900">
+                                {item.patientName}
+                              </p>
+                              <p className="text-xs font-medium text-slate-500">
+                                {item.meta}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
+                            {item.reason}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5">
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wider ${
+                              item.status === "En attente"
+                                ? "bg-orange-100 text-orange-700"
+                                : item.status === "Annule"
+                                  ? "bg-red-100 text-red-600"
+                                  : "bg-blue-100 text-blue-700"
+                            }`}
                           >
-                            Details
-                          </button>
-                        )}
-                      </td>
-                    </tr>
+                            {item.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          {item.canLaunch ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                navigate(`/medecin/rapport/${item.id}`)
+                              }
+                              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-700"
+                            >
+                              Lancer la consultation
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                navigate(`/medecin/rapport/${item.id}`)
+                              }
+                              className="text-sm font-bold text-blue-600 transition hover:underline"
+                            >
+                              Details
+                            </button>
+                          )}
+                        </td>
+                      </tr>
                     ))
                   )}
                 </tbody>
@@ -291,6 +347,7 @@ export function DoctorDashboard() {
             </div>
           </section>
         </div>
+        <ChatBot userName="Marie" userRole="Docteur" />
       </div>
     </Navbar>
   );
