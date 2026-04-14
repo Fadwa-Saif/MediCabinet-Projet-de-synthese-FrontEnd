@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
+import ChatBot from "../shared/ChatBot";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -69,7 +70,14 @@ function StatCard({ icon, value, label, colorClass, loading }) {
   );
 }
 
-function PatientRow({ patient, onView, onEdit, onDelete }) {
+function PatientRow({
+  patient,
+  onView,
+  onEdit,
+  onDelete,
+  isMenuOpen,
+  onToggleMenu,
+}) {
   const initials = getInitials(patient.firstName, patient.lastName);
   const badge = getBadge(patient.lastVisit);
 
@@ -107,32 +115,51 @@ function PatientRow({ patient, onView, onEdit, onDelete }) {
         </span>
       </td>
       <td className="px-6 py-4">
-        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="relative flex items-center justify-end">
           <button
-            onClick={() => onView(patient)}
-            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-            title="Voir le dossier"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleMenu(patient.id);
+            }}
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Actions"
+            aria-label="Actions du patient"
           >
-            <span className="material-symbols-outlined text-[20px]">
-              visibility
-            </span>
+            <span className="material-symbols-outlined text-[22px]">more_vert</span>
           </button>
-          <button
-            onClick={() => onEdit(patient)}
-            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Modifier"
-          >
-            <span className="material-symbols-outlined text-[20px]">edit</span>
-          </button>
-          <button
-            onClick={() => onDelete(patient)}
-            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-            title="Supprimer"
-          >
-            <span className="material-symbols-outlined text-[20px]">
-              delete
-            </span>
-          </button>
+
+          {isMenuOpen && (
+            <div
+              className="absolute right-0 top-full mt-2 w-44 rounded-xl border border-gray-200 bg-white shadow-xl z-20 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => onView(patient)}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[18px]">visibility</span>
+                Voir
+              </button>
+              <button
+                type="button"
+                onClick={() => onEdit(patient)}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[18px]">edit</span>
+                Modifier
+              </button>
+              <button
+                type="button"
+                onClick={() => onDelete(patient)}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[18px]">delete</span>
+                Supprimer
+              </button>
+            </div>
+          )}
         </div>
       </td>
     </tr>
@@ -157,11 +184,7 @@ export default function PatientsPage() {
   const navigate = useNavigate();
   // ── State ────────────────────────────────────────────────────────────────
   const [patients, setPatients] = useState([]);
-  const [stats, setStats] = useState({
-    total: 0,
-    todayAppts: 0,
-    newThisMonth: 0,
-  });
+  const [stats, setStats] = useState({ total: 0 });
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -170,8 +193,10 @@ export default function PatientsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPatients, setTotalPatients] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [chatOpen, setChatOpen] = useState(false);
-  const [chatMessage, setChatMessage] = useState("");
+  const [activeMenuId, setActiveMenuId] = useState(null);
+
+  const userData = JSON.parse(localStorage.getItem("medicabinet_user") || "{}");
+  const secretaryName = userData.firstName || "Secrétaire";
 
   // ── Debounce search ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -227,33 +252,44 @@ export default function PatientsPage() {
     fetchPatients();
   }, [fetchPatients]);
 
+  useEffect(() => {
+    if (activeMenuId === null) return undefined;
+
+    const handleDocumentClick = () => {
+      setActiveMenuId(null);
+    };
+
+    document.addEventListener("click", handleDocumentClick);
+    return () => document.removeEventListener("click", handleDocumentClick);
+  }, [activeMenuId]);
+
   // ── Action handlers ───────────────────────────────────────────────────────
   const handleView = (patient) => {
-    const details = [
-      `Nom: ${patient.firstName} ${patient.lastName}`,
-      `CIN: ${patient.cin || "—"}`,
-      `Telephone: ${patient.phone || "—"}`,
-      `Date de naissance: ${patient.dateOfBirth || "—"}`,
-    ].join("\n");
-
-    window.alert(`Dossier patient\n\n${details}`);
+    navigate(`/secretaire/patients/${patient.id}`);
   };
 
   const handleEdit = (patient) => {
-    if (patient.phone) {
-      window.open(`tel:${patient.phone}`, "_self");
-      return;
-    }
-
-    window.alert(
-      `Aucun numero de telephone disponible pour ${patient.firstName} ${patient.lastName}.`,
-    );
+    navigate(`/secretaire/patients/${patient.id}/modifier`);
   };
 
   const handleDelete = async (patient) => {
-    alert(
-      `La suppression du patient ${patient.firstName} ${patient.lastName} n'est pas autorisée pour le role secretaire.`,
+    const confirmed = window.confirm(
+      `Supprimer le patient ${patient.firstName} ${patient.lastName} ? Cette action est irréversible.`,
     );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await api.delete(`/patients/${patient.id}`);
+      await fetchPatients();
+      setActiveMenuId(null);
+    } catch (err) {
+      window.alert(
+        err.response?.data?.message || "La suppression du patient a échoué.",
+      );
+    }
   };
 
   // ── Pagination helpers ────────────────────────────────────────────────────
@@ -301,25 +337,6 @@ export default function PatientsPage() {
             colorClass="bg-blue-50 text-blue-600"
             loading={statsLoading}
           />
-          <StatCard
-            icon="event_available"
-            value={stats.todayAppts}
-            label="Rendez-vous Aujourd'hui"
-            colorClass="bg-orange-50 text-orange-500"
-            loading={statsLoading}
-          />
-          <StatCard
-            icon="new_releases"
-            value={stats.newThisMonth}
-            label="Nouveaux ce mois"
-            colorClass="bg-green-50 text-green-600"
-            loading={statsLoading}
-          />
-          <div className="p-6 bg-white rounded-xl shadow-sm ring-1 ring-gray-200 flex items-center justify-center border-2 border-dashed border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer group">
-            <span className="text-gray-400 group-hover:text-blue-600 font-bold text-sm transition-colors">
-              Générer un rapport complet
-            </span>
-          </div>
         </div>
 
         {/* ── Search ── */}
@@ -401,6 +418,12 @@ export default function PatientsPage() {
                       onView={handleView}
                       onEdit={handleEdit}
                       onDelete={handleDelete}
+                      isMenuOpen={activeMenuId === patient.id}
+                      onToggleMenu={(patientId) =>
+                        setActiveMenuId((current) =>
+                          current === patientId ? null : patientId,
+                        )
+                      }
                     />
                   ))
                 )}
@@ -464,73 +487,7 @@ export default function PatientsPage() {
         </div>
       </div>
 
-      {/* ── Chatbot Widget ── */}
-      <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-4">
-        <div
-          className={`flex flex-col w-80 bg-white rounded-2xl shadow-2xl ring-1 ring-gray-200 overflow-hidden transition-all duration-300 ${
-            chatOpen
-              ? "opacity-100 translate-y-0 pointer-events-auto"
-              : "opacity-0 translate-y-4 pointer-events-none"
-          }`}
-        >
-          <div className="bg-blue-600 p-4 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-              <span className="material-symbols-outlined text-white text-sm">
-                smart_toy
-              </span>
-            </div>
-            <div>
-              <h4 className="text-white text-sm font-bold leading-none">
-                Assistant MediCabinet
-              </h4>
-              <span className="text-blue-200 text-[10px] font-medium">
-                IA Opérationnelle
-              </span>
-            </div>
-          </div>
-          <div className="h-64 p-4 overflow-y-auto space-y-4 bg-gray-50">
-            <div className="flex gap-2">
-              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                <span className="material-symbols-outlined text-[14px] text-blue-600">
-                  smart_toy
-                </span>
-              </div>
-              <div className="bg-white p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl shadow-sm ring-1 ring-gray-100">
-                <p className="text-xs font-medium text-gray-700">
-                  Bonjour ! Comment puis-je vous aider dans la gestion des
-                  patients ?
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="p-4 border-t border-gray-100 bg-white">
-            <div className="relative">
-              <input
-                className="w-full pl-3 pr-10 py-2 bg-gray-50 text-xs rounded-lg border border-gray-200 focus:ring-1 focus:ring-blue-500 outline-none"
-                placeholder="Posez une question..."
-                type="text"
-                value={chatMessage}
-                onChange={(e) => setChatMessage(e.target.value)}
-              />
-              <button className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-600">
-                <span className="material-symbols-outlined text-lg">send</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={() => setChatOpen((prev) => !prev)}
-          className="w-14 h-14 rounded-full bg-blue-600 shadow-xl shadow-blue-300 flex items-center justify-center text-white hover:scale-110 active:scale-95 transition-all"
-        >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            {chatOpen ? "close" : "chat"}
-          </span>
-        </button>
-      </div>
+      <ChatBot userName={secretaryName} userRole="Secrétaire" />
     </Navbar>
   );
 }

@@ -21,17 +21,23 @@ export function DoctorPatients() {
       setError(null);
       try {
         const response = await api.get("/patients");
-        const data = Array.isArray(response.data?.data) ? response.data.data : response.data || [];
+        const data = Array.isArray(response.data?.data)
+          ? response.data.data
+          : response.data || [];
         setPatients(
           data.map((p) => ({
             id: p.id,
             firstName: p.user?.prenom || "",
             lastName: p.user?.nom || "",
-            age: new Date().getFullYear() - new Date(p.date_naissance || "2000-01-01").getFullYear(),
+            age:
+              new Date().getFullYear() -
+              new Date(p.date_naissance || "2000-01-01").getFullYear(),
             sex: "—",
-            lastVisit: p.updated_at ? new Date(p.updated_at).toLocaleDateString('fr-FR') : "—",
+            lastVisit: p.updated_at
+              ? new Date(p.updated_at).toLocaleDateString("fr-FR")
+              : "—",
             risk: "Stable",
-          }))
+          })),
         );
       } catch (err) {
         setError(err.message);
@@ -48,7 +54,9 @@ export function DoctorPatients() {
 
     return patients.filter((patient) => {
       const full = `${patient.firstName} ${patient.lastName}`.toLowerCase();
-      return full.includes(q) || patient.id.toString().toLowerCase().includes(q);
+      return (
+        full.includes(q) || patient.id.toString().toLowerCase().includes(q)
+      );
     });
   }, [query, patients]);
 
@@ -110,15 +118,25 @@ export function DoctorPatients() {
           <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="grid grid-cols-1 gap-4 border-b border-slate-200 px-6 py-5 sm:grid-cols-3">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Patients actifs</p>
-                <p className="mt-1 text-3xl font-extrabold text-slate-900">{patients.length}</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                  Patients actifs
+                </p>
+                <p className="mt-1 text-3xl font-extrabold text-slate-900">
+                  {patients.length}
+                </p>
               </div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Suivi critique</p>
-                <p className="mt-1 text-3xl font-extrabold text-orange-600">—</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                  Suivi critique
+                </p>
+                <p className="mt-1 text-3xl font-extrabold text-orange-600">
+                  —
+                </p>
               </div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Nouveaux ce mois</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                  Nouveaux ce mois
+                </p>
                 <p className="mt-1 text-3xl font-extrabold text-blue-700">—</p>
               </div>
             </div>
@@ -127,31 +145,54 @@ export function DoctorPatients() {
               <table className="min-w-full">
                 <thead className="bg-slate-100">
                   <tr>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Patient</th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">ID Patient</th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Age / Sexe</th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Derniere visite</th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Statut</th>
-                    <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Actions</th>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      Patient
+                    </th>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      ID Patient
+                    </th>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      Age / Sexe
+                    </th>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      Derniere visite
+                    </th>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      Statut
+                    </th>
+                    <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-sm font-semibold text-slate-500">
+                      <td
+                        colSpan={6}
+                        className="px-6 py-12 text-center text-sm font-semibold text-slate-500"
+                      >
                         Chargement...
                       </td>
                     </tr>
                   ) : error ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-sm font-semibold text-red-500">
+                      <td
+                        colSpan={6}
+                        className="px-6 py-12 text-center text-sm font-semibold text-red-500"
+                      >
                         {error}
                       </td>
                     </tr>
                   ) : filteredPatients.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-sm font-semibold text-slate-500">
-                        {query ? "Aucun patient trouvé pour cette recherche." : "Aucun patient"}
+                      <td
+                        colSpan={6}
+                        className="px-6 py-12 text-center text-sm font-semibold text-slate-500"
+                      >
+                        {query
+                          ? "Aucun patient trouvé pour cette recherche."
+                          : "Aucun patient"}
                       </td>
                     </tr>
                   ) : (
@@ -173,15 +214,21 @@ export function DoctorPatients() {
                               <p className="text-base font-extrabold text-slate-900">
                                 {patient.firstName} {patient.lastName}
                               </p>
-                              <p className="text-xs text-slate-500">Dossier medical</p>
+                              <p className="text-xs text-slate-500">
+                                Dossier medical
+                              </p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-5 text-sm font-semibold text-slate-600">{patient.id}</td>
+                        <td className="px-6 py-5 text-sm font-semibold text-slate-600">
+                          {patient.id}
+                        </td>
                         <td className="px-6 py-5 text-sm font-semibold text-slate-600">
                           {patient.age} ans, {patient.sex}
                         </td>
-                        <td className="px-6 py-5 text-sm font-semibold text-slate-600">{patient.lastVisit}</td>
+                        <td className="px-6 py-5 text-sm font-semibold text-slate-600">
+                          {patient.lastVisit}
+                        </td>
                         <td className="px-6 py-5">
                           <span
                             className={`inline-flex rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wider ${
