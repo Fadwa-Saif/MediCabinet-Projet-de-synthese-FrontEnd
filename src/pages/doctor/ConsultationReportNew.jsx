@@ -50,7 +50,7 @@ const formatDateShort = (dateStr) => {
 };
 
 export function ConsultationReportNew() {
-  const { rdvId } = useParams();
+  const { rdvId, patientId } = useParams();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -93,7 +93,7 @@ export function ConsultationReportNew() {
         setLoading(true);
         setError(null);
 
-        // Fetch rendez-vous details to get patient info
+        // ── Case 1: Fetch from rendez-vous (rdvId provided) ──
         if (rdvId && rdvId !== "new") {
           const rdvRes = await api.get(`/rendezvous/${rdvId}`);
           const rdv = rdvRes.data.data || rdvRes.data;
@@ -134,6 +134,46 @@ export function ConsultationReportNew() {
             }
           }
         }
+        // ── Case 2: Fetch from patientId (direct patient page) ──
+        else if (patientId) {
+          try {
+            const patientRes = await api.get(`/patients/${patientId}`);
+            const patient = patientRes.data.data || patientRes.data;
+
+            if (patient) {
+              setPatientData({
+                id: patient.id,
+                name: `${patient.user?.prenom || ""} ${patient.user?.nom || ""}`.trim(),
+                age: calculateAge(patient.date_naissance),
+                bloodType: patient.groupe_sanguin || "—",
+                lastVisit: "—",
+                tension: "—",
+                weight: "—",
+                height: "—",
+                avatar: "https://via.placeholder.com/150",
+              });
+
+              // Fetch existing consultations for this patient
+              try {
+                const consultRes = await api.get("/consultations");
+                const all = consultRes.data.data || consultRes.data || [];
+                const existing = all.filter(
+                  (c) => String(c.patient_id) === String(patientId),
+                );
+                if (existing.length > 0) {
+                  setSavedAnalyses(existing[0].analyses || []);
+                }
+              } catch (histErr) {
+                console.warn("Failed to fetch consultations:", histErr);
+              }
+            } else {
+              setError("Patient introuvable.");
+            }
+          } catch (err) {
+            console.error("Patient fetch error:", err);
+            setError("Erreur lors du chargement du patient.");
+          }
+        }
       } catch (err) {
         console.error("Consultation data fetch error:", err);
         setError(
@@ -146,7 +186,7 @@ export function ConsultationReportNew() {
     };
 
     fetchConsultationData();
-  }, [rdvId]);
+  }, [rdvId, patientId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

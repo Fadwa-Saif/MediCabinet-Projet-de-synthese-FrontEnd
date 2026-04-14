@@ -133,6 +133,14 @@ export default function App() {
             }
           />
           <Route
+            path="/medecin/rapport/patient/:patientId"
+            element={
+              <ProtectedRoute requiredRole="medecin">
+                <ConsultationReportNew />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/medecin/rapport/:rdvId"
             element={
               <ProtectedRoute requiredRole="medecin">
