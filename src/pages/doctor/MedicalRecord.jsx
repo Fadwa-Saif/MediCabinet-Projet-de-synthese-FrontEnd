@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
 import {
@@ -14,6 +14,7 @@ import {
   User,
   Droplet,
   AlertTriangle,
+  Eye,
 } from "lucide-react";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -100,7 +101,7 @@ const InfoCard = ({
 
 // ─── Record Card Component ──────────────────────────────────────────────────
 
-const RecordCard = ({ item, type, onClick }) => {
+const RecordCard = ({ item, type, onClick, onVoir }) => {
   const icons = {
     historique: FileText,
     prescriptions: Pill,
@@ -108,6 +109,7 @@ const RecordCard = ({ item, type, onClick }) => {
     notes: StickyNote,
   };
   const Icon = icons[type] || FileText;
+  const isAnalyse = type === "analyses";
 
   return (
     <div
@@ -145,16 +147,32 @@ const RecordCard = ({ item, type, onClick }) => {
             </p>
           </div>
         </div>
+
         <div className="flex flex-col items-end gap-2 shrink-0">
           <span
             className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getStatusColor(item.statut)}`}
           >
             {item.statut || "Actif"}
           </span>
-          <ChevronRight
-            size={20}
-            className="text-outline group-hover:text-primary group-hover:translate-x-1 transition-all"
-          />
+
+          {/* ── "Voir" button for analyses ── */}
+          {isAnalyse ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onVoir?.();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary-container/50 hover:bg-secondary-container text-secondary text-xs font-bold uppercase tracking-wide transition-all group-hover:shadow-sm"
+            >
+              <Eye size={14} />
+              Voir
+            </button>
+          ) : (
+            <ChevronRight
+              size={20}
+              className="text-outline group-hover:text-primary group-hover:translate-x-1 transition-all"
+            />
+          )}
         </div>
       </div>
     </div>
@@ -180,10 +198,15 @@ const SkeletonCard = () => (
 
 export function MedicalRecord() {
   const navigate = useNavigate();
+  const { patientId } = useParams();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(
     searchParams.get("tab") || "historique",
   );
+
+  // Determine if this is doctor viewing a patient or patient viewing their own record
+  const isDoctorView = !!patientId;
+  const userRole = isDoctorView ? "medecin" : "patient";
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -332,8 +355,23 @@ export function MedicalRecord() {
     ? formatDate(patientInfo.date_naissance)
     : "—";
 
+  // ─── Navigate from card ──────────────────────────────────────────────────
+  const handleCardClick = (item) => {
+    if (activeTab === "prescriptions") {
+      navigate(`/patient/ordonnances/${item.id}`);
+    } else if (activeTab === "analyses") {
+      navigate(
+        isDoctorView
+          ? `/medecin/analyses/${item.id}`
+          : `/patient/analyses/${item.id}`,
+      );
+    } else {
+      navigate(`/patient/rendezvous/${item.id}`);
+    }
+  };
+
   return (
-    <Navbar userRole="patient" pageTitle="Dossier Médical">
+    <Navbar userRole={userRole} pageTitle="Dossier Médical">
       <main className="pt-6 pb-12 px-6 max-w-7xl mx-auto min-h-screen">
         {/* Header */}
         <header className="mb-8">
@@ -531,22 +569,8 @@ export function MedicalRecord() {
                   key={item.id}
                   item={item}
                   type={activeTab}
-                  // In the RecordCard onClick inside the tabData.map:
-                  onClick={() => {
-                    if (activeTab === "prescriptions") {
-                      navigate(`/patient/ordonnances/${item.id}`);
-                    } else if (activeTab === "analyses") {
-                      if (!item.fichier) {
-                        navigate(
-                          `/patient/analyses/upload?prescribedId=${item.id}`,
-                        );
-                      } else {
-                        navigate(`/patient/analyses/${item.id}`);
-                      }
-                    } else {
-                      navigate(`/patient/rendezvous/${item.id}`);
-                    }
-                  }}
+                  onClick={() => handleCardClick(item)}
+                  onVoir={() => navigate(`/patient/analyses/${item.id}`)}
                 />
               ))}
             </div>

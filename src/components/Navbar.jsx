@@ -133,11 +133,11 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
 
     // Navigate based on type
     const data = parseContenu(notif.contenu);
-    if (notif.type === "nouvelle_analyse" && data.patient_id) {
+    if (notif.type === "nouvelle_analyse" && data.analyse_id) {
       if (userRole === "medecin") {
-        navigate(`/medecin/medical-record/${data.patient_id}?tab=analyses`);
+        navigate(`/medecin/analyses/${data.analyse_id}`);
       } else {
-        navigate("/patient/dossier?tab=analyses");
+        navigate(`/patient/analyses/${data.analyse_id}`);
       }
     } else if (notif.type === "rdv_rappel" || notif.type === "confirmation") {
       navigate(
