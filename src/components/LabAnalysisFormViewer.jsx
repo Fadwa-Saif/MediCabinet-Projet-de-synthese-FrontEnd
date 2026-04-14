@@ -1,7 +1,6 @@
 import { useRef } from "react";
 
 // ─── Normalisation helper ────────────────────────────────────────────────────
-// Normalise a string to match category/type keys from the backend
 const norm = (s = "") =>
   s
     .toLowerCase()
@@ -13,7 +12,6 @@ const norm = (s = "") =>
 
 // ─── Full form definition (mirrors the PDF) ──────────────────────────────────
 const FORM = [
-  // ── ROW 1 ─ HÉMATOLOGIE / ANÉMIE / COAGULATION / THROMBOPHILIE ──────────
   {
     id: "row1",
     columns: [
@@ -82,8 +80,6 @@ const FORM = [
       },
     ],
   },
-
-  // ── ROW 2 ─ IMMUNO-HÉMATO ────────────────────────────────────────────────
   {
     id: "row2",
     columns: [
@@ -110,8 +106,6 @@ const FORM = [
       },
     ],
   },
-
-  // ── ROW 3 ─ BIOCHIMIE ────────────────────────────────────────────────────
   {
     id: "row3",
     columns: [
@@ -198,8 +192,6 @@ const FORM = [
       },
     ],
   },
-
-  // ── ROW 4 ─ CHIMIE URINAIRE ──────────────────────────────────────────────
   {
     id: "row4",
     columns: [
@@ -230,8 +222,6 @@ const FORM = [
       },
     ],
   },
-
-  // ── ROW 5 ─ SÉROLOGIE ────────────────────────────────────────────────────
   {
     id: "row5",
     columns: [
@@ -305,8 +295,6 @@ const FORM = [
       },
     ],
   },
-
-  // ── ROW 6 ─ HORMONOLOGIE ────────────────────────────────────────────────
   {
     id: "row6",
     columns: [
@@ -359,8 +347,6 @@ const FORM = [
       },
     ],
   },
-
-  // ── ROW 7 ─ MARQUEURS / ALLERGIE / MÉTABOLISME OSSEUX ───────────────────
   {
     id: "row7",
     columns: [
@@ -452,9 +438,7 @@ const CheckItem = ({ label, checked }) => (
     </span>
     <span
       className={`text-[10px] leading-tight ${
-        checked
-          ? "text-primary font-semibold"
-          : "text-on-surface-variant"
+        checked ? "text-primary font-semibold" : "text-on-surface-variant"
       }`}
     >
       {label}
@@ -464,10 +448,7 @@ const CheckItem = ({ label, checked }) => (
 
 // ─── Section column ──────────────────────────────────────────────────────────
 const FormColumn = ({ col, isChecked }) => {
-  const catNorm = norm(col.category);
-  const hasSomething = col.items.some((item) =>
-    isChecked(col.category, item)
-  );
+  const hasSomething = col.items.some((item) => isChecked(col.category, item));
 
   return (
     <div
@@ -477,7 +458,6 @@ const FormColumn = ({ col, isChecked }) => {
           : "border-outline-variant/20 bg-surface-container-lowest"
       } overflow-hidden flex-1 min-w-0`}
     >
-      {/* Column header */}
       <div
         className={`px-3 py-2 border-b text-[9px] font-bold uppercase tracking-wider ${
           hasSomething
@@ -487,7 +467,6 @@ const FormColumn = ({ col, isChecked }) => {
       >
         {col.label}
       </div>
-      {/* Items */}
       <div className="px-2 py-2 space-y-0.5">
         {col.items.map((item) => (
           <CheckItem
@@ -502,84 +481,190 @@ const FormColumn = ({ col, isChecked }) => {
 };
 
 // ─── Main component ──────────────────────────────────────────────────────────
-export function LabAnalysisFormViewer({ analyses = [] }) {
+export function LabAnalysisFormViewer({
+  analyses = [],
+  patient = {},
+  medecin = {},
+  date = null,
+}) {
   const printRef = useRef(null);
 
-  // Build a "prescribed labels" set using all known item labels
   const checkedByLabel = new Set(
-    analyses.map((a) => norm(a.type_analyse ?? ""))
+    analyses.map((a) => norm(a.type_analyse ?? "")),
   );
 
-  // Extended isChecked: exact category+type, OR label-only match
   const isChecked = (category, itemLabel) => {
     const catKey = norm(category);
     const itemKey = norm(itemLabel);
-    
-    // Check exact match: category + type_analyse
     const exactMatch = analyses.some(
-      (a) => norm(a.category ?? "") === catKey && norm(a.type_analyse ?? "") === itemKey
+      (a) =>
+        norm(a.category ?? "") === catKey &&
+        norm(a.type_analyse ?? "") === itemKey,
     );
-    
     if (exactMatch) return true;
-    
-    // Check label-only match (when type_analyse matches the item)
     return checkedByLabel.has(itemKey);
   };
 
-  // Notes from prescriptions
-  const notes = analyses
-    .map((a) => a.commentaire_medecin)
-    .filter(Boolean);
+  const notes = analyses.map((a) => a.commentaire_medecin).filter(Boolean);
 
-  // ── Print handler ─────────────────────────────────────────────────────────
+  // ── Print handler ──────────────────────────────────────────────────────────
+  // Generates clean HTML from FORM data — never captures Tailwind DOM innerHTML
   const handlePrint = () => {
-    const printContents = printRef.current?.innerHTML;
-    if (!printContents) return;
-    const win = window.open("", "_blank", "width=900,height=700");
-    win.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8"/>
-          <title>Formulaire d'Analyses</title>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { font-family: 'Inter', sans-serif; background: white; color: #1a1a1a; padding: 16px; }
-            .print-form { display: flex; flex-direction: column; gap: 12px; }
-            .print-row { display: flex; gap: 8px; }
-            .print-col { flex: 1; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
-            .print-col-header { background: #f1f5f9; padding: 5px 10px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; border-bottom: 1px solid #e2e8f0; }
-            .print-col-header.active { background: #dbeafe; color: #1d4ed8; border-bottom-color: #bfdbfe; }
-            .print-items { padding: 6px 8px; display: flex; flex-direction: column; gap: 2px; }
-            .print-item { display: flex; align-items: center; gap: 6px; padding: 1px 4px; border-radius: 3px; }
-            .print-item.checked { background: #eff6ff; }
-            .print-cb { width: 10px; height: 10px; border: 1px solid #94a3b8; border-radius: 2px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-            .print-cb.checked { background: #2563eb; border-color: #2563eb; }
-            .print-cb.checked::after { content: '✓'; color: white; font-size: 7px; line-height: 1; font-weight: 700; }
-            .print-label { font-size: 9px; color: #475569; line-height: 1.3; }
-            .print-label.checked { color: #1d4ed8; font-weight: 600; }
-            .print-title { text-align: center; font-size: 13px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #1e293b; padding-bottom: 8px; border-bottom: 2px solid #2563eb; margin-bottom: 4px; }
-            .print-subtitle { text-align: center; font-size: 9px; color: #64748b; margin-bottom: 12px; }
-            .print-notes { margin-top: 12px; padding: 8px 12px; border: 1px solid #bfdbfe; border-radius: 6px; background: #eff6ff; }
-            .print-notes-label { font-size: 8px; font-weight: 700; text-transform: uppercase; color: #1d4ed8; margin-bottom: 4px; }
-            .print-notes p { font-size: 9px; color: #1e3a8a; font-style: italic; }
-            @page { size: A4; margin: 15mm; }
-          </style>
-        </head>
-        <body>${printContents}</body>
-      </html>
-    `);
+    const escapeHtml = (s) =>
+      String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+    const patientName = escapeHtml(
+      [patient?.user?.prenom, patient?.user?.nom, patient?.prenom, patient?.nom]
+        .filter(Boolean)
+        .join(" ")
+        .trim(),
+    );
+    const medecinName = escapeHtml(
+      [medecin?.user?.prenom, medecin?.user?.nom, medecin?.prenom, medecin?.nom]
+        .filter(Boolean)
+        .join(" ")
+        .trim(),
+    );
+    const dateStr = escapeHtml(
+      date
+        ? new Date(date).toLocaleDateString("fr-FR", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          })
+        : "",
+    );
+
+    const rowsHtml = FORM.map((row) => {
+      const colsHtml = row.columns
+        .map((col) => {
+          const active = col.items.some((item) =>
+            isChecked(col.category, item),
+          );
+          const itemsHtml = col.items
+            .map((item) => {
+              const on = isChecked(col.category, item);
+              return `<div class="item${on ? " on" : ""}">
+                <div class="cb${on ? " on" : ""}"></div>
+                <span class="lbl${on ? " on" : ""}">${item}</span>
+              </div>`;
+            })
+            .join("");
+          return `<div class="col">
+            <div class="col-h${active ? " active" : ""}">${col.label}</div>
+            <div class="col-b">${itemsHtml}</div>
+          </div>`;
+        })
+        .join("");
+      return `<div class="row">${colsHtml}</div>`;
+    }).join("");
+
+    const notesHtml =
+      notes.length > 0
+        ? `<div class="notes">
+            <div class="notes-h">Notes du médecin</div>
+            ${notes.map((n) => `<p>${n}</p>`).join("")}
+          </div>`
+        : "";
+
+    const win = window.open("", "_blank", "width=960,height=700");
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Formulaire d'Analyses</title>
+  <style>
+    @page { size: A4; margin: 12mm 15mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #111; background: #fff; }
+
+    .meta {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      font-size: 8pt;
+      margin-bottom: 10px;
+      }
+    h1 {
+      text-align: center; font-size: 12pt; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em;
+      border-bottom: 2px solid #111; padding-bottom: 6px; margin-bottom: 3px;
+    }
+    .sub { text-align: center; font-size: 8pt; color: #555; margin-bottom: 12px; }
+
+    /* Layout — mirrors the card grid */
+    .form { display: flex; flex-direction: column; gap: 7px; }
+    .row  { display: flex; gap: 5px; align-items: flex-start; }
+    .col  { flex: 1; border: 1px solid #bbb; border-radius: 4px; overflow: hidden; }
+
+    /* Column header — mirrors SectionCard header */
+    .col-h {
+      background: #ebebeb; border-bottom: 1px solid #bbb;
+      padding: 4px 8px; font-size: 7pt; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .06em; color: #444;
+    }
+    .col-h.active { background: #d0d0d0; color: #000; }
+
+    /* Items */
+    .col-b { padding: 4px 6px; display: flex; flex-direction: column; gap: 1px; }
+    .item  { display: flex; align-items: center; gap: 5px; padding: 1px 3px; border-radius: 2px; }
+    .item.on { background: #efefef; }
+
+    /* Checkbox — pure CSS, no SVG, no emoji, no giant mark */
+    .cb {
+      width: 9px; height: 9px; flex-shrink: 0;
+      border: 1.5px solid #aaa; border-radius: 1px; position: relative;
+    }
+    .cb.on { border-color: #111; }
+    .cb.on::after {
+      content: '';
+      display: block;
+      width: 3px; height: 5.5px;
+      border: 1.5px solid #111;
+      border-top: none; border-left: none;
+      transform: rotate(44deg);
+      position: absolute;
+      top: 0; left: 2px;
+    }
+
+    /* Labels */
+    .lbl    { font-size: 7.5pt; color: #555; line-height: 1.3; }
+    .lbl.on { color: #111; font-weight: 600; }
+
+    /* Notes */
+    .notes   { margin-top: 10px; border: 1px solid #bbb; border-radius: 4px; padding: 8px 10px; }
+    .notes-h { font-size: 7pt; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #333; margin-bottom: 4px; }
+    .notes p { font-size: 8pt; color: #222; font-style: italic; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <h1>Formulaire de Demande d'Analyses</h1>
+  <p class="sub">Analyses prescrites — lecture seule</p>
+  <div class="meta">
+    <div><strong>Patient:</strong> ${patientName || "—"}</div>
+    <div><strong>Médecin:</strong> ${medecinName || "—"}</div>
+    <div><strong>Date:</strong> ${dateStr || "—"}</div>
+  </div>
+  <div class="form">${rowsHtml}</div>
+  ${notesHtml}
+</body>
+</html>`);
     win.document.close();
     win.focus();
-    setTimeout(() => { win.print(); win.close(); }, 500);
+    setTimeout(() => {
+      win.print();
+      win.close();
+    }, 400);
   };
 
   const prescribedCount = analyses.length;
 
   return (
     <div>
-      {/* ── Actions bar ─────────────────────────────────────────────────── */}
+      {/* Actions bar */}
       <div className="flex items-center justify-between mb-4">
         <p className="text-xs text-on-surface-variant">
           <span className="font-semibold text-primary">{prescribedCount}</span>{" "}
@@ -591,11 +676,11 @@ export function LabAnalysisFormViewer({ analyses = [] }) {
           className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity shadow-sm"
         >
           <span className="material-symbols-outlined text-sm">print</span>
-          Télécharger / Imprimer
+          Imprimer
         </button>
       </div>
 
-      {/* ── Legend ─────────────────────────────────────────────────────── */}
+      {/* Legend */}
       <div className="flex items-center gap-4 mb-4 p-3 rounded-lg bg-surface-container-low border border-surface-container-high text-xs text-on-surface-variant">
         <span className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-sm bg-primary flex-shrink-0" />
@@ -607,19 +692,11 @@ export function LabAnalysisFormViewer({ analyses = [] }) {
         </span>
       </div>
 
-      {/* ── Printable form ─────────────────────────────────────────────── */}
-      <div ref={printRef} id="lab-form-print">
-        {/* Print-only header */}
-        <div className="print-title hidden print:block">
-          Formulaire de Demande d'Analyses
-        </div>
-        <div className="print-subtitle hidden print:block">
-          Analyses prescrites — vue patient (lecture seule)
-        </div>
-
+      {/* Printable form (display only — print uses generated HTML) */}
+      <div ref={printRef}>
         <div className="space-y-3">
           {FORM.map((row) => (
-            <div key={row.id} className="flex gap-2 print-row">
+            <div key={row.id} className="flex gap-2">
               {row.columns.map((col) => (
                 <FormColumn
                   key={col.category}
@@ -631,10 +708,9 @@ export function LabAnalysisFormViewer({ analyses = [] }) {
           ))}
         </div>
 
-        {/* Notes section */}
         {notes.length > 0 && (
-          <div className="mt-4 p-4 rounded-xl border border-primary/20 bg-primary/5 print-notes">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-primary mb-2 print-notes-label">
+          <div className="mt-4 p-4 rounded-xl border border-primary/20 bg-primary/5">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-primary mb-2">
               Notes du médecin
             </p>
             {notes.map((note, i) => (
@@ -648,15 +724,6 @@ export function LabAnalysisFormViewer({ analyses = [] }) {
           </div>
         )}
       </div>
-
-      {/* ── Print styles injected globally ─────────────────────────────── */}
-      <style>{`
-        @media print {
-          body > *:not(#lab-form-print) { display: none !important; }
-          .hidden.print\\:block { display: block !important; }
-          .print-row { display: flex !important; gap: 8px; }
-        }
-      `}</style>
     </div>
   );
 }

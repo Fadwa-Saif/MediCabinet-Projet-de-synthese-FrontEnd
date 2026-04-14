@@ -9,10 +9,21 @@ import {
   Calendar,
   AlertCircle,
   CheckCheck,
+  LayoutDashboard,
+  CalendarDays,
+  Stethoscope,
+  FolderHeart,
+  Microscope,
+  Users,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  PanelLeft,
+  PanelLeftClose,
 } from "lucide-react";
 import api from "../services/api";
 
-// ── Parse notification contenu (stored as JSON string) ───────────────────────
+// ── Parse notification contenu ───────────────────────────────────────────────
 function parseContenu(contenu) {
   try {
     return JSON.parse(contenu);
@@ -49,7 +60,7 @@ function NotifIcon({ type }) {
   );
 }
 
-// ── Format relative time ──────────────────────────────────────────────────────
+// ── Format relative time ─────────────────────────────────────────────────────
 function timeAgo(dateStr) {
   if (!dateStr) return "";
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -59,6 +70,31 @@ function timeAgo(dateStr) {
   return `Il y a ${Math.floor(diff / 86400)} j`;
 }
 
+// ── Tooltip for collapsed sidebar ─────────────────────────────────────────────
+function Tooltip({ children, text, position = "right" }) {
+  const [show, setShow] = useState(false);
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      {children}
+      {show && (
+        <div
+          className={`absolute ${position === "right" ? "left-full ml-2" : "right-full mr-2"} top-1/2 -translate-y-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50 pointer-events-none`}
+        >
+          {text}
+          <div
+            className={`absolute top-1/2 -translate-y-1/2 ${position === "right" ? "-left-1" : "-right-1"} w-2 h-2 bg-gray-800 rotate-45`}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Navbar({ userRole = "patient", children, pageTitle = null }) {
   const { language, toggleLanguage } = useLanguage();
   const navigate = useNavigate();
@@ -66,7 +102,8 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
 
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifPopup, setShowNotifPopup] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifLoading, setNotifLoading] = useState(false);
@@ -81,7 +118,7 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
     ? `${userData.firstName[0]}${userData.lastName?.[0] || ""}`.toUpperCase()
     : "U";
 
-  // ── Fetch notifications ───────────────────────────────────────────────────
+  // ── Fetch notifications ────────────────────────────────────────────────────
   const fetchNotifications = async () => {
     try {
       setNotifLoading(true);
@@ -90,7 +127,7 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
       setNotifications(all);
       setUnreadCount(all.filter((n) => !n.lu).length);
     } catch {
-      // silently fail — notifications are non-critical
+      // silently fail
     } finally {
       setNotifLoading(false);
     }
@@ -98,7 +135,6 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
 
   useEffect(() => {
     fetchNotifications();
-    // Refresh every 60 seconds
     const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -114,9 +150,8 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // ── Mark one notification as read + navigate ──────────────────────────────
+  // ── Mark one notification as read + navigate ───────────────────────────
   const handleNotifClick = async (notif) => {
-    // Mark as read
     if (!notif.lu) {
       try {
         await api.patch(`/notifications/${notif.id}/lire`);
@@ -131,7 +166,6 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
 
     setShowNotifPopup(false);
 
-    // Navigate based on type
     const data = parseContenu(notif.contenu);
     if (notif.type === "nouvelle_analyse" && data.analyse_id) {
       if (userRole === "medecin") {
@@ -146,7 +180,7 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
     }
   };
 
-  // ── Mark all as read ──────────────────────────────────────────────────────
+  // ── Mark all as read ───────────────────────────────────────────────────────
   const handleMarkAllRead = async () => {
     try {
       await api.post("/notifications/tout-lire");
@@ -157,7 +191,7 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
     }
   };
 
-  // ── Menu items ────────────────────────────────────────────────────────────
+  // ── Menu items with icons ────────────────────────────────────────────────
   const getMenuItems = () => {
     const menus = {
       patient: [
@@ -165,49 +199,77 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
           label: "Tableau de bord",
           labelAr: "الرئيسية",
           path: "/patient/dashboard",
+          icon: LayoutDashboard,
         },
         {
           label: "Rendez-vous",
           labelAr: "المواعيد",
           path: "/patient/rendezvous",
+          icon: CalendarDays,
         },
         {
           label: "Consultations",
           labelAr: "الاستشارات",
           path: "/patient/consultations",
+          icon: Stethoscope,
         },
         {
           label: "Dossier médical",
           labelAr: "الملف الطبي",
           path: "/patient/dossier",
+          icon: FolderHeart,
         },
-        { label: "Analyses", labelAr: "التحاليل", path: "/patient/analyses" },
+        {
+          label: "Analyses",
+          labelAr: "التحاليل",
+          path: "/patient/analyses",
+          icon: Microscope,
+        },
       ],
       medecin: [
         {
           label: "Tableau de bord",
           labelAr: "الرئيسية",
           path: "/medecin/dashboard",
+          icon: LayoutDashboard,
         },
         {
           label: "Rendez-vous",
           labelAr: "المواعيد",
           path: "/medecin/rendezvous",
+          icon: CalendarDays,
         },
-        { label: "Patients", labelAr: "المرضى", path: "/medecin/patients" },
-        { label: "Rapports", labelAr: "التقارير", path: "/medecin/rapports" },
+        {
+          label: "Patients",
+          labelAr: "المرضى",
+          path: "/medecin/patients",
+          icon: Users,
+        },
+        {
+          label: "Rapports",
+          labelAr: "التقارير",
+          path: "/medecin/rapports",
+          icon: FileText,
+        },
       ],
       secretaire: [
         {
           label: "Tableau de bord",
           labelAr: "الرئيسية",
           path: "/secretaire/dashboard",
+          icon: LayoutDashboard,
         },
-        { label: "Patients", labelAr: "المرضى", path: "/secretaire/patients" },
+        {
+          label: "Patients",
+          labelAr: "المرضى",
+          path: "/secretaire/patients",
+          icon: Users,
+        },
         {
           label: "Rendez-vous",
           labelAr: "المواعيد",
           path: "/secretaire/rendezvous",
+          icon: CalendarDays,
         },
       ],
     };
@@ -228,75 +290,156 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
 
   const isActive = (path) => location.pathname === path;
 
+  const isRTL = language === "ar";
+  const sidebarWidth = sidebarCollapsed ? "w-20" : "w-64";
+
+  // ── Handle sidebar toggle (different behavior for mobile vs desktop) ─────
+  const handleSidebarToggle = () => {
+    if (window.innerWidth < 1024) {
+      // Mobile: toggle slide-out menu
+      setMobileMenuOpen(!mobileMenuOpen);
+    } else {
+      // Desktop: toggle collapsed state
+      setSidebarCollapsed(!sidebarCollapsed);
+    }
+  };
+
   return (
-    <div
-      className="flex h-screen bg-gray-50"
-      dir={language === "ar" ? "rtl" : "ltr"}
-    >
+    <div className="flex h-screen bg-gray-50" dir={isRTL ? "rtl" : "ltr"}>
+      {/* ── Mobile Overlay ── */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* ── Sidebar ── */}
       <aside
-        className={`w-56 bg-blue-600 text-white flex flex-col shadow-xl flex-shrink-0 transition-all duration-300 ease-in-out ${
-          sidebarOpen
+        className={`${sidebarWidth} bg-blue-600 text-white flex flex-col shadow-xl flex-shrink-0 transition-all duration-300 ease-in-out ${
+          mobileMenuOpen
             ? "translate-x-0"
-            : language === "ar"
+            : isRTL
               ? "translate-x-full"
               : "-translate-x-full"
-        } fixed lg:static h-screen z-50 lg:z-auto left-0 lg:left-auto top-0 ${language === "ar" ? "right-0 lg:right-auto" : ""}`}
+        } fixed lg:static h-screen z-50 lg:z-auto lg:translate-x-0 ${isRTL ? "right-0 lg:right-auto" : "left-0 lg:left-auto"} top-0`}
       >
-        <div className="px-5 py-5 border-b border-blue-500 flex items-center gap-3">
+        {/* Logo Section - Bigger */}
+        <div
+          className={`px-5 py-6 border-b border-blue-500 flex items-center gap-3 ${sidebarCollapsed ? "justify-center px-3" : ""}`}
+        >
           <img
             src="/MediCabinet-Logo.png"
             alt="MediCabinet"
-            className="w-9 h-9 object-contain"
+            className={`object-contain ${sidebarCollapsed ? "w-10 h-10" : "w-14 h-14"}`}
           />
-          <span className="font-bold text-base tracking-wide">MediCabinet</span>
+          {!sidebarCollapsed && (
+            <span className="font-bold text-xl tracking-wide">MediCabinet</span>
+          )}
         </div>
 
+        {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {getMenuItems().map((item) => (
-            <button
-              key={item.path}
-              onClick={() => {
-                navigate(item.path);
-                if (window.innerWidth < 1024) setSidebarOpen(false);
-              }}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 text-left ${
-                isActive(item.path)
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-blue-100 hover:bg-blue-500 hover:text-white"
-              }`}
-            >
-              <span>{language === "ar" ? item.labelAr : item.label}</span>
-              {isActive(item.path) && (
-                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600" />
-              )}
-            </button>
-          ))}
+          {getMenuItems().map((item) => {
+            const IconComponent = item.icon;
+            const label = language === "ar" ? item.labelAr : item.label;
+            const buttonContent = (
+              <button
+                key={item.path}
+                onClick={() => {
+                  navigate(item.path);
+                  if (window.innerWidth < 1024) setMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-150 ${sidebarCollapsed ? "justify-center" : ""} ${
+                  isActive(item.path)
+                    ? "bg-white text-blue-600 shadow-sm"
+                    : "text-blue-100 hover:bg-blue-500 hover:text-white"
+                }`}
+              >
+                <IconComponent
+                  size={sidebarCollapsed ? 22 : 20}
+                  className="shrink-0"
+                />
+                {!sidebarCollapsed && (
+                  <>
+                    <span className="truncate">{label}</span>
+                    {isActive(item.path) && (
+                      <span
+                        className={`${isRTL ? "mr-auto" : "ml-auto"} w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0`}
+                      />
+                    )}
+                  </>
+                )}
+              </button>
+            );
+
+            return sidebarCollapsed ? (
+              <Tooltip
+                key={item.path}
+                text={label}
+                position={isRTL ? "left" : "right"}
+              >
+                {buttonContent}
+              </Tooltip>
+            ) : (
+              buttonContent
+            );
+          })}
         </nav>
 
-        <div className="px-4 py-4 border-t border-blue-500">
+        {/* Language Toggle */}
+        <div
+          className={`px-4 py-4 border-t border-blue-500 ${sidebarCollapsed ? "flex justify-center px-3" : ""}`}
+        >
           <button
             onClick={toggleLanguage}
-            className="w-full py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-xs font-semibold tracking-wide transition"
+            className={`rounded-lg bg-blue-700 hover:bg-blue-800 font-semibold tracking-wide transition flex items-center justify-center ${sidebarCollapsed ? "w-10 h-10 text-sm" : "w-full py-2.5 px-4 text-xs"}`}
+            title={
+              language === "fr" ? "Switch to Arabic" : "Passer au français"
+            }
           >
-            {language === "fr" ? "🌐 العربية" : "🌐 Français"}
+            {sidebarCollapsed
+              ? language === "fr"
+                ? "ع"
+                : "Fr"
+              : language === "fr"
+                ? "🌐 العربية"
+                : "🌐 Français"}
           </button>
         </div>
       </aside>
 
       {/* ── Main area ── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div
+        className={`flex-1 flex flex-col overflow-hidden min-w-0 transition-all duration-300 ${sidebarCollapsed ? "lg:ml-0" : ""}`}
+      >
         {/* ── Top bar ── */}
         <header className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 flex justify-between items-center flex-shrink-0">
-          <div className="flex items-center gap-4 flex-1">
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            {/* SINGLE TOGGLE BUTTON - handles both mobile and desktop */}
             <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition text-gray-600 flex-shrink-0"
+              onClick={handleSidebarToggle}
+              className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-600 flex-shrink-0"
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+              {/* Mobile: Menu/X icons */}
+              <span className="lg:hidden">
+                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </span>
+              {/* Desktop: Panel icons */}
+              <span className="hidden lg:block">
+                {sidebarCollapsed ? (
+                  <PanelLeft size={20} />
+                ) : (
+                  <PanelLeftClose size={20} />
+                )}
+              </span>
             </button>
+
             {pageTitle && (
-              <div className="text-xl font-bold text-gray-800">{pageTitle}</div>
+              <div className="text-xl font-bold text-gray-800 truncate">
+                {pageTitle}
+              </div>
             )}
           </div>
 
@@ -321,7 +464,9 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
 
               {/* Notification popup */}
               {showNotifPopup && (
-                <div className="absolute top-full right-0 mt-2 w-80 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 overflow-hidden">
+                <div
+                  className={`absolute top-full ${isRTL ? "left-0" : "right-0"} mt-2 w-80 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 overflow-hidden`}
+                >
                   {/* Header */}
                   <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
                     <span className="font-bold text-sm text-gray-800">
@@ -405,7 +550,9 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
                 }}
                 className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-gray-100 transition"
               >
-                <div className="text-right">
+                <div
+                  className={`${isRTL ? "text-left" : "text-right"} hidden sm:block`}
+                >
                   <p className="text-sm font-semibold text-gray-800 leading-tight">
                     {userName}
                   </p>
@@ -414,7 +561,7 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
                 <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
                   {initials}
                 </div>
-                <span className="text-gray-400 text-xs">▾</span>
+                <span className="text-gray-400 text-xs hidden sm:block">▾</span>
               </button>
 
               {showProfileMenu && (
@@ -423,7 +570,9 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
                     className="fixed inset-0 z-40"
                     onClick={() => setShowProfileMenu(false)}
                   />
-                  <div className="absolute top-full right-0 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                  <div
+                    className={`absolute top-full ${isRTL ? "left-0" : "right-0"} mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden`}
+                  >
                     <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
                       <p className="text-sm font-semibold text-gray-800">
                         {userName}
@@ -447,13 +596,6 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
 
         <main className="flex-1 overflow-auto">{children}</main>
       </div>
-
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
     </div>
   );
 }
