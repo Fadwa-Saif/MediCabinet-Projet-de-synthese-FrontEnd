@@ -63,6 +63,7 @@ const getInitials = (fullName) => {
 export function ConsultationReportNew() {
   const { rdvId, patientId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const selectedPatientId = searchParams.get("patientId");
   const source = searchParams.get("source");
 
@@ -118,7 +119,7 @@ export function ConsultationReportNew() {
               name: `${patient.user?.prenom || ""} ${patient.user?.nom || ""}`.trim(),
               age: calculateAge(patient.date_naissance),
               bloodType: patient.groupe_sanguin || "—",
-              lastVisit,
+              lastVisit: rdv.date_heure ? formatDateShort(rdv.date_heure) : "—",
               tension: "—",
               weight: patient.poids_kg ? `${patient.poids_kg} kg` : "—",
               height: patient.taille_cm ? `${patient.taille_cm} cm` : "—",
@@ -141,7 +142,12 @@ export function ConsultationReportNew() {
                 );
               }
             } catch (histErr) {
-              console.warn("Failed to fetch patient history:", histErr);
+              if (histErr.response?.status === 401) {
+                console.error("Authentication error - token may be expired:", histErr);
+                setError("Vous n'êtes pas authentifié. Veuillez vous reconnecter.");
+              } else {
+                console.warn("Failed to fetch patient history:", histErr);
+              }
               setRecentHistory([]);
             }
           }
@@ -176,14 +182,23 @@ export function ConsultationReportNew() {
                   setSavedAnalyses(existing[0].analyses || []);
                 }
               } catch (histErr) {
-                console.warn("Failed to fetch consultations:", histErr);
+                if (histErr.response?.status === 401) {
+                  console.error("Authentication error - token may be expired:", histErr);
+                } else {
+                  console.warn("Failed to fetch consultations:", histErr);
+                }
               }
             } else {
               setError("Patient introuvable.");
             }
           } catch (err) {
-            console.error("Patient fetch error:", err);
-            setError("Erreur lors du chargement du patient.");
+            if (err.response?.status === 401) {
+              console.error("Authentication error - token may be expired:", err);
+              setError("Vous n'êtes pas authentifié. Veuillez vous reconnecter.");
+            } else {
+              console.error("Patient fetch error:", err);
+              setError("Erreur lors du chargement du patient.");
+            }
           }
         }
       } catch (err) {
@@ -222,13 +237,15 @@ export function ConsultationReportNew() {
 
       const consultationId = res.data?.data?.id ?? res.data?.id;
 
+      if (!consultationId) {
+        throw new Error("Impossible de créer la consultation - identifiant manquant.");
+      }
+
       // ── 2. Create ordonnance if prescription is filled ────
       if (formData.prescription.trim()) {
         await api.post("/ordonnances", {
           consultation_id: consultationId,
-          // admin_id resolved server-side from auth token (recommended)
-          // if your backend requires it from frontend, add: admin_id: patientData?.adminId
-          date: new Date().toISOString().split("T")[0], // "2024-01-15"
+          date: new Date().toISOString().split("T")[0],
           instructions: formData.prescription,
         });
       }
@@ -240,17 +257,19 @@ export function ConsultationReportNew() {
           api.post("/analyses/prescrire", {
             consultation_id: consultationId,
             type_analyse: a.type_analyse,
-            notes_medecin: a.commentaire_medecin, // ← matches controller field name
+            notes_medecin: a.commentaire_medecin,
           }),
         );
       await Promise.all(analysePromises);
 
       navigate("/medecin/dashboard");
     } catch (err) {
-      console.error("Errors:", err.response?.data?.errors);
+      console.error("Submit error:", err);
+      console.error("Response data:", err.response?.data);
       setError(
         err.response?.data?.message ||
-          "Erreur lors de la création de la consultation.",
+        err.message ||
+        "Erreur lors de la création de la consultation.",
       );
     } finally {
       setSubmitting(false);
@@ -468,10 +487,7 @@ Ex: Prendre le médicament après les repas, éviter l'alcool..."
               </div>
 
               <div className="space-y-2">
-                <label
-                  htmlFor="notes"
-                  className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500"
-                >
+                <label htmlFor="notes" className="block text-sm font-semibold text-slate-700">
                   Notes additionnelles
                 </label>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 focus-within:border-blue-500 focus-within:bg-white">
@@ -494,49 +510,32 @@ Ex: Prendre le médicament après les repas, éviter l'alcool..."
               {/* ── Analyses ─────────────────────────────────────── */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.2em] text-slate-500">
                     <FlaskConical className="h-4 w-4" />
                     Analyses à prescrire
                   </label>
                   <button
                     type="button"
                     onClick={addAnalyse}
-                    className="text-sm text-blue-600 hover:underline font-semibold"
+                    className="text-sm font-semibold text-blue-600 hover:underline"
                   >
-                    + Ajouter
+                    + Ajouter une analyse
                   </button>
                 </div>
 
-                {/* Already saved analyses for this consultation */}
                 {savedAnalyses.length > 0 && (
-                  <div className="space-y-2 mb-2">
+                  <div className="mb-2 space-y-2">
                     <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
                       Prescrites ({savedAnalyses.length})
                     </p>
                     {savedAnalyses.map((a) => {
                       const hasFichier = !!a.fichier;
                       const typeLabel = [
-                        {
-                          value: "blood",
-                          label: "Analyse Sanguine",
-                          icon: "🩸",
-                        },
-                        {
-                          value: "urine",
-                          label: "Analyse d'Urine",
-                          icon: "💧",
-                        },
-                        {
-                          value: "imaging",
-                          label: "Imagerie Médicale",
-                          icon: "🩻",
-                        },
+                        { value: "blood", label: "Analyse Sanguine", icon: "🩸" },
+                        { value: "urine", label: "Analyse d'Urine", icon: "💧" },
+                        { value: "imaging", label: "Imagerie Médicale", icon: "🩻" },
                         { value: "biopsy", label: "Biopsie", icon: "🔬" },
-                        {
-                          value: "genetic",
-                          label: "Test Génétique",
-                          icon: "🧬",
-                        },
+                        { value: "genetic", label: "Test Génétique", icon: "🧬" },
                         { value: "other", label: "Autre", icon: "📋" },
                       ].find((t) => t.value === a.type_analyse);
 
@@ -546,28 +545,22 @@ Ex: Prendre le médicament après les repas, éviter l'alcool..."
                           className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
                         >
                           <div className="flex items-center gap-3">
-                            <span className="text-xl">
-                              {typeLabel?.icon || "📋"}
-                            </span>
+                            <span className="text-xl">{typeLabel?.icon || "📋"}</span>
                             <div>
                               <p className="text-sm font-semibold text-slate-800">
-                                {typeLabel?.label ||
-                                  a.type_analyse ||
-                                  `Analyse #${a.id}`}
+                                {typeLabel?.label || a.type_analyse || `Analyse #${a.id}`}
                               </p>
                               {a.commentaire_medecin && (
-                                <p className="text-xs text-slate-500">
-                                  {a.commentaire_medecin}
-                                </p>
+                                <p className="text-xs text-slate-500">{a.commentaire_medecin}</p>
                               )}
                             </div>
                           </div>
                           {hasFichier ? (
-                            <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold shrink-0">
+                            <span className="flex shrink-0 items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
                               ✓ Résultat reçu
                             </span>
                           ) : (
-                            <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold shrink-0">
+                            <span className="flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
                               ⏳ En attente
                             </span>
                           )}
@@ -577,9 +570,8 @@ Ex: Prendre le médicament après les repas, éviter l'alcool..."
                   </div>
                 )}
 
-                {/* New analyses to add */}
                 {analysesList.length === 0 && savedAnalyses.length === 0 && (
-                  <p className="text-sm text-slate-400 italic">
+                  <p className="text-sm italic text-slate-400">
                     Aucune analyse prescrite pour cette consultation.
                   </p>
                 )}
@@ -587,7 +579,7 @@ Ex: Prendre le médicament après les repas, éviter l'alcool..."
                 {analysesList.map((a, idx) => (
                   <div
                     key={idx}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3"
+                    className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4"
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold text-slate-700">
@@ -604,30 +596,22 @@ Ex: Prendre le médicament après les repas, éviter l'alcool..."
 
                     <select
                       value={a.type_analyse}
-                      onChange={(e) =>
-                        updateAnalyse(idx, "type_analyse", e.target.value)
-                      }
+                      onChange={(e) => updateAnalyse(idx, "type_analyse", e.target.value)}
                       className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none"
                     >
                       <option value="">-- Type d'analyse --</option>
-                      <option value="blood"> Analyse Sanguine</option>
-                      <option value="urine"> Analyse d'Urine</option>
-                      <option value="imaging"> Imagerie Médicale</option>
+                      <option value="blood">Analyse Sanguine</option>
+                      <option value="urine">Analyse d'Urine</option>
+                      <option value="imaging">Imagerie Médicale</option>
                       <option value="biopsy">Biopsie</option>
-                      <option value="genetic"> Test Génétique</option>
-                      <option value="other"> Autre</option>
+                      <option value="genetic">Test Génétique</option>
+                      <option value="other">Autre</option>
                     </select>
 
                     <input
                       type="text"
                       value={a.commentaire_medecin}
-                      onChange={(e) =>
-                        updateAnalyse(
-                          idx,
-                          "commentaire_medecin",
-                          e.target.value,
-                        )
-                      }
+                      onChange={(e) => updateAnalyse(idx, "commentaire_medecin", e.target.value)}
                       placeholder="Note pour le patient (optionnel)"
                       className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none"
                     />
