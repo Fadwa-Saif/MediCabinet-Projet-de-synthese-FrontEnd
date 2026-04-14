@@ -400,8 +400,16 @@ export function PatientConsultationDetails() {
 
           {/* Formulaire d'Analyses - PDF-like document viewer */}
           {analyses.length > 0 && (
-            <SectionCard icon="biotech" title={`Formulaire d'Analyses (${analyses.length})`}>
-              <LabAnalysisFormViewer analyses={analyses} />
+            <SectionCard
+              icon="biotech"
+              title={`Formulaire d'Analyses (${analyses.length})`}
+            >
+              <LabAnalysisFormViewer
+                analyses={analyses}
+                patient={c.patient ?? {}}
+                medecin={c.admin?.user ?? {}}
+                date={c.date ?? c.created_at}
+              />
             </SectionCard>
           )}
 
