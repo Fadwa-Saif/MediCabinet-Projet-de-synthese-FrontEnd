@@ -14,11 +14,19 @@ export function SecretaryPatientAdd() {
     nom: "",
     prenom: "",
     email: "",
+    password: "",
     telephone: "",
     cin: "",
     date_naissance: "",
     adresse: "",
     ville: "",
+    groupe_sanguin: "",
+    allergies: "",
+    antecedents: "",
+    antecedents_familiaux: "",
+    poids_kg: "",
+    taille_cm: "",
+    traitement_en_cours: "",
   });
 
   const handleChange = (e) => {
@@ -125,6 +133,19 @@ export function SecretaryPatientAdd() {
                     />
                   </div>
                   <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Mot de passe</label>
+                    <input
+                      required
+                      type="password"
+                      minLength={6}
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="Mot de passe du patient"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Téléphone</label>
                     <input
                       required
@@ -170,6 +191,124 @@ export function SecretaryPatientAdd() {
                       value={formData.adresse}
                       onChange={handleChange}
                       placeholder="Adresse complète"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Ville</label>
+                    <input
+                      name="ville"
+                      value={formData.ville}
+                      onChange={handleChange}
+                      placeholder="Ex: Casablanca"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <hr className="border-slate-100" />
+
+              <section>
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                    <UserPlus size={18} />
+                  </div>
+                  <h2 className="text-lg font-bold text-slate-900">Informations médicales (optionnel)</h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Groupe sanguin</label>
+                    <select
+                      name="groupe_sanguin"
+                      value={formData.groupe_sanguin}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    >
+                      <option value="">Non renseigné</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Allergies</label>
+                    <input
+                      name="allergies"
+                      value={formData.allergies}
+                      onChange={handleChange}
+                      placeholder="Ex: Pénicilline"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Poids (kg)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      name="poids_kg"
+                      value={formData.poids_kg}
+                      onChange={handleChange}
+                      placeholder="Ex: 70.5"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Taille (cm)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      name="taille_cm"
+                      value={formData.taille_cm}
+                      onChange={handleChange}
+                      placeholder="Ex: 175"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Antécédents</label>
+                    <textarea
+                      name="antecedents"
+                      value={formData.antecedents}
+                      onChange={handleChange}
+                      rows={3}
+                      placeholder="Antécédents médicaux"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Antécédents familiaux</label>
+                    <textarea
+                      name="antecedents_familiaux"
+                      value={formData.antecedents_familiaux}
+                      onChange={handleChange}
+                      rows={3}
+                      placeholder="Antécédents familiaux"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Traitement en cours</label>
+                    <textarea
+                      name="traitement_en_cours"
+                      value={formData.traitement_en_cours}
+                      onChange={handleChange}
+                      rows={3}
+                      placeholder="Traitement en cours"
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                     />
                   </div>

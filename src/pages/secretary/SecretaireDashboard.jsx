@@ -204,10 +204,6 @@ export function SecretaireDashboard() {
                   <span className="material-symbols-outlined text-blue-500 group-hover:scale-110 transition-transform">calendar_add_on</span>
                   Nouveau Rendez-vous
                 </button>
-                <button className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 rounded-xl text-slate-600 font-bold transition-all border border-transparent hover:border-slate-100 group">
-                  <span className="material-symbols-outlined text-slate-400 group-hover:scale-110 transition-transform">call</span>
-                  Appels à faire
-                </button>
               </div>
             </div>
 

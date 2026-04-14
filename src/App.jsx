@@ -30,6 +30,7 @@ import SecretaryPatients from "./pages/secretary/SecretaryPatientsList";
 import { SecretaryAppointments } from "./pages/secretary/SecretaryAppointments";
 import { SecretaryPatientDetail } from "./pages/secretary/SecretaryPatientDetail";
 import { SecretaryPatientAdd } from "./pages/secretary/SecretaryPatientAdd";
+import { SecretaryPatientEdit } from "./pages/secretary/SecretaryPatientEdit";
 import { SecretaryAppointmentAdd } from "./pages/secretary/SecretaryAppointmentAdd";
 
 export default function App() {
@@ -237,6 +238,14 @@ export default function App() {
             element={
               <ProtectedRoute requiredRole="secretaire">
                 <SecretaryPatientDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/secretaire/patients/:patientId/modifier"
+            element={
+              <ProtectedRoute requiredRole="secretaire">
+                <SecretaryPatientEdit />
               </ProtectedRoute>
             }
           />
