@@ -220,7 +220,6 @@ export function AppointmentBooking() {
       }
 
       try {
-        setLoadingCren(true);
         const res = await api.get(`/disponibilites?admin_id=${adminId}`);
         const data = Array.isArray(res.data?.data)
           ? res.data.data
@@ -259,22 +258,13 @@ export function AppointmentBooking() {
         }
 
         setAvailDates(dates);
-
-        // Only reset selection if not in edit mode
-        if (!isEditMode) {
-          setSelectedDate("");
-          setSelectedCreneau("");
-          setCreneaux([]);
-        }
       } catch {
         setError("Impossible de charger les disponibilités du médecin.");
-      } finally {
-        setLoadingCren(false);
       }
     };
 
     fetchAvailableDates();
-  }, [adminId, isEditMode, selectedDate]);
+  }, [adminId, isEditMode]);
 
   // ── Fetch slots for selected date ────────────────────────────────────────
   useEffect(() => {
@@ -293,14 +283,20 @@ export function AppointmentBooking() {
           ? res.data.creneaux
           : [];
 
-        // If editing and the current time slot is not in available slots,
-        // add it so it can be selected
-        const creneauxList = slots.map((heure) => ({
+        // Extract heure from slot objects {heure, disponible}
+        const creneauxList = slots.map((slot) => ({
           date: selectedDate,
-          heure,
+          heure: typeof slot === "string" ? slot : slot.heure,
         }));
 
-        if (isEditMode && selectedCreneau && !slots.includes(selectedCreneau)) {
+        // If editing and the current time slot is not in available slots,
+        // add it so it can be selected
+        const heures = creneauxList.map((c) => c.heure);
+        if (
+          isEditMode &&
+          selectedCreneau &&
+          !heures.includes(selectedCreneau)
+        ) {
           creneauxList.push({ date: selectedDate, heure: selectedCreneau });
           creneauxList.sort((a, b) => a.heure.localeCompare(b.heure));
         }
@@ -315,7 +311,7 @@ export function AppointmentBooking() {
     };
 
     fetchSlots();
-  }, [adminId, selectedDate, isEditMode, selectedCreneau]);
+  }, [adminId, selectedDate, isEditMode]);
 
   const creneauxDuJour = creneaux.filter((c) => c.date === selectedDate);
 
