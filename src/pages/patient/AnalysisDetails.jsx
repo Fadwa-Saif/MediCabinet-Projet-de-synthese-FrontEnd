@@ -13,7 +13,6 @@ import {
   Clock,
   MessageSquare,
   Stethoscope,
-  ExternalLink,
   CheckCircle2,
   HourglassIcon,
   Tag,
@@ -106,11 +105,88 @@ const SectionCard = ({
 // ─── File Viewer ─────────────────────────────────────────────────────────────
 
 const FileViewer = ({ fichierUrl, fichier }) => {
+  const [pdfUrl, setPdfUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
+
   if (!fichierUrl) return null;
 
-  const ext = fichierUrl.split(".").pop()?.toLowerCase();
+  // Get extension from actual filename (fichier), not from URL
+  const ext = fichier?.split(".").pop()?.toLowerCase() || "";
   const isImage = ["jpg", "jpeg", "png", "gif", "webp"].includes(ext);
   const isPdf = ext === "pdf";
+
+  // Get full API URL
+  const getFullUrl = (url) => {
+    if (url.startsWith("http")) return url;
+    const baseUrl =
+      process.env.REACT_APP_API_URL || "http://127.0.0.1:8000/api";
+    return url.startsWith("/api")
+      ? url.replace("/api", baseUrl)
+      : `${baseUrl}${url}`;
+  };
+
+  const fullUrl = getFullUrl(fichierUrl);
+  const token = localStorage.getItem("token");
+
+  // Load PDF with JWT auth
+  useEffect(() => {
+    if (!isPdf || !fullUrl) return;
+
+    const loadPdf = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(fullUrl, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          console.error("PDF load failed:", response.status);
+          return;
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        setPdfUrl(url);
+      } catch (err) {
+        console.error("PDF load error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPdf();
+  }, [fullUrl, isPdf, token]);
+
+  // Handle file download with JWT auth
+  const handleDownload = async () => {
+    try {
+      const response = await fetch(fullUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        alert("Erreur: " + response.status);
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fichier?.split("/").pop() || "fichier";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download error:", err);
+      alert("Erreur lors du téléchargement");
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -118,18 +194,28 @@ const FileViewer = ({ fichierUrl, fichier }) => {
       {isImage ? (
         <div className="rounded-xl overflow-hidden border border-outline-variant/20 bg-surface-container">
           <img
-            src={fichierUrl}
+            src={fullUrl}
             alt="Résultat d'analyse"
             className="w-full max-h-[480px] object-contain"
+            onError={(e) => {
+              e.target.style.display = "none";
+            }}
           />
         </div>
-      ) : isPdf ? (
+      ) : isPdf && pdfUrl ? (
         <div className="rounded-xl overflow-hidden border border-outline-variant/20 bg-surface-container">
           <iframe
-            src={`${fichierUrl}#view=FitH`}
+            src={`${pdfUrl}#view=FitH`}
             title="Résultat PDF"
             className="w-full h-[480px]"
           />
+        </div>
+      ) : isPdf ? (
+        <div className="flex items-center gap-4 p-5 rounded-xl bg-surface-container-low border border-outline-variant/20">
+          <div className="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center">
+            <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+          </div>
+          <p className="text-on-surface-variant">Chargement du PDF...</p>
         </div>
       ) : (
         <div className="flex items-center gap-4 p-5 rounded-xl bg-surface-container-low border border-outline-variant/20">
@@ -141,7 +227,7 @@ const FileViewer = ({ fichierUrl, fichier }) => {
               {fichier?.split("/").pop() || "Document"}
             </p>
             <p className="text-sm text-on-surface-variant mt-0.5">
-              Cliquez sur le bouton ci-dessous pour télécharger
+              Cliquez sur le bouton pour télécharger
             </p>
           </div>
         </div>
@@ -149,23 +235,13 @@ const FileViewer = ({ fichierUrl, fichier }) => {
 
       {/* Action buttons */}
       <div className="flex gap-3 flex-wrap">
-        <a
-          href={fichierUrl}
-          download
+        <button
+          onClick={handleDownload}
           className="flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary rounded-xl font-medium shadow-md shadow-primary/20 hover:bg-primary/90 transition-all"
         >
           <Download size={18} />
           Télécharger le fichier
-        </a>
-        <a
-          href={fichierUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 px-5 py-2.5 bg-surface-container-high hover:bg-secondary-container text-secondary hover:text-on-secondary-container rounded-xl font-medium transition-all border border-outline-variant"
-        >
-          <ExternalLink size={18} />
-          Ouvrir dans un onglet
-        </a>
+        </button>
       </div>
     </div>
   );
@@ -241,7 +317,7 @@ export function AnalysisDetails() {
 
   return (
     <Navbar userRole="patient" pageTitle="Détail de l'Analyse">
-      <main className="pt-6 pb-12 px-6 max-w-7xl mx-auto min-h-screen">
+      <main className="pt-6 pb-12 px-6 max-w-6xl mx-auto min-h-screen">
         {/* Back navigation */}
         <button
           onClick={() => navigate("/patient/dossier?tab=analyses")}
