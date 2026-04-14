@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
 import {
@@ -180,7 +180,10 @@ const SkeletonCard = () => (
 
 export function MedicalRecord() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("historique");
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(
+    searchParams.get("tab") || "historique",
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -195,8 +198,6 @@ export function MedicalRecord() {
   useEffect(() => {
     const fetchMedicalRecord = async () => {
       try {
-        
-
         setLoading(true);
         setError(null);
 
@@ -205,26 +206,26 @@ export function MedicalRecord() {
         const userData = patientRes.data.user || patientRes.data;
         setPatient(userData);
 
-       const historiqueRes = await api.get("/consultations");
-       const allConsultations =
-         historiqueRes.data.data || historiqueRes.data || [];
-       const pastConsultations = allConsultations
-         .map((c) => ({
-           id: c.id,
-           titre: `Consultation du ${new Date(c.date).toLocaleDateString(
-             "fr-FR",
-             {
-               day: "numeric",
-               month: "short",
-               year: "numeric",
-             },
-           )}`,
-           date: c.date,
-           description: c.diagnostic || c.symptomes || "Consultation médicale",
-           medecin_nom: c.medecin_nom || "Médecin",
-           statut: c.statut || "Complétée",
-         }))
-         .sort((a, b) => new Date(b.date) - new Date(a.date));
+        const historiqueRes = await api.get("/consultations");
+        const allConsultations =
+          historiqueRes.data.data || historiqueRes.data || [];
+        const pastConsultations = allConsultations
+          .map((c) => ({
+            id: c.id,
+            titre: `Consultation du ${new Date(c.date).toLocaleDateString(
+              "fr-FR",
+              {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              },
+            )}`,
+            date: c.date,
+            description: c.diagnostic || c.symptomes || "Consultation médicale",
+            medecin_nom: c.medecin_nom || "Médecin",
+            statut: c.statut || "Complétée",
+          }))
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
         setHistorique(pastConsultations);
 
         // Fetch prescriptions
