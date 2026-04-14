@@ -167,13 +167,22 @@ export function DoctorPatients() {
                           </span>
                         </td>
                         <td className="px-6 py-5 text-right">
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/medecin/medical-record/${patient.id}`)}
-                            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-700"
-                          >
-                            Ouvrir dossier
-                          </button>
+                          <div className="flex gap-2 justify-end">
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/medecin/rapport/patient/${patient.id}`)}
+                              className="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-green-700"
+                            >
+                              Nouveau rapport
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/medecin/medical-record/${patient.id}`)}
+                              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-700"
+                            >
+                              Ouvrir dossier
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
