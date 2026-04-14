@@ -570,7 +570,13 @@ export function MedicalRecord() {
                   item={item}
                   type={activeTab}
                   onClick={() => handleCardClick(item)}
-                  onVoir={() => navigate(`/patient/analyses/${item.id}`)}
+                  onVoir={() =>
+                    navigate(
+                      isDoctorView
+                        ? `/medecin/analyses/${item.id}`
+                        : `/patient/analyses/${item.id}`,
+                    )
+                  }
                 />
               ))}
             </div>
