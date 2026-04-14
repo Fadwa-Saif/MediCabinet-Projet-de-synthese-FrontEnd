@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
+import { LabAnalysisFormViewer } from "../../components/LabAnalysisFormViewer";
 import api from "../../services/api";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -74,6 +75,7 @@ export function PatientConsultationDetails() {
   const [consultation, setConsultation] = useState(null);
   const [analyses, setAnalyses] = useState([]);
   const [ordonnances, setOrdonnances] = useState([]);
+  const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -108,11 +110,25 @@ export function PatientConsultationDetails() {
           const oData = Array.isArray(ordRes.data?.data)
             ? ordRes.data.data
             : (ordRes.data ?? []);
-          setOrdonnances(
-            oData.filter((o) => String(o.consultation_id) === String(id)),
+          const consultOrdonnances = oData.filter(
+            (o) => String(o.consultation_id) === String(id),
           );
+          setOrdonnances(consultOrdonnances);
+
+          // Fetch prescriptions for all ordonnances
+          if (consultOrdonnances.length > 0) {
+            const presRes = await api.get("/prescriptions");
+            const presData = Array.isArray(presRes.data?.data)
+              ? presRes.data.data
+              : (presRes.data ?? []);
+            const ordonnanceIds = consultOrdonnances.map((o) => o.id);
+            setPrescriptions(
+              presData.filter((p) => ordonnanceIds.includes(p.ordonnance_id)),
+            );
+          }
         } catch {
           setOrdonnances([]);
+          setPrescriptions([]);
         }
       } catch (err) {
         setError(err.message || "Impossible de charger la consultation.");
@@ -285,116 +301,132 @@ export function PatientConsultationDetails() {
             </div>
           </SectionCard>
 
-          {/* Ordonnances */}
+          {/* Ordonnance & Traitement */}
           <SectionCard
             icon="medication"
-            title={`Ordonnances (${ordonnances.length})`}
+            title={`Traitement (${ordonnances.length})`}
           >
             {ordonnances.length === 0 ? (
               <p className="text-sm text-on-surface-variant italic">
                 Aucune ordonnance associée.
               </p>
             ) : (
-              <div className="space-y-3">
-                {ordonnances.map((o) => (
-                  <div
-                    key={o.id}
-                    className="flex items-start justify-between gap-4 p-4 bg-surface-container-low rounded-lg"
-                  >
-                    <div>
-                      <p className="text-sm font-bold text-on-surface">
-                        Ordonnance #{o.id}
-                      </p>
-                      <p className="text-xs text-on-surface-variant mt-1">
-                        Émise le {formatDateShort(o.created_at)}
-                      </p>
-                      {o.medicaments && (
-                        <div className="mt-2 space-y-1">
-                          {Array.isArray(o.medicaments) ? (
-                            o.medicaments.map((m) => (
-                              <p
-                                key={m.id}
-                                className="text-sm text-on-surface-variant"
+              <div className="space-y-6">
+                {ordonnances.map((o) => {
+                  const ordPrescriptions = prescriptions.filter(
+                    (p) => p.ordonnance_id === o.id,
+                  );
+                  return (
+                    <div
+                      key={o.id}
+                      className="border border-surface-container-high rounded-lg p-4"
+                    >
+                      <div className="mb-4 pb-4 border-b border-surface-container-high">
+                        <p className="text-xs font-label font-bold uppercase tracking-wider text-outline mb-2">
+                          Instructions générales
+                        </p>
+                        <p className="text-sm text-on-surface leading-relaxed bg-surface-container-low rounded p-3">
+                          {o.instructions || "Aucune instruction générale."}
+                        </p>
+                      </div>
+
+                      {/* Médicaments prescrits */}
+                      <div>
+                        <p className="text-sm font-bold text-on-surface mb-3">
+                          Médicaments ({ordPrescriptions.length})
+                        </p>
+                        {ordPrescriptions.length === 0 ? (
+                          <p className="text-sm text-on-surface-variant italic text-center py-4">
+                            Aucun médicament prescrit.
+                          </p>
+                        ) : (
+                          <div className="space-y-2">
+                            {ordPrescriptions.map((p) => (
+                              <div
+                                key={p.id}
+                                className="bg-surface-container-low rounded-lg p-3 space-y-2"
                               >
-                                {m.nom} {m.forme ? `— ${m.forme}` : ""}{" "}
-                                {m.pivot?.posologie
-                                  ? `· ${m.pivot.posologie}`
-                                  : ""}
-                              </p>
-                            ))
-                          ) : (
-                            <p className="text-sm text-on-surface-variant">
-                              {o.medicaments}
-                            </p>
-                          )}
-                        </div>
-                      )}
+                                <div className="flex items-start justify-between gap-2">
+                                  <div>
+                                    <p className="text-sm font-bold text-on-surface">
+                                      {p.medicament_nom}
+                                    </p>
+                                    <p className="text-xs text-on-surface-variant">
+                                      {p.medicament_forme ||
+                                        "Forme non spécifiée"}
+                                    </p>
+                                  </div>
+                                </div>
+                                {p.posologie && (
+                                  <p className="text-xs text-on-surface">
+                                    <span className="font-semibold">
+                                      Posologie:
+                                    </span>{" "}
+                                    {p.posologie}
+                                  </p>
+                                )}
+                                {p.quantite && (
+                                  <p className="text-xs text-on-surface">
+                                    <span className="font-semibold">
+                                      Quantité:
+                                    </span>{" "}
+                                    {p.quantite}
+                                  </p>
+                                )}
+                                {p.duree_traitement && (
+                                  <p className="text-xs text-on-surface">
+                                    <span className="font-semibold">
+                                      Durée:
+                                    </span>{" "}
+                                    {p.duree_traitement}
+                                  </p>
+                                )}
+                                {p.observation && (
+                                  <p className="text-xs text-on-surface-variant italic">
+                                    {p.observation}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <span className="material-symbols-outlined text-primary shrink-0">
-                      prescription
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </SectionCard>
 
-          {/* Analyses */}
-          <SectionCard icon="biotech" title={`Analyses (${analyses.length})`}>
-            {analyses.length === 0 ? (
-              <p className="text-sm text-on-surface-variant italic">
-                Aucune analyse associée.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {analyses.map((a) => (
-                  <div
-                    key={a.id}
-                    className="p-4 bg-surface-container-low rounded-lg"
-                  >
-                    <div className="flex items-center justify-between gap-4 mb-2">
-                      <p className="text-sm font-bold text-on-surface">
-                        {a.type ?? `Analyse #${a.id}`}
-                      </p>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-label font-bold uppercase tracking-wider
-                        ${
-                          a.resultat
-                            ? "bg-primary-fixed text-on-primary-fixed-variant"
-                            : "bg-surface-container-high text-on-surface-variant"
-                        }`}
-                      >
-                        {a.resultat ? "Résultat disponible" : "En attente"}
-                      </span>
-                    </div>
-                    {a.description && (
-                      <p className="text-xs text-on-surface-variant">
-                        {a.description}
-                      </p>
-                    )}
-                    {a.resultat && (
-                      <div className="mt-3 pt-3 border-t border-surface-container-high">
-                        <p className="text-xs font-label font-bold uppercase tracking-wider text-outline mb-1">
-                          Résultat
-                        </p>
-                        <p className="text-sm text-on-surface">{a.resultat}</p>
-                      </div>
-                    )}
-                    {a.annotation && (
-                      <div className="mt-2">
-                        <p className="text-xs font-label font-bold uppercase tracking-wider text-outline mb-1">
-                          Annotation médecin
-                        </p>
-                        <p className="text-sm text-on-surface-variant italic">
-                          {a.annotation}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ))}
+          {/* Formulaire d'Analyses - PDF-like document viewer */}
+          {analyses.length > 0 && (
+            <SectionCard icon="biotech" title={`Formulaire d'Analyses (${analyses.length})`}>
+              <LabAnalysisFormViewer analyses={analyses} />
+            </SectionCard>
+          )}
+
+          {/* Upload Results CTA */}
+          {analyses.length > 0 && (
+            <div className="bg-primary-fixed rounded-xl border border-primary/20 p-6 text-center">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <span className="material-symbols-outlined text-primary text-2xl">
+                  cloud_upload
+                </span>
               </div>
-            )}
-          </SectionCard>
+              <h3 className="text-lg font-bold text-on-primary-fixed mb-2">
+                Envoyer vos résultats
+              </h3>
+              <p className="text-sm text-on-primary-fixed-variant mb-4">
+                Uploadez les résultats de vos analyses sur la page dédiée.
+              </p>
+              <button
+                onClick={() => navigate("/patient/upload-analysis")}
+                className="px-6 py-2 bg-on-primary-fixed text-primary-fixed rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
+              >
+                Aller vers les uploads
+              </button>
+            </div>
+          )}
         </div>
       </main>
 
