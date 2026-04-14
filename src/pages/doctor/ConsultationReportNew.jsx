@@ -19,8 +19,6 @@ import {
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
 
-
-
 const quickActions = [
   { label: "Ordonnance", icon: Pill },
   { label: "Envoyer", icon: Mail },
