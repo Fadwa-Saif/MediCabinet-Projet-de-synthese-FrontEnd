@@ -13,13 +13,19 @@ function getAuthHeaders() {
 }
 
 async function request(path, options = {}) {
+  const isFormData = options.body instanceof FormData;
+
+  const headers = {
+    // Skip Content-Type for FormData — browser sets it automatically
+    // with the correct multipart boundary
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
+    ...getAuthHeaders(),
+    ...(options.headers || {}),
+  };
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeaders(),
-      ...(options.headers || {}),
-    },
     ...options,
+    headers,
   });
 
   const contentType = response.headers.get("content-type") || "";
@@ -39,18 +45,27 @@ async function request(path, options = {}) {
 
 const api = {
   get: (path, options = {}) => request(path, { method: "GET", ...options }),
+
   post: (path, body, options = {}) =>
     request(path, {
       method: "POST",
-      body: JSON.stringify(body),
+      // Don't stringify FormData — pass it as-is
+      body: body instanceof FormData ? body : JSON.stringify(body),
       ...options,
     }),
+
   patch: (path, body, options = {}) =>
     request(path, {
       method: "PATCH",
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body:
+        body === undefined
+          ? undefined
+          : body instanceof FormData
+            ? body
+            : JSON.stringify(body),
       ...options,
     }),
+
   delete: (path, options = {}) =>
     request(path, { method: "DELETE", ...options }),
 };

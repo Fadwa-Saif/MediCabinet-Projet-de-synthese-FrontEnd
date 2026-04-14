@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
+import ChatBot from "../shared/ChatBot";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -202,7 +203,8 @@ export function PatientDashboard() {
         // Fetch notifications/non-lues
         try {
           const notifResponse = await api.get("/notifications/non-lues");
-          setNotifications(notifResponse.data.data ?? notifResponse.data ?? []);
+          const notifData = notifResponse.data.data ?? notifResponse.data ?? [];
+          setNotifications(Array.isArray(notifData) ? notifData : []);
         } catch (notifErr) {
           console.warn("Failed to fetch notifications:", notifErr);
           setNotifications([]);
@@ -263,8 +265,7 @@ export function PatientDashboard() {
           <section className="md:col-span-8 space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-headline font-bold flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">
-                </span>
+                <span className="material-symbols-outlined text-primary"></span>
                 Prochains Rendez-vous
               </h2>
               <span className="text-sm font-label text-outline uppercase tracking-wider">
@@ -280,8 +281,7 @@ export function PatientDashboard() {
                 </>
               ) : rdvAVenir.length === 0 ? (
                 <div className="bg-surface-container-lowest p-10 rounded-lg text-center text-on-surface-variant border border-outline-variant/15">
-                  <span className="material-symbols-outlined text-4xl mb-3 block text-outline">
-                  </span>
+                  <span className="material-symbols-outlined text-4xl mb-3 block text-outline"></span>
                   <p className="mb-4">Aucun rendez-vous à venir.</p>
                   <button
                     onClick={() => navigate("/patient/rendezvous/nouveau")}
@@ -517,10 +517,11 @@ export function PatientDashboard() {
             </div>
           </section>
         </div>
+        <ChatBot userName={fullName} userRole="Patient" />
       </main>
 
       {/* Global Chatbot Widget */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4 pointer-events-none">
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4 pointer-events-none hidden">
         <div className="bg-white p-4 rounded-xl shadow-2xl border border-outline-variant/10 max-w-[280px] mb-2 hidden md:block pointer-events-auto">
           <p className="text-sm text-on-surface font-medium leading-snug">
             Besoin d'aide ? Je suis là pour répondre à vos questions sur vos
