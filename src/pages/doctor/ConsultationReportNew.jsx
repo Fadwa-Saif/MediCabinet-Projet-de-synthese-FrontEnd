@@ -31,13 +31,275 @@ const quickActions = [
   { label: "Dossier", icon: ClipboardList },
 ];
 
-const ANALYSE_TYPES = [
-  { value: "blood", label: "Analyse Sanguine", icon: "🩸" },
-  { value: "urine", label: "Analyse d'Urine", icon: "💧" },
-  { value: "imaging", label: "Imagerie Médicale", icon: "🩻" },
-  { value: "biopsy", label: "Biopsie", icon: "🔬" },
-  { value: "genetic", label: "Test Génétique", icon: "🧬" },
-  { value: "other", label: "Autre", icon: "📋" },
+const ANALYSIS_CATEGORIES = [
+  {
+    id: "hematologie",
+    label: "Hématologie",
+    icon: "🩸",
+    tests: [
+      "Hémoglobine",
+      "Globules Rouges - Hct",
+      "Globules Blancs",
+      "Formule leucocytaire",
+      "Plaquettes",
+      "Réticulocytes",
+      "Morphologie des GR",
+      "Parasites sanguins",
+      "Électrophorèse Hb",
+      "Sphérocytose",
+    ],
+  },
+  {
+    id: "coagulation",
+    label: "Coagulation",
+    icon: "🩸",
+    tests: [
+      "Quick-INR",
+      "Tps de céphaline activée",
+      "Fibrinogène (ou VS)",
+      "Temps de thrombine",
+      "D-Dimères",
+      "PFA (+ 2e tube)",
+      "Facteur VIII",
+      "Facteur IX",
+      "Ag vWF",
+      "Activité vWF",
+    ],
+  },
+  {
+    id: "thrombophilie",
+    label: "Thrombophilie",
+    icon: "⚠️",
+    tests: [
+      "Protéine C",
+      "Protéine S",
+      "Antithrombine",
+      "APC Résistance",
+      "Facteur V Leiden",
+      "Mut. Prothrombine",
+      "Anticoagulant lupique",
+      "AC anti-cardiolipine",
+      "AC anti-β2 GP1",
+      "Anti PF4",
+    ],
+  },
+  {
+    id: "immuno-hemato",
+    label: "Immuno-Hématologie",
+    icon: "🧬",
+    tests: [
+      "Groupe ABOD",
+      "Sous-groupes RH",
+      "Carte de groupe",
+      "Phénotypage érythrocytaire",
+      "Cytométrie de flux",
+      "Typage T-B-NK",
+      "Typage CD4-CD8",
+      "B27",
+      "Coombs direct",
+      "Agglutinines froides",
+    ],
+  },
+  {
+    id: "biochimie",
+    label: "Biochimie",
+    icon: "🧪",
+    tests: [
+      "TGO ou TGP",
+      "LDH",
+      "GGT",
+      "Ph. alcalines",
+      "Bilirubines Totale + Directe",
+      "Amylase ou Lipase",
+      "NH3 veineux",
+      "NH3 artériel",
+      "CRP ou VS",
+      "Protéines",
+      "Albumine",
+      "Cholestérol Total",
+      "Triglycérides",
+      "HDL (+ LDL calculé)",
+      "Lp(a)",
+      "CPK",
+      "Troponine I",
+      "Myoglobine",
+      "NT-proBNP",
+      "CRP ultrasensible",
+    ],
+  },
+  {
+    id: "reins-ions",
+    label: "Reins & Électrolytes",
+    icon: "💧",
+    tests: [
+      "Urée",
+      "Créatinine (+ GFR)",
+      "Acide urique",
+      "Na",
+      "K",
+      "Cl",
+      "Ca",
+      "Ca corrigé",
+      "P",
+      "Mg",
+      "Osmolalité",
+      "HCO3-",
+    ],
+  },
+  {
+    id: "chimie-urinaire",
+    label: "Chimie Urinaire",
+    icon: "🧪",
+    tests: [
+      "Sédiment + culture",
+      "Glucose",
+      "Protéines",
+      "Urée",
+      "Créatinine",
+      "Acide urique",
+      "Na",
+      "K",
+      "Cl",
+      "Ca",
+      "P",
+      "Mg",
+      "µalbumine",
+      "α1 µglobuline",
+      "β2 µglobuline",
+      "Bence-Jones",
+      "Citrate",
+      "Oxalate",
+    ],
+  },
+  {
+    id: "serologiie-virale",
+    label: "Sérologie - Virale",
+    icon: "🦠",
+    tests: [
+      "Hépatite A IgM",
+      "Hépatite B Ag surface",
+      "Hépatite B Ac core",
+      "Hépatite C",
+      "Hépatite E IgG+IgM",
+      "CMV IgG+ IgM",
+      "EBV IgG+IgM",
+      "Rubéole IgG",
+      "H. simplex IgG/IgM",
+      "Varicelle IgG/IgM",
+      "Oreillons IgG/IgM",
+      "Parvovirus B19",
+      "Rougeole IgG/IgM",
+      "HIV",
+      "HTLV I/II",
+      "Influenza A+B",
+      "Covid 19",
+    ],
+  },
+  {
+    id: "serologie-bacterienne",
+    label: "Sérologie - Bactérienne",
+    icon: "🧬",
+    tests: [
+      "Syphilis",
+      "ASLO",
+      "Borrelia IgG+IgM",
+      "Mycoplasme IgG+IgM",
+      "Chl. Pneumoniae IgG+IgA",
+      "Chl. Trachomatis IgG+IgA",
+      "Rickettsies",
+      "Brucella",
+      "Bartonella IgG+IgM",
+      "Bordetella",
+      "Coxiella burnetii",
+    ],
+  },
+  {
+    id: "hormonologie",
+    label: "Hormonologie",
+    icon: "⚗️",
+    tests: [
+      "TSH",
+      "T4 libre",
+      "T3 libre",
+      "AC anti-TPO",
+      "AC anti-TG",
+      "Thyroglobuline",
+      "AC anti-TSI",
+      "β-HCG",
+      "Oestradiol",
+      "Progestérone",
+      "LH",
+      "FSH",
+      "Prolactine",
+      "ACTH",
+      "hGH (STH)",
+      "IgF1",
+      "Testostérone",
+      "Cortisol",
+      "Aldostérone",
+    ],
+  },
+  {
+    id: "allergie",
+    label: "Allergie",
+    icon: "🌾",
+    tests: [
+      "IgE total",
+      "Tryptase",
+      "DAO",
+      "IgE spécifiques - Poussières",
+      "IgE spécifiques - Chat",
+      "IgE spécifiques - Chien",
+      "IgE spécifiques - Acariens",
+      "IgE spécifiques - Moisissures",
+      "IgE spécifiques - Blé",
+      "IgE spécifiques - Lait",
+      "IgE spécifiques - Oeuf",
+    ],
+  },
+  {
+    id: "auto-immuns",
+    label: "Sérologie Auto-Immune",
+    icon: "🧬",
+    tests: [
+      "AAN + identification",
+      "ENA",
+      "AC anti-muq. gastrique",
+      "AC anti-mitochondries",
+      "AC anti-muscles lisses",
+      "AC anti-LKM",
+      "AC anti-LC1",
+      "Panel myosite",
+      "AC anti-CCP",
+      "F. rhumatoïde",
+      "ANCA + identification",
+      "AC anti-MPO",
+      "AC anti-PR3",
+      "AC anti-GBM",
+      "ASCA IgG+IgA",
+      "AC anti-transglutaminase",
+      "AC anti-gliadine",
+    ],
+  },
+  {
+    id: "marqueurs",
+    label: "Marqueurs Tumoraux",
+    icon: "🔬",
+    tests: [
+      "CEA",
+      "CA19.9",
+      "CA125",
+      "CA15.3",
+      "NSE",
+      "PSA dépistage",
+      "PSA suivi",
+      "PSA libre",
+      "Chromogranine A",
+      "Calcitonine",
+      "Thyroglobuline",
+      "Angiotensine convertase",
+    ],
+  },
 ];
 
 const POSOLOGIE_SUGGESTIONS = [
@@ -81,6 +343,95 @@ const getInitials = (fullName) => {
     .slice(0, 2)
     .toUpperCase();
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CheckboxAnalysisForm — Categorized checkbox analysis selection
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CheckboxAnalysisForm({ selectedTests, onChange }) {
+  const [expandedCategories, setExpandedCategories] = useState({});
+
+  const toggleCategory = (categoryId) => {
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [categoryId]: !prev[categoryId],
+    }));
+  };
+
+  const handleTestChange = (categoryId, test, checked) => {
+    const key = `${categoryId}:${test}`;
+    if (checked) {
+      onChange([...selectedTests, key]);
+    } else {
+      onChange(selectedTests.filter((t) => t !== key));
+    }
+  };
+
+  const isTestSelected = (categoryId, test) => {
+    return selectedTests.includes(`${categoryId}:${test}`);
+  };
+
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      {ANALYSIS_CATEGORIES.map((category) => (
+        <div
+          key={category.id}
+          className="rounded-2xl border border-slate-200 overflow-hidden"
+        >
+          {/* Category Header */}
+          <button
+            type="button"
+            onClick={() => toggleCategory(category.id)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{category.icon}</span>
+              <span className="font-semibold text-slate-700 text-sm">
+                {category.label}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
+                {
+                  category.tests.filter((t) => isTestSelected(category.id, t))
+                    .length
+                }
+              </span>
+              <span className="text-slate-400 text-sm">
+                {expandedCategories[category.id] ? "−" : "+"}
+              </span>
+            </div>
+          </button>
+
+          {/* Tests Grid — 5 per line */}
+          {expandedCategories[category.id] && (
+            <div className="grid grid-cols-5 gap-2 p-3 bg-white border-t border-slate-200">
+              {category.tests.map((test) => (
+                <label
+                  key={test}
+                  className="flex items-start gap-2 p-2 rounded-lg hover:bg-blue-50 cursor-pointer"
+                  title={test}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isTestSelected(category.id, test)}
+                    onChange={(e) =>
+                      handleTestChange(category.id, test, e.target.checked)
+                    }
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 cursor-pointer mt-0.5 shrink-0"
+                  />
+                  <span className="text-xs text-slate-700 line-clamp-2">
+                    {test}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MedicamentSearch — inline searchable dropdown
@@ -329,7 +680,8 @@ export function ConsultationReportNew() {
   const [prescriptions, setPrescriptions] = useState([]);
 
   // ── Analyses ──────────────────────────────────────────────────────────────
-  const [analysesList, setAnalysesList] = useState([]);
+  // selectedAnalyses: array of "categoryId:test" strings
+  const [selectedAnalyses, setSelectedAnalyses] = useState([]);
   const [savedAnalyses, setSavedAnalyses] = useState([]);
 
   // ── Patient & UI state ────────────────────────────────────────────────────
@@ -363,21 +715,6 @@ export function ConsultationReportNew() {
   const updatePrescription = (idx, field, value) =>
     setPrescriptions((prev) =>
       prev.map((p, i) => (i === idx ? { ...p, [field]: value } : p)),
-    );
-
-  // ── Analyses helpers ──────────────────────────────────────────────────────
-  const addAnalyse = () =>
-    setAnalysesList((prev) => [
-      ...prev,
-      { type_analyse: "", commentaire_medecin: "" },
-    ]);
-
-  const removeAnalyse = (idx) =>
-    setAnalysesList((prev) => prev.filter((_, i) => i !== idx));
-
-  const updateAnalyse = (idx, field, value) =>
-    setAnalysesList((prev) =>
-      prev.map((a, i) => (i === idx ? { ...a, [field]: value } : a)),
     );
 
   // ── Data fetching ─────────────────────────────────────────────────────────
@@ -522,15 +859,15 @@ export function ConsultationReportNew() {
       }
 
       // 4. Prescrire les analyses
-      const validAnalyses = analysesList.filter((a) => a.type_analyse);
       await Promise.all(
-        validAnalyses.map((a) =>
-          api.post("/analyses/prescrire", {
+        selectedAnalyses.map((analysisKey) => {
+          const [categoryId, testName] = analysisKey.split(":");
+          return api.post("/analyses/prescrire", {
             consultation_id: consultationId,
-            type_analyse: a.type_analyse,
-            commentaire_medecin: a.commentaire_medecin,
-          }),
-        ),
+            type_analyse: testName,
+            category: categoryId,
+          });
+        }),
       );
 
       navigate("/medecin/dashboard");
@@ -664,7 +1001,7 @@ export function ConsultationReportNew() {
           </section>
 
           {/* ── Main grid ──────────────────────────────────────────────── */}
-          <div className="grid gap-8 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+          <div>
             {/* ── Form ─────────────────────────────────────────────────── */}
             <form
               onSubmit={handleSubmit}
@@ -768,118 +1105,38 @@ export function ConsultationReportNew() {
 
               {/* Analyses */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.2em] text-slate-500">
-                    <FlaskConical className="h-4 w-4" />
+                <div className="flex items-center gap-2 mb-3">
+                  <FlaskConical className="h-5 w-5 text-slate-500" />
+                  <label className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500">
                     Analyses à prescrire
                   </label>
-                  <button
-                    type="button"
-                    onClick={addAnalyse}
-                    className="text-sm font-semibold text-blue-600 hover:underline"
-                  >
-                    + Ajouter
-                  </button>
+                  <span className="ml-auto text-xs font-medium bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                    {selectedAnalyses.length} sélection
+                    {selectedAnalyses.length !== 1 ? "s" : ""}
+                  </span>
                 </div>
 
                 {savedAnalyses.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <div className="space-y-2 mb-4 p-4 rounded-xl border border-green-200 bg-green-50">
+                    <p className="text-xs font-bold uppercase tracking-wider text-green-700">
                       Déjà prescrites ({savedAnalyses.length})
                     </p>
-                    {savedAnalyses.map((a) => {
-                      const typeInfo = ANALYSE_TYPES.find(
-                        (t) => t.value === a.type_analyse,
-                      );
-                      return (
-                        <div
-                          key={a.id}
-                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="text-xl">
-                              {typeInfo?.icon || "📋"}
-                            </span>
-                            <div>
-                              <p className="text-sm font-semibold text-slate-800">
-                                {typeInfo?.label ||
-                                  a.type_analyse ||
-                                  `Analyse #${a.id}`}
-                              </p>
-                              {a.commentaire_medecin && (
-                                <p className="text-xs text-slate-500">
-                                  {a.commentaire_medecin}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                          {a.fichier ? (
-                            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
-                              ✓ Résultat reçu
-                            </span>
-                          ) : (
-                            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
-                              ⏳ En attente
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {analysesList.length === 0 && savedAnalyses.length === 0 && (
-                  <p className="text-sm italic text-slate-400">
-                    Aucune analyse prescrite pour cette consultation.
-                  </p>
-                )}
-
-                {analysesList.map((a, idx) => (
-                  <div
-                    key={idx}
-                    className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-slate-700">
-                        Nouvelle analyse #{idx + 1}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => removeAnalyse(idx)}
-                        className="text-red-400 hover:text-red-600"
+                    {savedAnalyses.map((a) => (
+                      <div
+                        key={a.id}
+                        className="flex items-center gap-2 text-sm text-green-700"
                       >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <select
-                      value={a.type_analyse}
-                      onChange={(e) =>
-                        updateAnalyse(idx, "type_analyse", e.target.value)
-                      }
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none"
-                    >
-                      <option value="">-- Type d'analyse --</option>
-                      {ANALYSE_TYPES.map((t) => (
-                        <option key={t.value} value={t.value}>
-                          {t.icon} {t.label}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="text"
-                      value={a.commentaire_medecin}
-                      onChange={(e) =>
-                        updateAnalyse(
-                          idx,
-                          "commentaire_medecin",
-                          e.target.value,
-                        )
-                      }
-                      placeholder="Note pour le patient (optionnel)"
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none"
-                    />
+                        <span>✓</span>
+                        <span>{a.type_analyse || `Analyse #${a.id}`}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+
+                <CheckboxAnalysisForm
+                  selectedTests={selectedAnalyses}
+                  onChange={setSelectedAnalyses}
+                />
               </div>
 
               {/* Actions */}
@@ -905,116 +1162,6 @@ export function ConsultationReportNew() {
                 </button>
               </div>
             </form>
-
-            {/* ── Sidebar ─────────────────────────────────────────────── */}
-            <aside className="space-y-6">
-              {/* Historique */}
-              <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-                <div className="mb-5 flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-slate-900">
-                    Historique récent
-                  </h3>
-                  <ClipboardList className="h-5 w-5 text-slate-400" />
-                </div>
-                {loading ? (
-                  <div className="animate-pulse space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="h-20 rounded-2xl bg-slate-200" />
-                    ))}
-                  </div>
-                ) : recentHistory.length === 0 ? (
-                  <p className="text-sm text-slate-500">
-                    Aucun historique disponible.
-                  </p>
-                ) : (
-                  <div className="space-y-4">
-                    {recentHistory.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                      >
-                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600">
-                          {item.date}
-                        </p>
-                        <p className="mt-2 text-sm font-bold text-slate-900">
-                          {item.title}
-                        </p>
-                        <p className="mt-1 text-sm text-slate-500">
-                          {item.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() =>
-                    patientData?.id &&
-                    navigate(`/medecin/medical-record/${patientData.id}`)
-                  }
-                  className="mt-5 w-full rounded-2xl px-4 py-3 text-sm font-semibold text-blue-600 transition hover:bg-blue-50"
-                >
-                  Voir tout le dossier
-                </button>
-              </div>
-
-              {/* Outils rapides */}
-              <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-                <h3 className="mb-5 text-lg font-bold text-slate-900">
-                  Outils rapides
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {quickActions.map(({ label, icon: Icon }) => (
-                    <button
-                      key={label}
-                      type="button"
-                      className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center text-slate-600 transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                    >
-                      <Icon className="h-5 w-5" />
-                      <span className="text-xs font-bold uppercase tracking-[0.2em]">
-                        {label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Résumé ordonnance (live) */}
-              {(formData.traitement.trim() || prescriptions.length > 0) && (
-                <div className="rounded-3xl border border-blue-100 bg-blue-50 p-6">
-                  <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-blue-700">
-                    <FileText className="h-4 w-4" />
-                    Aperçu ordonnance
-                  </h3>
-                  {formData.traitement.trim() && (
-                    <p className="mb-3 text-sm text-slate-700 italic">
-                      "{formData.traitement.slice(0, 120)}
-                      {formData.traitement.length > 120 ? "…" : ""}"
-                    </p>
-                  )}
-                  {prescriptions.length > 0 && (
-                    <ul className="space-y-1">
-                      {prescriptions.map((p, i) => (
-                        <li
-                          key={i}
-                          className="flex items-center gap-2 text-sm text-slate-700"
-                        >
-                          <Pill className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-                          <span className="font-medium">
-                            {p.medicament_nom}
-                          </span>
-                          {p.posologie && (
-                            <span className="text-slate-500">
-                              — {p.posologie}
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
-            </aside>
           </div>
         </div>
       </div>
