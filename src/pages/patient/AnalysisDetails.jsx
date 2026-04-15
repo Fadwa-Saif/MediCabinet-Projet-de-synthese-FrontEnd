@@ -142,6 +142,23 @@ export function AnalysisDetails() {
     return groups.find((g) => !g.allHaveFile) || groups[0];
   }, [groups, id]);
 
+  // Filter groups to only show analyses from the same consultation as the selected analysis
+  // This ensures that when viewing a specific analysis, only its consultation's analyses are shown
+  const filteredGroups = useMemo(() => {
+    if (!selectedGroup) return groups;
+
+    // If the selected group is from a specific consultation, only show analyses from that consultation
+    if (selectedGroup.consultationId) {
+      return groups.filter(
+        (g) =>
+          String(g.consultationId) === String(selectedGroup.consultationId),
+      );
+    }
+
+    // Otherwise show all groups (shouldn't happen in normal flow)
+    return groups;
+  }, [groups, selectedGroup]);
+
   const selectedAnalyse = selectedGroup?.representative || null;
   const consultation = selectedGroup?.consultationId
     ? consultationsById[String(selectedGroup.consultationId)]
@@ -206,7 +223,9 @@ export function AnalysisDetails() {
           </div>
         ) : !selectedGroup || !selectedAnalyse ? (
           <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-            <p className="text-slate-600">Aucune analyse prescrite pour le moment.</p>
+            <p className="text-slate-600">
+              Aucune analyse prescrite pour le moment.
+            </p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -238,13 +257,13 @@ export function AnalysisDetails() {
               </div>
             </header>
 
-            {groups.length > 1 && (
+            {filteredGroups.length > 1 && (
               <section className="rounded-2xl border border-slate-200 bg-white p-4">
                 <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
                   Mes formulaires d'analyses
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {groups.map((group) => {
+                  {filteredGroups.map((group) => {
                     const active = group.key === selectedGroup.key;
                     const representativeId = group.representative?.id;
                     return (
@@ -274,7 +293,9 @@ export function AnalysisDetails() {
                 patient={consultation?.patient ?? {}}
                 medecin={consultation?.admin?.user ?? {}}
                 date={
-                  consultation?.date ?? selectedGroup.prescribedAt ?? selectedAnalyse.created_at
+                  consultation?.date ??
+                  selectedGroup.prescribedAt ??
+                  selectedAnalyse.created_at
                 }
               />
             </section>
@@ -284,11 +305,14 @@ export function AnalysisDetails() {
                 Envoyer le document de resultat
               </h2>
               <p className="mt-1 text-sm text-slate-600">
-                Un seul fichier est attendu (document du laboratoire contenant tous les resultats).
+                Un seul fichier est attendu (document du laboratoire contenant
+                tous les resultats).
               </p>
               <button
                 onClick={() =>
-                  navigate(`/patient/analyses/upload?prescribedId=${selectedAnalyse.id}`)
+                  navigate(
+                    `/patient/analyses/upload?prescribedId=${selectedAnalyse.id}`,
+                  )
                 }
                 className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
               >
