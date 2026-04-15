@@ -566,22 +566,25 @@ const pdfNorm = (s = "") =>
 // ─── Build analysis form HTML for PDF ─────────────────────────────────────────
 
 const buildAnalysisFormHTML = (analyses = []) => {
+  const esc = (s) =>
+    String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
   if (!analyses.length)
     return `<p class="empty-sub">Aucune analyse prescrite pour cette consultation.</p>`;
 
-  const checkedLabels = new Set(
-    analyses.map((a) => pdfNorm(a.type_analyse ?? "")),
+  // Get all unique type_analyse values from analyses
+  const selectedAnalyses = new Set(
+    analyses
+      .filter((a) => a.type_analyse)
+      .map((a) => pdfNorm(a.type_analyse ?? "")),
   );
+
   const isOn = (category, item) => {
-    const catKey = pdfNorm(category);
     const itemKey = pdfNorm(item);
-    return (
-      analyses.some(
-        (a) =>
-          pdfNorm(a.category ?? "") === catKey &&
-          pdfNorm(a.type_analyse ?? "") === itemKey,
-      ) || checkedLabels.has(itemKey)
-    );
+    return selectedAnalyses.has(itemKey);
   };
 
   const rowsHtml = PDF_FORM.map(
@@ -605,17 +608,39 @@ const buildAnalysisFormHTML = (analyses = []) => {
         .join("")}</div>`,
   ).join("");
 
-  const notes = analyses.map((a) => a.commentaire_medecin).filter(Boolean);
+  // Add results/fichier section
+  const resultsHtml = analyses
+    .filter((a) => a.fichier)
+    .map((a) => {
+      const fileName = a.fichier.split("/").pop();
+      return `<div class="aresult">
+        <div class="aresult-label">${esc(a.type_analyse || "Analyse")}</div>
+        <div class="aresult-file">📎 ${esc(fileName)}</div>
+        ${a.date_resultat ? `<div class="aresult-date">Résultat: ${formatDateShort(a.date_resultat)}</div>` : ""}
+        ${a.commentaire_medecin ? `<div class="aresult-note">${esc(a.commentaire_medecin)}</div>` : ""}
+      </div>`;
+    })
+    .join("");
+
+  const notes = analyses
+    .filter((a) => a.commentaire_medecin && !a.fichier)
+    .map((a) => a.commentaire_medecin)
+    .filter(Boolean);
   const notesHtml = notes.length
     ? `<div class="anotes"><strong>Notes :</strong> ${notes.join(" — ")}</div>`
     : "";
 
-  return `<div class="aform">${rowsHtml}</div>${notesHtml}`;
+  return `<div class="aform">${rowsHtml}</div>${resultsHtml}${notesHtml}`;
 };
 
-// ─── PDF builder ──────────────────────────────────────────────────────────────
+// ─── PDF builder ────────────────────────────────────────────────────────────────
+// Old buildPDFHTML has been replaced by buildPDFWithData (see below) which fetches
+// ordonnances, prescriptions and analyses from API before generating the PDF
 
-const buildPDFHTML = (patient, fullName, consultations, patientInfo) => {
+// ─── PDF builder with enriched data (from API fetch) ────────────────────────
+
+const buildPDFWithData = (consultations, fullName, patient) => {
+  const patientInfo = patient?.patient || {};
   const bloodType = patientInfo?.groupe_sanguin || "—";
   const allergies = patientInfo?.allergies || "Aucune connue";
   const birthDate = patientInfo?.date_naissance
@@ -637,18 +662,25 @@ const buildPDFHTML = (patient, fullName, consultations, patientInfo) => {
         ? `Dr. ${c.admin.user.prenom || ""} ${c.admin.user.nom || ""}`.trim()
         : c.medecin_nom || "—";
 
+      // Use enriched ordonnances and prescriptions from API fetch
+      const ordonnances = c._ordonnances || [];
+      const prescriptions = c._prescriptions || [];
+
       const ordRows =
-        (c.ordonnances || [])
+        ordonnances
           .map((ord) => {
-            const prescs = (ord.prescriptions || [])
+            const ordPrescriptions = prescriptions.filter(
+              (p) => p.ordonnance_id === ord.id,
+            );
+            const prescs = ordPrescriptions
               .map(
                 (p) => `
         <li>
-          <strong>${esc(p.medicament?.nom || p.medicament_nom || p.nom_medicament || "Médicament")}</strong>
-          ${p.posologie || p.dosage ? `— ${esc(p.posologie || p.dosage)}` : ""}
-          ${p.quantite ? `· Qté: ${esc(p.quantite)}` : ""}
-          ${p.duree_traitement || p.duree ? `· Durée: ${esc(p.duree_traitement || p.duree)}` : ""}
-          ${p.observation || p.instructions ? `<br><em>${esc(p.observation || p.instructions)}</em>` : ""}
+          <strong>${esc(p.medicament_nom || "Médicament")}</strong>
+          ${p.posologie ? ` — ${esc(p.posologie)}` : ""}
+          ${p.quantite ? ` · Qté: ${esc(p.quantite)}` : ""}
+          ${p.duree_traitement ? ` · Durée: ${esc(p.duree_traitement)}` : ""}
+          ${p.observation ? `<br><em>${esc(p.observation)}</em>` : ""}
         </li>`,
               )
               .join("");
@@ -675,7 +707,7 @@ const buildPDFHTML = (patient, fullName, consultations, patientInfo) => {
       <div class="section-title">🧾 Traitement / Ordonnances</div>
       ${ordRows}
       <div class="section-title">🔬 Formulaire d'Analyses prescrites</div>
-      ${buildAnalysisFormHTML(c.analyses || [])}
+      ${buildAnalysisFormHTML(c._analyses || [])}
     </div>`;
     })
     .join("");
@@ -756,54 +788,51 @@ const buildPDFHTML = (patient, fullName, consultations, patientInfo) => {
   .aitem { display: flex; align-items: center; gap: 4px; padding: 1px 2px; border-radius: 2px; }
   .aitem.aon { background: #eef3fb; }
   .acb { width: 8px; height: 8px; flex-shrink: 0; border: 1.5px solid #b0bdd8; border-radius: 1px; position: relative; }
-  .acb.aon { border-color: #1a4fd6; }
-  .acb.aon::after { content: ''; display: block; width: 3px; height: 5px; border: 1.5px solid #1a4fd6; border-top: none; border-left: none; transform: rotate(44deg); position: absolute; top: 0px; left: 1.5px; }
+  .acb.aon { border-color: #1a4fd6; background: #fff; }
+  .acb.aon::after { content: '✓'; display: block; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 5pt; font-weight: 900; color: #1a4fd6; }
   .albl { font-size: 7pt; color: #7a8eab; line-height: 1.3; }
   .albl.aon { color: #1a2744; font-weight: 600; }
-  .anotes { margin: 3px 16px 8px; padding: 6px 10px; background: #eef3fb; border-radius: 5px; font-size: 10px; color: #3a4a6a; font-style: italic; }
+  .aresult { margin: 6px 16px; padding: 7px 10px; background: #f8faff; border: 1px solid #dce7fb; border-left: 3px solid #1a4fd6; border-radius: 4px; }
+  .aresult-label { font-weight: 700; font-size: 10px; color: #1a2744; margin-bottom: 3px; }
+  .aresult-file { font-size: 9px; color: #0059bb; margin: 2px 0; }
+  .aresult-date { font-size: 8px; color: #6b7da8; margin-top: 2px; }
+  .aresult-note { font-size: 9px; color: #3a4a6a; font-style: italic; margin-top: 3px; }
+  .anotes { margin: 6px 16px; padding: 6px 10px; background: #eef3fb; border-radius: 5px; font-size: 10px; color: #3a4a6a; font-style: italic; }
 
   /* ── Footer ── */
-  .footer { margin-top: 24px; padding: 11px 32px; border-top: 1px solid #dce7fb; display: flex; justify-content: space-between; font-size: 8.5px; color: #a0b0cc; }
-
-  @media print {
-    body, .cover, .patient-grid { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  }
+  .footer { display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #9aabc4; border-top: 1px solid #dce7fb; padding-top: 14px; margin-top: 30px; }
 </style>
 </head>
 <body>
-
-<div class="cover">
-  <div class="cover-left">
-    <div class="cover-eyebrow">Cabinet Médical — Dossier Patient</div>
-    <div class="cover-title">Dossier de Santé</div>
-    <div class="cover-name">${esc(fullName)}</div>
-    <div class="cover-since">Patient depuis ${esc(String(dossierSince))}</div>
+  <div class="cover">
+    <div>
+      <div class="cover-eyebrow">Dossier Médical</div>
+      <div class="cover-title">MediCabinet</div>
+      <div class="cover-name">${esc(fullName)}</div>
+      <div class="cover-since">Dossier depuis ${esc(String(dossierSince))}</div>
+    </div>
+    <div class="cover-right">
+      <div class="cover-badge">Dossier Complet</div>
+      <div class="cover-date">${new Date().toLocaleDateString("fr-FR")}</div>
+    </div>
   </div>
-  <div class="cover-right">
-    <div class="cover-badge">Confidentiel</div>
-    <div class="cover-date">Imprimé le ${new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</div>
+
+  <div class="patient-grid">
+    <div class="pcell"><div class="pcell-label">Groupe Sanguin</div><div class="pcell-value">${esc(bloodType)}</div></div>
+    <div class="pcell"><div class="pcell-label">Allergies</div><div class="pcell-value">${esc(allergies)}</div></div>
+    <div class="pcell"><div class="pcell-label">Date de Naissance</div><div class="pcell-value">${esc(birthDate)}</div></div>
+    <div class="pcell"><div class="pcell-label">Consultations</div><div class="pcell-value">${consultations.length}</div></div>
   </div>
-</div>
 
-<div class="patient-grid">
-  <div class="pcell"><div class="pcell-label">Date de naissance</div><div class="pcell-value">${esc(birthDate)}</div></div>
-  <div class="pcell"><div class="pcell-label">Groupe sanguin</div><div class="pcell-value">${esc(bloodType)}</div></div>
-  <div class="pcell"><div class="pcell-label">Allergies</div><div class="pcell-value">${esc(allergies)}</div></div>
-  <div class="pcell"><div class="pcell-label">Consultations</div><div class="pcell-value">${consultations.length}</div></div>
-</div>
-
-<div class="content">
-  <div class="content-title">
-    Historique des consultations
-    <span>${consultations.length} enregistrée${consultations.length !== 1 ? "s" : ""}</span>
+  <div class="content">
+    <div class="content-title">Historique de Consultations <span>${consultations.length} consultation${consultations.length !== 1 ? "s" : ""}</span></div>
+    ${blocks || `<p class="empty-sub">Aucune consultation enregistrée.</p>`}
   </div>
-  ${blocks || `<p class="empty-sub">Aucune consultation enregistrée.</p>`}
-</div>
 
-<div class="footer">
-  <span>Document généré automatiquement — MediCabinet</span>
-  <span>Usage médical uniquement</span>
-</div>
+  <div class="footer">
+    <span>Document généré automatiquement — MediCabinet</span>
+    <span>Usage médical uniquement</span>
+  </div>
 
 </body>
 </html>`;
@@ -898,21 +927,84 @@ export function MedicalRecord() {
   };
 
   // ── PDF Export ─────────────────────────────────────────────────────────────
-  const handleExportPDF = useCallback(() => {
-    const patientInfo = patient?.patient || {};
-    const fullName = patient
-      ? `${patient.prenom || ""} ${patient.nom || ""}`.trim()
-      : "Patient";
-    const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.write(
-      buildPDFHTML(patient, fullName, consultations, patientInfo),
-    );
-    win.document.close();
-    win.onload = () => {
-      win.focus();
-      win.print();
-    };
+  const handleExportPDF = useCallback(async () => {
+    try {
+      const fullName = patient
+        ? `${patient.prenom || ""} ${patient.nom || ""}`.trim()
+        : "Patient";
+
+      // Fetch ordonnances and prescriptions for all consultations
+      let allOrdonnances = [];
+      let allPrescriptions = [];
+      let allAnalyses = [];
+
+      try {
+        const ordRes = await api.get("/ordonnances");
+        const ordData = Array.isArray(ordRes.data?.data)
+          ? ordRes.data.data
+          : (ordRes.data ?? []);
+        allOrdonnances = ordData;
+      } catch {
+        allOrdonnances = [];
+      }
+
+      try {
+        const presRes = await api.get("/prescriptions");
+        const presData = Array.isArray(presRes.data?.data)
+          ? presRes.data.data
+          : (presRes.data ?? []);
+        allPrescriptions = presData;
+      } catch {
+        allPrescriptions = [];
+      }
+
+      try {
+        const anaRes = await api.get("/analyses");
+        const anaData = Array.isArray(anaRes.data?.data)
+          ? anaRes.data.data
+          : (anaRes.data ?? []);
+        allAnalyses = anaData;
+      } catch {
+        allAnalyses = [];
+      }
+
+      // Enrich consultations with their ordonnances, prescriptions and analyses
+      const enrichedConsultations = consultations.map((c) => {
+        const ordonnances = allOrdonnances.filter(
+          (o) => String(o.consultation_id) === String(c.id),
+        );
+        const ordonnanceIds = ordonnances.map((o) => o.id);
+        const prescriptions = allPrescriptions.filter((p) =>
+          ordonnanceIds.includes(p.ordonnance_id),
+        );
+
+        const analyses = allAnalyses.filter(
+          (a) => String(a.consultation_id) === String(c.id),
+        );
+
+        return {
+          ...c,
+          _ordonnances: ordonnances,
+          _prescriptions: prescriptions,
+          _analyses: analyses,
+        };
+      });
+
+      const win = window.open("", "_blank");
+      if (!win) return;
+
+      // Build PDF with enriched data
+      const html = buildPDFWithData(enrichedConsultations, fullName, patient);
+      win.document.write(html);
+      win.document.close();
+      win.onload = () => {
+        win.focus();
+        win.print();
+      };
+    } catch (err) {
+      console.error("PDF Export Error:", err);
+      alert("Erreur lors de l'export du PDF.");
+    }
   }, [patient, consultations]);
 
   // ── Derived ────────────────────────────────────────────────────────────────
