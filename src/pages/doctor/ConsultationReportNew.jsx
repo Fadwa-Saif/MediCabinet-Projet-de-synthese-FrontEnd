@@ -878,6 +878,14 @@ export function ConsultationReportNew() {
         }),
       );
 
+      sessionStorage.setItem(
+        "consultation_save_notice",
+        JSON.stringify({
+          consultationId,
+          savedAt: new Date().toISOString(),
+        }),
+      );
+
       navigate("/medecin/dashboard");
     } catch (err) {
       console.error(err);

@@ -16,16 +16,24 @@ export function DoctorReports() {
       setError(null);
       try {
         const response = await api.get("/consultations");
-        const data = Array.isArray(response.data?.data) ? response.data.data : response.data || [];
+        const data = Array.isArray(response.data?.data)
+          ? response.data.data
+          : response.data || [];
+
         setReports(
           data.map((c) => ({
             id: c.id,
-            patientName: c.patient?.user?.prenom + " " + c.patient?.user?.nom || "—",
-            type: c.symptomes || "Consultation générale",
-            createdAt: new Date(c.date).toLocaleDateString('fr-FR'),
-            doctor: c.admin?.user?.prenom + " " + c.admin?.user?.nom || "—",
+            patientId: c.patient?.id ?? null,
+            patientName:
+              `${c.patient?.user?.prenom || ""} ${c.patient?.user?.nom || ""}`.trim() ||
+              "-",
+            type: c.symptomes || "Consultation generale",
+            createdAt: new Date(c.date).toLocaleDateString("fr-FR"),
+            doctor:
+              `${c.admin?.user?.prenom || ""} ${c.admin?.user?.nom || ""}`.trim() ||
+              "-",
             status: "Valide",
-          }))
+          })),
         );
       } catch (err) {
         setError(err.message);
@@ -97,7 +105,9 @@ export function DoctorReports() {
             </article>
 
             <article className="rounded-2xl bg-gradient-to-b from-blue-700 to-blue-600 p-6 text-white shadow-lg lg:col-span-4">
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-100">Actions rapides</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-100">
+                Actions rapides
+              </p>
               <h2 className="mt-3 text-2xl font-extrabold">Nouvelle consultation</h2>
               <p className="mt-2 text-sm text-blue-100">
                 Cree un nouveau rapport au format de votre dashboard.
@@ -105,7 +115,7 @@ export function DoctorReports() {
 
               <button
                 type="button"
-                onClick={() => navigate("/medecin/rapport/new")}
+                onClick={() => navigate("/medecin/patients")}
                 className="mt-8 w-full rounded-xl bg-white px-4 py-3 text-sm font-bold text-blue-700 transition hover:bg-blue-50"
               >
                 Creer un rapport
@@ -118,12 +128,24 @@ export function DoctorReports() {
               <table className="min-w-full">
                 <thead className="bg-slate-100">
                   <tr>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Reference</th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Patient</th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Type</th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Date</th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Statut</th>
-                    <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Actions</th>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      Reference
+                    </th>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      Patient
+                    </th>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      Type
+                    </th>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      Date
+                    </th>
+                    <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      Statut
+                    </th>
+                    <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -169,8 +191,13 @@ export function DoctorReports() {
                         <td className="px-6 py-5 text-right">
                           <button
                             type="button"
-                            onClick={() => navigate(`/medecin/rapport/${report.id}?source=consultation`)}
-                            className="text-sm font-bold text-blue-600 transition hover:underline"
+                            onClick={() =>
+                              report.patientId
+                                ? navigate(`/medecin/medical-record/${report.patientId}?tab=historique`)
+                                : null
+                            }
+                            disabled={!report.patientId}
+                            className="text-sm font-bold text-blue-600 transition hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Ouvrir
                           </button>
