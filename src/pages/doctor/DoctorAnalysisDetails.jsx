@@ -107,8 +107,6 @@ const FileViewer = ({ fichierUrl, fichier }) => {
   const [pdfUrl, setPdfUrl] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  if (!fichierUrl) return null;
-
   // Get extension from actual filename (fichier), not from URL
   const ext = fichier?.split(".").pop()?.toLowerCase() || "";
   const isImage = ["jpg", "jpeg", "png", "gif", "webp"].includes(ext);
@@ -186,6 +184,8 @@ const FileViewer = ({ fichierUrl, fichier }) => {
       alert("Erreur lors du téléchargement");
     }
   };
+
+  if (!fichierUrl) return null;
 
   return (
     <div className="space-y-4">
