@@ -344,6 +344,13 @@ const getInitials = (fullName) => {
     .toUpperCase();
 };
 
+const createAnalysisGroupId = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `grp-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CheckboxAnalysisForm — Categorized checkbox analysis selection
 // ─────────────────────────────────────────────────────────────────────────────
@@ -866,17 +873,22 @@ export function ConsultationReportNew() {
         }
       }
 
-      // 4. Prescrire les analyses
-      await Promise.all(
-        selectedAnalyses.map((analysisKey) => {
-          const [categoryId, testName] = analysisKey.split(":");
-          return api.post("/analyses/prescrire", {
-            consultation_id: consultationId,
-            type_analyse: testName,
-            category: categoryId,
-          });
-        }),
-      );
+      // 4. Prescrire les analyses (one logical form = one shared group_id)
+      if (selectedAnalyses.length > 0) {
+        const analysisGroupId = createAnalysisGroupId();
+        await Promise.all(
+          selectedAnalyses.map((analysisKey, index) => {
+            const [categoryId, testName] = analysisKey.split(":");
+            return api.post("/analyses/prescrire", {
+              consultation_id: consultationId,
+              type_analyse: testName,
+              category: categoryId,
+              group_id: analysisGroupId,
+              notify_patient: index === 0,
+            });
+          }),
+        );
+      }
 
       sessionStorage.setItem(
         "consultation_save_notice",

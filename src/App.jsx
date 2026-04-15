@@ -116,12 +116,12 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          {/* Legacy catch-all for /patient/analyses → upload form */}
+          {/* Default analyses view */}
           <Route
             path="/patient/analyses"
             element={
               <ProtectedRoute requiredRole="patient">
-                <PatientUploadAnalysis />
+                <AnalysisDetails />
               </ProtectedRoute>
             }
           />
