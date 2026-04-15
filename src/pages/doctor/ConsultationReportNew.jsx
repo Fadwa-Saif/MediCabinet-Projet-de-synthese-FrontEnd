@@ -2,15 +2,18 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
+  Bell,
   ClipboardList,
   FileText,
   FlaskConical,
   HeartPulse,
+  Mail,
   Pill,
   Ruler,
   Save,
   Search,
   Stethoscope,
+  Video,
   Weight,
   X,
 } from "lucide-react";
@@ -21,7 +24,12 @@ import api from "../../services/api";
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-// quickActions removed (unused)
+const quickActions = [
+  { label: "Envoyer", icon: Mail },
+  { label: "Analyses", icon: FlaskConical },
+  { label: "Teleconsult.", icon: Video },
+  { label: "Dossier", icon: ClipboardList },
+];
 
 const ANALYSIS_CATEGORIES = [
   {
@@ -688,7 +696,7 @@ export function ConsultationReportNew() {
 
   // ── Patient & UI state ────────────────────────────────────────────────────
   const [patientData, setPatientData] = useState(null);
-  // recentHistory removed (unused)
+  const [recentHistory, setRecentHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);

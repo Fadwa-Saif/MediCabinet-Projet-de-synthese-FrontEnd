@@ -278,6 +278,12 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
           path: "/medecin/rapports",
           icon: FileText,
         },
+        {
+          label: "Attestation",
+          labelAr: "شهادة طبية",
+          path: "/medecin/attestation",
+          icon: FileText,
+        },
       ],
       secretaire: [
         {
