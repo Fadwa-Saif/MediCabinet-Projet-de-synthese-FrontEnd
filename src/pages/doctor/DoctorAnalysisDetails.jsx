@@ -106,16 +106,14 @@ const SectionCard = ({
 const FileViewer = ({ fichierUrl, fichier }) => {
   const [pdfUrl, setPdfUrl] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  if (!fichierUrl) return null;
-
   // Get extension from actual filename (fichier), not from URL
   const ext = fichier?.split(".").pop()?.toLowerCase() || "";
   const isImage = ["jpg", "jpeg", "png", "gif", "webp"].includes(ext);
   const isPdf = ext === "pdf";
 
-  // Get full API URL
+  // Get full API URL (safe: may be null)
   const getFullUrl = (url) => {
+    if (!url) return null;
     if (url.startsWith("http")) return url;
     const baseUrl =
       process.env.REACT_APP_API_URL || "http://127.0.0.1:8000/api";
@@ -124,10 +122,10 @@ const FileViewer = ({ fichierUrl, fichier }) => {
       : `${baseUrl}${url}`;
   };
 
-  const fullUrl = getFullUrl(fichierUrl);
+  const fullUrl = fichierUrl ? getFullUrl(fichierUrl) : null;
   const token = localStorage.getItem("token");
 
-  // Load PDF with JWT auth
+  // Load PDF with JWT auth — hook must run unconditionally
   useEffect(() => {
     if (!isPdf || !fullUrl) return;
 
@@ -157,6 +155,8 @@ const FileViewer = ({ fichierUrl, fichier }) => {
 
     loadPdf();
   }, [fullUrl, isPdf, token]);
+
+  if (!fichierUrl) return null;
 
   // Handle file download with JWT auth
   const handleDownload = async () => {
