@@ -841,6 +841,14 @@ export function ConsultationReportNew() {
         });
         const ordonnanceId = ordRes.data?.data?.id ?? ordRes.data?.id;
 
+        // ═══════════════════════════════════════════════════════════════════
+        // FIX #1: Validate ordonnanceId extraction to prevent silent failures
+        // Problem: If API returns unexpected structure (e.g., { ordonnance: { id: X } }),
+        // ordonnanceId becomes undefined and prescriptions are silently skipped
+        // Solution: Explicitly validate ordonnanceId and throw error if missing
+        // ═══════════════════════════════════════════════════════════════════
+        if (!ordonnanceId) throw new Error("Identifiant ordonnance manquant.");
+
         // 3. Créer les lignes de prescription (pivot ordonnance ↔ médicament)
         if (ordonnanceId && prescriptions.length > 0) {
           await Promise.all(
