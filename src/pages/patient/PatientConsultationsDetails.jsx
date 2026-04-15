@@ -428,7 +428,13 @@ export function PatientConsultationDetails() {
                 Uploadez les résultats de vos analyses sur la page dédiée.
               </p>
               <button
-                onClick={() => navigate("/patient/upload-analysis")}
+                onClick={() =>
+                  navigate(
+                    analyses[0]?.id
+                      ? `/patient/analyses/upload?prescribedId=${analyses[0].id}`
+                      : "/patient/analyses/upload",
+                  )
+                }
                 className="px-6 py-2 bg-on-primary-fixed text-primary-fixed rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
               >
                 Aller vers les uploads

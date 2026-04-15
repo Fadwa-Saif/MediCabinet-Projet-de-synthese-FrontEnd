@@ -1,30 +1,19 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
+import { LabAnalysisFormViewer } from "../../components/LabAnalysisFormViewer";
 import api from "../../services/api";
 import {
-  ArrowLeft,
-  Calendar,
-  User,
-  FlaskConical,
-  FileText,
-  Download,
   AlertCircle,
-  Clock,
-  MessageSquare,
-  Stethoscope,
+  ArrowLeft,
   CheckCircle2,
-  HourglassIcon,
-  Tag,
-  Building2,
-  ClipboardList,
-  ImageIcon,
+  Clock,
+  FlaskConical,
+  Upload,
 } from "lucide-react";
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
 const formatDate = (dateStr) => {
-  if (!dateStr) return "—";
+  if (!dateStr) return "-";
   return new Date(dateStr).toLocaleDateString("fr-FR", {
     day: "numeric",
     month: "long",
@@ -32,242 +21,67 @@ const formatDate = (dateStr) => {
   });
 };
 
-const ANALYSIS_TYPE_LABELS = {
-  blood: { label: "Analyse Sanguine", icon: "🩸" },
-  urine: { label: "Analyse d'Urine", icon: "💧" },
-  imaging: { label: "Imagerie Médicale", icon: "🩻" },
-  biopsy: { label: "Biopsie", icon: "🔬" },
-  genetic: { label: "Test Génétique", icon: "🧬" },
-  other: { label: "Autre", icon: "📋" },
-};
+const analysisDate = (a) => a?.date_analyse || a?.created_at || null;
 
-const getTypeInfo = (typeKey) =>
-  ANALYSIS_TYPE_LABELS[typeKey] || { label: typeKey || "Analyse", icon: "🔬" };
+const buildAnalysisGroups = (analyses) => {
+  const map = new Map();
 
-const getStatusConfig = (statut, fichier) => {
-  if (fichier) {
-    return {
-      label: "Résultat reçu",
-      icon: CheckCircle2,
-      className: "bg-tertiary-container text-on-tertiary-container",
-      dot: "bg-tertiary",
-    };
-  }
-  return {
-    label: "En attente",
-    icon: HourglassIcon,
-    className: "bg-surface-variant text-on-surface-variant",
-    dot: "bg-outline",
-  };
-};
+  analyses.forEach((a) => {
+    const groupKey = a.group_id
+      ? `group:${a.group_id}`
+      : a.consultation_id
+        ? `consultation:${a.consultation_id}`
+        : `single:${a.id}`;
 
-// ─── Info Row Component ──────────────────────────────────────────────────────
-
-const InfoRow = ({ icon: Icon, label, value, colorClass = "text-primary" }) => (
-  <div className="flex items-start gap-3 py-3 border-b border-outline-variant/20 last:border-0">
-    <div
-      className={`w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center shrink-0 mt-0.5 ${colorClass}`}
-    >
-      <Icon size={16} />
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="text-xs font-medium text-outline uppercase tracking-wider mb-0.5">
-        {label}
-      </p>
-      <p className="text-on-surface font-medium break-words">{value || "—"}</p>
-    </div>
-  </div>
-);
-
-// ─── Section Card ────────────────────────────────────────────────────────────
-
-const SectionCard = ({
-  title,
-  icon: Icon,
-  iconColorClass = "text-primary",
-  children,
-}) => (
-  <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/20 overflow-hidden">
-    <div className="flex items-center gap-3 px-6 py-4 border-b border-outline-variant/20 bg-surface-container-low/50">
-      <div
-        className={`w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center ${iconColorClass}`}
-      >
-        <Icon size={18} />
-      </div>
-      <h2 className="font-headline font-bold text-on-surface text-base">
-        {title}
-      </h2>
-    </div>
-    <div className="px-6 py-4">{children}</div>
-  </div>
-);
-
-// ─── File Viewer ─────────────────────────────────────────────────────────────
-
-const FileViewer = ({ fichierUrl, fichier }) => {
-  const [pdfUrl, setPdfUrl] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  if (!fichierUrl) return null;
-
-  // Get extension from actual filename (fichier), not from URL
-  const ext = fichier?.split(".").pop()?.toLowerCase() || "";
-  const isImage = ["jpg", "jpeg", "png", "gif", "webp"].includes(ext);
-  const isPdf = ext === "pdf";
-
-  // Get full API URL
-  const getFullUrl = (url) => {
-    if (url.startsWith("http")) return url;
-    const baseUrl =
-      process.env.REACT_APP_API_URL || "http://127.0.0.1:8000/api";
-    return url.startsWith("/api")
-      ? url.replace("/api", baseUrl)
-      : `${baseUrl}${url}`;
-  };
-
-  const fullUrl = getFullUrl(fichierUrl);
-  const token = localStorage.getItem("token");
-
-  // Load PDF with JWT auth
-  useEffect(() => {
-    if (!isPdf || !fullUrl) return;
-
-    const loadPdf = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(fullUrl, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          console.error("PDF load failed:", response.status);
-          return;
-        }
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        setPdfUrl(url);
-      } catch (err) {
-        console.error("PDF load error:", err);
-      } finally {
-        setLoading(false);
-      }
+    const current = map.get(groupKey) || {
+      key: groupKey,
+      groupId: a.group_id || null,
+      consultationId: a.consultation_id || null,
+      analyses: [],
     };
 
-    loadPdf();
-  }, [fullUrl, isPdf, token]);
+    current.analyses.push(a);
+    map.set(groupKey, current);
+  });
 
-  // Handle file download with JWT auth
-  const handleDownload = async () => {
-    try {
-      const response = await fetch(fullUrl, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+  return Array.from(map.values())
+    .map((group) => {
+      const ordered = [...group.analyses].sort((a, b) => {
+        const da = analysisDate(a) ? new Date(analysisDate(a)).getTime() : 0;
+        const db = analysisDate(b) ? new Date(analysisDate(b)).getTime() : 0;
+        return db - da;
       });
 
-      if (!response.ok) {
-        alert("Erreur: " + response.status);
-        return;
-      }
+      const representative = ordered.find((a) => !a.fichier) || ordered[0];
+      const allHaveFile = ordered.every((a) => Boolean(a.fichier));
+      const hasAnyFile = ordered.some((a) => Boolean(a.fichier));
+      const prescribedAt = analysisDate(representative);
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fichier?.split("/").pop() || "fichier";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Download error:", err);
-      alert("Erreur lors du téléchargement");
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      {/* Preview */}
-      {isImage ? (
-        <div className="rounded-xl overflow-hidden border border-outline-variant/20 bg-surface-container">
-          <img
-            src={fullUrl}
-            alt="Résultat d'analyse"
-            className="w-full max-h-[480px] object-contain"
-            onError={(e) => {
-              e.target.style.display = "none";
-            }}
-          />
-        </div>
-      ) : isPdf && pdfUrl ? (
-        <div className="rounded-xl overflow-hidden border border-outline-variant/20 bg-surface-container">
-          <iframe
-            src={`${pdfUrl}#view=FitH`}
-            title="Résultat PDF"
-            className="w-full h-[480px]"
-          />
-        </div>
-      ) : isPdf ? (
-        <div className="flex items-center gap-4 p-5 rounded-xl bg-surface-container-low border border-outline-variant/20">
-          <div className="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center">
-            <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
-          </div>
-          <p className="text-on-surface-variant">Chargement du PDF...</p>
-        </div>
-      ) : (
-        <div className="flex items-center gap-4 p-5 rounded-xl bg-surface-container-low border border-outline-variant/20">
-          <div className="w-14 h-14 rounded-xl bg-secondary-container flex items-center justify-center shrink-0">
-            <FileText size={28} className="text-secondary" />
-          </div>
-          <div>
-            <p className="font-medium text-on-surface">
-              {fichier?.split("/").pop() || "Document"}
-            </p>
-            <p className="text-sm text-on-surface-variant mt-0.5">
-              Cliquez sur le bouton pour télécharger
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Action buttons */}
-      <div className="flex gap-3 flex-wrap">
-        <button
-          onClick={handleDownload}
-          className="flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary rounded-xl font-medium shadow-md shadow-primary/20 hover:bg-primary/90 transition-all"
-        >
-          <Download size={18} />
-          Télécharger le fichier
-        </button>
-      </div>
-    </div>
-  );
+      return {
+        ...group,
+        analyses: ordered,
+        representative,
+        allHaveFile,
+        hasAnyFile,
+        testsCount: ordered.length,
+        prescribedAt,
+      };
+    })
+    .sort((a, b) => {
+      const da = a.prescribedAt ? new Date(a.prescribedAt).getTime() : 0;
+      const db = b.prescribedAt ? new Date(b.prescribedAt).getTime() : 0;
+      return db - da;
+    });
 };
-
-// ─── Loading Skeleton ─────────────────────────────────────────────────────────
-
-const SkeletonSection = () => (
-  <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/20 p-6 animate-pulse space-y-4">
-    <div className="h-5 bg-surface-container-high rounded w-1/3" />
-    <div className="h-4 bg-surface-container-high rounded w-2/3" />
-    <div className="h-4 bg-surface-container-high rounded w-1/2" />
-    <div className="h-4 bg-surface-container-high rounded w-3/4" />
-  </div>
-);
-
-// ─── Main Component ──────────────────────────────────────────────────────────
 
 export function AnalysisDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [analyse, setAnalyse] = useState(null);
-  const [consultation, setConsultation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [allAnalyses, setAllAnalyses] = useState([]);
+  const [consultationsById, setConsultationsById] = useState({});
 
   useEffect(() => {
     const load = async () => {
@@ -275,33 +89,34 @@ export function AnalysisDetails() {
         setLoading(true);
         setError(null);
 
-        // Fetch all analyses and find the target
-        const res = await api.get("/analyses");
-        const all = res.data.data || res.data || [];
-        const found = all.find((a) => String(a.id) === String(id));
+        const [analysesRes, consultationsRes] = await Promise.all([
+          api.get("/analyses"),
+          api.get("/consultations").catch(() => null),
+        ]);
 
-        if (!found) {
+        const analysesData = Array.isArray(analysesRes.data?.data)
+          ? analysesRes.data.data
+          : analysesRes.data || [];
+
+        if (id && !analysesData.some((a) => String(a.id) === String(id))) {
           setError("Analyse introuvable.");
-          return;
         }
 
-        setAnalyse(found);
+        setAllAnalyses(analysesData);
 
-        // Fetch linked consultation if available
-        if (found.consultation_id) {
-          try {
-            const cRes = await api.get(
-              `/consultations/${found.consultation_id}`,
-            );
-            setConsultation(cRes.data.data || cRes.data);
-          } catch {
-            // Consultation fetch is optional – silently skip
-          }
-        }
+        const consultationsData = Array.isArray(consultationsRes?.data?.data)
+          ? consultationsRes.data.data
+          : consultationsRes?.data || [];
+
+        const byId = consultationsData.reduce((acc, c) => {
+          acc[String(c.id)] = c;
+          return acc;
+        }, {});
+        setConsultationsById(byId);
       } catch (err) {
         setError(
           err.response?.data?.message ||
-            "Impossible de charger les détails de l'analyse.",
+            "Impossible de charger les details de l'analyse.",
         );
       } finally {
         setLoading(false);
@@ -311,254 +126,177 @@ export function AnalysisDetails() {
     load();
   }, [id]);
 
-  const typeInfo = getTypeInfo(analyse?.type_analyse);
-  const statusConfig = getStatusConfig(analyse?.statut, analyse?.fichier);
-  const StatusIcon = statusConfig.icon;
+  const groups = useMemo(() => buildAnalysisGroups(allAnalyses), [allAnalyses]);
+
+  const selectedGroup = useMemo(() => {
+    if (!groups.length) return null;
+
+    if (id) {
+      return (
+        groups.find((g) =>
+          g.analyses.some((a) => String(a.id) === String(id)),
+        ) || null
+      );
+    }
+
+    return groups.find((g) => !g.allHaveFile) || groups[0];
+  }, [groups, id]);
+
+  const selectedAnalyse = selectedGroup?.representative || null;
+  const consultation = selectedGroup?.consultationId
+    ? consultationsById[String(selectedGroup.consultationId)]
+    : null;
+
+  const status = useMemo(() => {
+    if (!selectedGroup) {
+      return {
+        label: "-",
+        Icon: Clock,
+        cls: "bg-slate-200 text-slate-700",
+      };
+    }
+
+    if (selectedGroup.allHaveFile) {
+      return {
+        label: "Resultat envoye",
+        Icon: CheckCircle2,
+        cls: "bg-emerald-100 text-emerald-700",
+      };
+    }
+
+    if (selectedGroup.hasAnyFile) {
+      return {
+        label: "Resultat partiel",
+        Icon: Clock,
+        cls: "bg-amber-100 text-amber-700",
+      };
+    }
+
+    return {
+      label: "En attente",
+      Icon: Clock,
+      cls: "bg-slate-200 text-slate-700",
+    };
+  }, [selectedGroup]);
+
+  const StatusIcon = status.Icon;
 
   return (
-    <Navbar userRole="patient" pageTitle="Détail de l'Analyse">
+    <Navbar userRole="patient" pageTitle="Analyse prescrite">
       <main className="pt-6 pb-12 px-6 max-w-6xl mx-auto min-h-screen">
-        {/* Back navigation */}
         <button
           onClick={() => navigate("/patient/dossier?tab=analyses")}
-          className="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors mb-6 group"
+          className="mb-6 flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-600"
         >
-          <ArrowLeft
-            size={20}
-            className="group-hover:-translate-x-1 transition-transform"
-          />
-          <span className="font-medium text-sm">Retour au dossier médical</span>
+          <ArrowLeft size={18} />
+          Retour au dossier
         </button>
 
-        {/* Header */}
-        <header className="mb-8">
-          <p className="text-secondary font-label text-sm uppercase tracking-widest font-bold mb-2 flex items-center gap-2">
-            <FlaskConical size={14} />
-            Résultat d'analyse
-          </p>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h1 className="text-4xl md:text-5xl font-headline font-extrabold tracking-tight text-on-background">
-              {analyse ? typeInfo.icon + " " + typeInfo.label : "Chargement…"}
-            </h1>
-            {analyse && (
-              <span
-                className={`self-start sm:self-auto flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wider ${statusConfig.className}`}
-              >
-                <span
-                  className={`w-2 h-2 rounded-full ${statusConfig.dot} animate-pulse`}
-                />
-                <StatusIcon size={14} />
-                {statusConfig.label}
-              </span>
-            )}
-          </div>
-          {analyse && (
-            <p className="text-on-surface-variant mt-2">
-              Prescrite le{" "}
-              {formatDate(analyse.date_analyse || analyse.created_at)}
-            </p>
-          )}
-        </header>
-
-        {/* Error */}
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-error-container text-on-error-container font-medium flex items-center gap-3 border border-error/20">
-            <AlertCircle size={24} />
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+            <AlertCircle size={20} />
             {error}
-            <button
-              onClick={() => navigate("/patient/dossier?tab=analyses")}
-              className="ml-auto text-sm underline font-semibold"
-            >
-              Retour
-            </button>
           </div>
         )}
 
         {loading ? (
-          <div className="space-y-6">
-            <SkeletonSection />
-            <SkeletonSection />
-            <SkeletonSection />
+          <div className="space-y-4">
+            <div className="h-24 animate-pulse rounded-xl bg-slate-200" />
+            <div className="h-80 animate-pulse rounded-xl bg-slate-200" />
+          </div>
+        ) : !selectedGroup || !selectedAnalyse ? (
+          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+            <p className="text-slate-600">Aucune analyse prescrite pour le moment.</p>
           </div>
         ) : (
-          analyse && (
-            <div className="space-y-6">
-              {/* ── Analyse Info ─────────────────────────────────────── */}
-              <SectionCard
-                title="Informations de l'analyse"
-                icon={FlaskConical}
-                iconColorClass="text-secondary"
-              >
-                <InfoRow
-                  icon={Tag}
-                  label="Type d'analyse"
-                  value={typeInfo.icon + "  " + typeInfo.label}
-                  colorClass="text-secondary"
-                />
-                <InfoRow
-                  icon={Calendar}
-                  label="Date de prescription"
-                  value={formatDate(analyse.date_analyse || analyse.created_at)}
-                />
-                {analyse.date_resultat && (
-                  <InfoRow
-                    icon={CheckCircle2}
-                    label="Date du résultat"
-                    value={formatDate(analyse.date_resultat)}
-                    colorClass="text-tertiary"
-                  />
-                )}
-                {analyse.laboratoire && (
-                  <InfoRow
-                    icon={Building2}
-                    label="Laboratoire"
-                    value={analyse.laboratoire}
-                    colorClass="text-primary"
-                  />
-                )}
-              </SectionCard>
+          <div className="space-y-6">
+            <header className="rounded-2xl border border-slate-200 bg-white p-6">
+              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-blue-600">
+                <FlaskConical size={16} />
+                Formulaire d'analyses
+              </div>
 
-              {/* ── Doctor's Note ─────────────────────────────────────── */}
-              {analyse.commentaire_medecin && (
-                <SectionCard
-                  title="Note du médecin"
-                  icon={Stethoscope}
-                  iconColorClass="text-primary"
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h1 className="text-3xl font-extrabold text-slate-900">
+                    Formulaire #{selectedAnalyse.id}
+                  </h1>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {selectedGroup.testsCount} type
+                    {selectedGroup.testsCount > 1 ? "s" : ""} prescrit
+                    {selectedGroup.testsCount > 1 ? "s" : ""} le{" "}
+                    {formatDate(selectedGroup.prescribedAt)}
+                  </p>
+                </div>
+
+                <span
+                  className={`inline-flex items-center gap-2 self-start rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${status.cls}`}
                 >
-                  <div className="flex gap-3">
-                    <div className="w-1 rounded-full bg-primary/40 shrink-0" />
-                    <p className="text-on-surface leading-relaxed">
-                      {analyse.commentaire_medecin}
-                    </p>
-                  </div>
-                </SectionCard>
-              )}
+                  <StatusIcon size={14} />
+                  {status.label}
+                </span>
+              </div>
+            </header>
 
-              {/* ── Patient's Note ─────────────────────────────────────── */}
-              {analyse.commentaire_patient && (
-                <SectionCard
-                  title="Votre commentaire"
-                  icon={MessageSquare}
-                  iconColorClass="text-tertiary"
-                >
-                  <div className="flex gap-3">
-                    <div className="w-1 rounded-full bg-tertiary/40 shrink-0" />
-                    <p className="text-on-surface leading-relaxed">
-                      {analyse.commentaire_patient}
-                    </p>
-                  </div>
-                </SectionCard>
-              )}
+            {groups.length > 1 && (
+              <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Mes formulaires d'analyses
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {groups.map((group) => {
+                    const active = group.key === selectedGroup.key;
+                    const representativeId = group.representative?.id;
+                    return (
+                      <button
+                        key={group.key}
+                        onClick={() =>
+                          representativeId &&
+                          navigate(`/patient/analyses/${representativeId}`)
+                        }
+                        className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+                          active
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        }`}
+                      >
+                        Formulaire #{representativeId} ({group.testsCount})
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
-              {/* ── Linked Consultation ───────────────────────────────── */}
-              {consultation && (
-                <SectionCard
-                  title="Consultation liée"
-                  icon={ClipboardList}
-                  iconColorClass="text-primary"
-                >
-                  <InfoRow
-                    icon={Calendar}
-                    label="Date de consultation"
-                    value={formatDate(
-                      consultation.date_heure || consultation.date,
-                    )}
-                  />
-                  {(consultation.medecin_nom || consultation.admin?.user) && (
-                    <InfoRow
-                      icon={User}
-                      label="Médecin"
-                      value={
-                        consultation.medecin_nom ||
-                        [
-                          consultation.admin?.user?.prenom,
-                          consultation.admin?.user?.nom,
-                        ]
-                          .filter(Boolean)
-                          .join(" ") ||
-                        "—"
-                      }
-                    />
-                  )}
-                  {(consultation.diagnostic || consultation.symptomes) && (
-                    <InfoRow
-                      icon={Stethoscope}
-                      label="Diagnostic / Symptômes"
-                      value={consultation.diagnostic || consultation.symptomes}
-                      colorClass="text-secondary"
-                    />
-                  )}
-                  {consultation.notes && (
-                    <div className="mt-4 pt-3 border-t border-outline-variant/20">
-                      <p className="text-xs font-medium text-outline uppercase tracking-wider mb-2">
-                        Notes de consultation
-                      </p>
-                      <p className="text-on-surface-variant text-sm leading-relaxed">
-                        {consultation.notes}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Link to consultation detail */}
-                  <button
-                    onClick={() =>
-                      navigate(`/patient/rendezvous/${consultation.id}`)
-                    }
-                    className="mt-4 flex items-center gap-2 text-primary text-sm font-semibold hover:underline"
-                  >
-                    <ExternalLink size={14} />
-                    Voir la consultation complète
-                  </button>
-                </SectionCard>
-              )}
-
-              {/* ── File / Result ─────────────────────────────────────── */}
-              <SectionCard
-                title={
-                  analyse.fichier
-                    ? "Fichier de résultat"
-                    : "Résultat en attente"
+            <section className="rounded-2xl border border-slate-200 bg-white p-6">
+              <LabAnalysisFormViewer
+                analyses={selectedGroup.analyses}
+                patient={consultation?.patient ?? {}}
+                medecin={consultation?.admin?.user ?? {}}
+                date={
+                  consultation?.date ?? selectedGroup.prescribedAt ?? selectedAnalyse.created_at
                 }
-                icon={analyse.fichier ? FileText : Clock}
-                iconColorClass={
-                  analyse.fichier ? "text-tertiary" : "text-outline"
+              />
+            </section>
+
+            <section className="rounded-2xl border border-blue-200 bg-blue-50 p-6 text-center">
+              <h2 className="text-lg font-bold text-slate-900">
+                Envoyer le document de resultat
+              </h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Un seul fichier est attendu (document du laboratoire contenant tous les resultats).
+              </p>
+              <button
+                onClick={() =>
+                  navigate(`/patient/analyses/upload?prescribedId=${selectedAnalyse.id}`)
                 }
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
               >
-                {analyse.fichier ? (
-                  <FileViewer
-                    fichierUrl={analyse.fichier_url}
-                    fichier={analyse.fichier}
-                  />
-                ) : (
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-5 rounded-xl bg-surface-container-low border border-dashed border-outline-variant">
-                    <div className="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center shrink-0">
-                      <HourglassIcon size={24} className="text-outline" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-on-surface">
-                        Résultat non encore envoyé
-                      </p>
-                      <p className="text-sm text-on-surface-variant mt-1">
-                        Votre médecin attend le fichier de résultat de cette
-                        analyse.
-                      </p>
-                    </div>
-                    <button
-                      onClick={() =>
-                        navigate(
-                          `/patient/analyses/upload?prescribedId=${analyse.id}`,
-                        )
-                      }
-                      className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary rounded-xl font-medium shadow-md shadow-primary/20 hover:bg-primary/90 transition-all"
-                    >
-                      <FileText size={16} />
-                      Envoyer le résultat
-                    </button>
-                  </div>
-                )}
-              </SectionCard>
-            </div>
-          )
+                <Upload size={16} />
+                Aller vers l'upload
+              </button>
+            </section>
+          </div>
         )}
       </main>
     </Navbar>

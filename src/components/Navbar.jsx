@@ -167,13 +167,42 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
     setShowNotifPopup(false);
 
     const data = parseContenu(notif.contenu);
-    if (notif.type === "nouvelle_analyse" && data.analyse_id) {
-      if (userRole === "medecin") {
-        navigate(`/medecin/analyses/${data.analyse_id}`);
-      } else {
-        navigate(`/patient/analyses/${data.analyse_id}`);
+    const redirectTo =
+      typeof data.redirect_to === "string" && data.redirect_to.startsWith("/")
+        ? data.redirect_to
+        : null;
+
+    if (notif.type === "nouvelle_analyse") {
+      let analyseId = data.analyse_id;
+
+      // Backward compatibility: old notifications pointed directly to upload
+      if (
+        !analyseId &&
+        userRole === "patient" &&
+        redirectTo &&
+        redirectTo.startsWith("/patient/analyses/upload")
+      ) {
+        const query = redirectTo.split("?")[1] || "";
+        const params = new URLSearchParams(query);
+        analyseId = params.get("prescribedId");
       }
-    } else if (notif.type === "rdv_rappel" || notif.type === "confirmation") {
+
+      if (analyseId) {
+        if (userRole === "medecin") {
+          navigate(`/medecin/analyses/${analyseId}`);
+        } else {
+          navigate(`/patient/analyses/${analyseId}`);
+        }
+        return;
+      }
+    }
+
+    if (redirectTo) {
+      navigate(redirectTo);
+      return;
+    }
+
+    if (notif.type === "rdv_rappel" || notif.type === "confirmation") {
       navigate(
         userRole === "medecin" ? "/medecin/rendezvous" : "/patient/rendezvous",
       );
@@ -288,7 +317,8 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
     navigate("/login");
   };
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) =>
+    location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   const isRTL = language === "ar";
   const sidebarWidth = sidebarCollapsed ? "w-20" : "w-64";
