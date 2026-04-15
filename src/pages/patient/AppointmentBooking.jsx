@@ -264,7 +264,7 @@ export function AppointmentBooking() {
     };
 
     fetchAvailableDates();
-  }, [adminId, isEditMode]);
+  }, [adminId, isEditMode, selectedDate]);
 
   // ── Fetch slots for selected date ────────────────────────────────────────
   useEffect(() => {
@@ -311,7 +311,7 @@ export function AppointmentBooking() {
     };
 
     fetchSlots();
-  }, [adminId, selectedDate, isEditMode]);
+  }, [adminId, selectedDate, isEditMode, selectedCreneau]);
 
   const creneauxDuJour = creneaux.filter((c) => c.date === selectedDate);
 

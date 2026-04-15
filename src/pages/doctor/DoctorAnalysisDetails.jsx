@@ -105,7 +105,7 @@ const SectionCard = ({
 
 const FileViewer = ({ fichierUrl, fichier }) => {
   const [pdfUrl, setPdfUrl] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
 
   // Get extension from actual filename (fichier), not from URL
   const ext = fichier?.split(".").pop()?.toLowerCase() || "";
