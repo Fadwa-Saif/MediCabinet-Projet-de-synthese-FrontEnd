@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import {
   AlertCircle,
   FlaskConical,
@@ -788,8 +790,8 @@ const buildPDFWithData = (consultations, fullName, patient) => {
   .aitem { display: flex; align-items: center; gap: 4px; padding: 1px 2px; border-radius: 2px; }
   .aitem.aon { background: #eef3fb; }
   .acb { width: 8px; height: 8px; flex-shrink: 0; border: 1.5px solid #b0bdd8; border-radius: 1px; position: relative; }
-  .acb.aon { border-color: #1a4fd6; background: #fff; }
-  .acb.aon::after { content: '✓'; display: block; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 5pt; font-weight: 900; color: #1a4fd6; }
+  .acb.aon { border-color: #1a4fd6; background: #1a4fd6; }
+  .acb.aon::after { content: '✓'; display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 5pt; font-weight: 900; color: #fff; }
   .albl { font-size: 7pt; color: #7a8eab; line-height: 1.3; }
   .albl.aon { color: #1a2744; font-weight: 600; }
   .aresult { margin: 6px 16px; padding: 7px 10px; background: #f8faff; border: 1px solid #dce7fb; border-left: 3px solid #1a4fd6; border-radius: 4px; }
@@ -850,6 +852,8 @@ export function MedicalRecord() {
   const [error, setError] = useState(null);
   const [patient, setPatient] = useState(null);
   const [consultations, setConsultations] = useState([]);
+  const [pdfExporting, setPdfExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState("");
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -929,44 +933,33 @@ export function MedicalRecord() {
   // ── PDF Export ─────────────────────────────────────────────────────────────
   const handleExportPDF = useCallback(async () => {
     try {
+      setPdfExporting(true);
+      setExportProgress("Préparation du document...");
+
       const fullName = patient
         ? `${patient.prenom || ""} ${patient.nom || ""}`.trim()
         : "Patient";
 
-      // Fetch ordonnances and prescriptions for all consultations
-      let allOrdonnances = [];
-      let allPrescriptions = [];
-      let allAnalyses = [];
+      setExportProgress("Récupération des données...");
 
-      try {
-        const ordRes = await api.get("/ordonnances");
-        const ordData = Array.isArray(ordRes.data?.data)
-          ? ordRes.data.data
-          : (ordRes.data ?? []);
-        allOrdonnances = ordData;
-      } catch {
-        allOrdonnances = [];
-      }
+      // Fetch ordonnances, prescriptions and analyses in parallel
+      const [ordRes, presRes, anaRes] = await Promise.all([
+        api.get("/ordonnances").catch(() => ({ data: {} })),
+        api.get("/prescriptions").catch(() => ({ data: {} })),
+        api.get("/analyses").catch(() => ({ data: {} })),
+      ]);
 
-      try {
-        const presRes = await api.get("/prescriptions");
-        const presData = Array.isArray(presRes.data?.data)
-          ? presRes.data.data
-          : (presRes.data ?? []);
-        allPrescriptions = presData;
-      } catch {
-        allPrescriptions = [];
-      }
+      const allOrdonnances = Array.isArray(ordRes.data?.data)
+        ? ordRes.data.data
+        : (ordRes.data ?? []);
+      const allPrescriptions = Array.isArray(presRes.data?.data)
+        ? presRes.data.data
+        : (presRes.data ?? []);
+      const allAnalyses = Array.isArray(anaRes.data?.data)
+        ? anaRes.data.data
+        : (anaRes.data ?? []);
 
-      try {
-        const anaRes = await api.get("/analyses");
-        const anaData = Array.isArray(anaRes.data?.data)
-          ? anaRes.data.data
-          : (anaRes.data ?? []);
-        allAnalyses = anaData;
-      } catch {
-        allAnalyses = [];
-      }
+      setExportProgress("Enrichissement des données...");
 
       // Enrich consultations with their ordonnances, prescriptions and analyses
       const enrichedConsultations = consultations.map((c) => {
@@ -977,7 +970,6 @@ export function MedicalRecord() {
         const prescriptions = allPrescriptions.filter((p) =>
           ordonnanceIds.includes(p.ordonnance_id),
         );
-
         const analyses = allAnalyses.filter(
           (a) => String(a.consultation_id) === String(c.id),
         );
@@ -990,20 +982,97 @@ export function MedicalRecord() {
         };
       });
 
-      const win = window.open("", "_blank");
-      if (!win) return;
+      setExportProgress("Génération du document...");
 
-      // Build PDF with enriched data
+      // Build HTML content
       const html = buildPDFWithData(enrichedConsultations, fullName, patient);
-      win.document.write(html);
-      win.document.close();
-      win.onload = () => {
-        win.focus();
-        win.print();
-      };
+
+      // Create a hidden container with all styles embedded
+      const container = document.createElement("div");
+      const styledHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap');@page{size:A4;margin:14mm 16mm}*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',Arial,sans-serif;color:#1a2744;background:#fff;font-size:11px;line-height:1.6}.cover{background:#fff;border-bottom:3px solid #1a4fd6;padding:26px 32px 20px;display:flex;justify-content:space-between;align-items:flex-start}.cover-eyebrow{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;color:#1a4fd6;margin-bottom:5px}.cover-title{font-family:'DM Serif Display',Georgia,serif;font-size:26px;color:#1a2744;letter-spacing:-.3px;line-height:1.1;margin-bottom:14px}.cover-name{font-size:16px;font-weight:700;color:#1a2744;margin-bottom:2px}.cover-since{font-size:10px;color:#6b7da8}.cover-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}.cover-badge{background:#e8effc;color:#1a4fd6;border:1.5px solid #b8cdf8;border-radius:6px;padding:4px 12px;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px}.cover-date{font-size:9px;color:#8898b8;margin-top:3px}.patient-grid{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:2px solid #dce7fb;background:#f4f7fd}.pcell{padding:11px 18px;border-right:1px solid #dce7fb}.pcell:last-child{border-right:none}.pcell-label{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#8898b8;margin-bottom:3px}.pcell-value{font-size:12px;font-weight:700;color:#1a2744}.content{padding:20px 32px}.content-title{font-family:'DM Serif Display',Georgia,serif;font-size:15px;color:#1a2744;border-bottom:2px solid #1a4fd6;padding-bottom:6px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:baseline}.content-title span{font-family:'DM Sans',Arial,sans-serif;font-size:10px;color:#8898b8;font-weight:500}.consult-block{margin-bottom:20px;border:1px solid #d0daf0;border-radius:8px;overflow:hidden;page-break-inside:avoid}.consult-head{display:flex;align-items:center;gap:12px;background:#eef3fb;padding:10px 16px;border-bottom:1px solid #d0daf0}.consult-num{width:30px;height:30px;background:#1a4fd6;color:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0}.consult-date{font-weight:700;font-size:12px;color:#1a2744}.consult-doctor{font-size:10px;color:#6b7da8;margin-top:1px}.detail-row{display:flex;gap:10px;padding:5px 16px;font-size:11px;border-bottom:1px solid #f0f3fa}.detail-label{font-weight:700;color:#8898b8;width:80px;flex-shrink:0;font-size:10px;text-transform:uppercase;letter-spacing:.5px}.italic{font-style:italic;color:#3a4a6a}.diagnostic-box{margin:8px 16px;padding:9px 12px;background:#eef3fb;border-left:3px solid #1a4fd6;border-radius:0 6px 6px 0;font-size:11px;color:#1a2744}.section-title{font-weight:700;font-size:8.5px;text-transform:uppercase;letter-spacing:1.5px;color:#8898b8;padding:9px 16px 4px;border-top:1px solid #eef0f7}.sub-block{margin:4px 16px 8px;padding:7px 11px;background:#f8faff;border:1px solid #dce7fb;border-radius:6px}.sub-label{font-weight:700;font-size:10.5px;color:#1a2744;margin-bottom:3px}.sub-text{font-size:10.5px;color:#3a4a6a;margin-bottom:3px}.med-list{padding-left:16px}.med-list li{margin-bottom:3px;font-size:10.5px;color:#1a2744}.empty-sub{font-size:10px;color:#9aabc4;font-style:italic;padding:3px 16px 7px}.aform{display:flex;flex-direction:column;gap:4px;margin:4px 16px 8px}.arow{display:flex;gap:4px;align-items:flex-start}.acol{flex:1;border:1px solid #d0daf0;border-radius:4px;overflow:hidden}.acol-h{background:#f0f4fc;border-bottom:1px solid #d0daf0;padding:3px 7px;font-size:6.2pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6b7da8}.acol-h.active{background:#dce7fb;color:#1a4fd6}.acol-b{padding:3px 5px;display:flex;flex-direction:column;gap:1px}.aitem{display:flex;align-items:center;gap:4px;padding:1px 2px;border-radius:2px}.aitem.aon{background:#eef3fb}.acb{width:8px;height:8px;flex-shrink:0;border:1.5px solid #b0bdd8;border-radius:1px;position:relative}.acb.aon{border-color:#1a4fd6;background:#1a4fd6}.acb.aon::after{content:'✓';display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-size:5pt;font-weight:900;color:#fff}.albl{font-size:7pt;color:#7a8eab;line-height:1.3}.albl.aon{color:#1a2744;font-weight:600}.aresult{margin:6px 16px;padding:7px 10px;background:#f8faff;border:1px solid #dce7fb;border-left:3px solid #1a4fd6;border-radius:4px}.aresult-label{font-weight:700;font-size:10px;color:#1a2744;margin-bottom:3px}.aresult-file{font-size:9px;color:#0059bb;margin:2px 0}.aresult-date{font-size:8px;color:#6b7da8;margin-top:2px}.aresult-note{font-size:9px;color:#3a4a6a;font-style:italic;margin-top:3px}.anotes{margin:6px 16px;padding:6px 10px;background:#eef3fb;border-radius:5px;font-size:10px;color:#3a4a6a;font-style:italic}.footer{display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#9aabc4;border-top:1px solid #dce7fb;padding-top:14px;margin-top:30px}</style></head><body>${html
+        .replace(/<html[^>]*>/i, "")
+        .replace(/<head[^>]*>[\s\S]*?<\/head>/i, "")
+        .replace(/<body[^>]*>/, "")
+        .replace(/<\/body>/, "")
+        .replace(/<\/html>/, "")}</body></html>`;
+
+      container.innerHTML = styledHtml;
+      container.style.position = "absolute";
+      container.style.left = "-9999px";
+      container.style.top = "0";
+      container.style.width = "210mm";
+      container.style.background = "#fff";
+      document.body.appendChild(container);
+
+      setExportProgress("Conversion en image...");
+
+      // Wait for fonts
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      // Get canvas from html2canvas
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+        windowHeight: container.scrollHeight,
+        windowWidth: container.scrollWidth,
+        imageTimeout: 0,
+      });
+
+      setExportProgress("Création du PDF...");
+
+      // Convert canvas to image
+      const imgData = canvas.toDataURL("image/png");
+
+      // Calculate dimensions
+      const pdfWidth = 210;
+      const pdfHeight = 297;
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+
+      // Calculate proportional height
+      const totalHeightMm = (imgHeight * pdfWidth) / imgWidth / 3.779;
+
+      // Create PDF
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      // Add the full image
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, totalHeightMm);
+
+      // Add additional pages if image is longer than one page
+      let heightRendered = pdfHeight;
+      while (heightRendered < totalHeightMm) {
+        pdf.addPage();
+        pdf.addImage(
+          imgData,
+          "PNG",
+          0,
+          -heightRendered,
+          pdfWidth,
+          totalHeightMm,
+        );
+        heightRendered += pdfHeight;
+      }
+
+      // Cleanup
+      document.body.removeChild(container);
+
+      setExportProgress("Téléchargement...");
+
+      // Save PDF
+      pdf.save(`Dossier-Medical-${fullName.replace(/\s+/g, "_")}.pdf`);
+
+      // Success
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setPdfExporting(false);
+      setExportProgress("");
     } catch (err) {
       console.error("PDF Export Error:", err);
-      alert("Erreur lors de l'export du PDF.");
+      alert(`Erreur lors de l'export du PDF:\n${err.message}`);
+      setPdfExporting(false);
+      setExportProgress("");
     }
   }, [patient, consultations]);
 
@@ -1018,6 +1087,30 @@ export function MedicalRecord() {
 
   return (
     <Navbar userRole={userRole} pageTitle="Dossier Médical">
+      {/* Loading Overlay for PDF Export */}
+      {pdfExporting && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm mx-4 text-center">
+            <div className="w-16 h-16 rounded-full bg-primary-container flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <Download className="text-primary" size={28} />
+            </div>
+            <h2 className="text-xl font-bold text-on-background mb-2">
+              Génération du PDF
+            </h2>
+            <p className="text-on-surface-variant mb-6 min-h-12 flex items-center justify-center">
+              {exportProgress}
+            </p>
+            <div className="w-full bg-outline-variant/20 rounded-full h-2 overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full animate-pulse"
+                style={{ width: "100%" }}
+              />
+            </div>
+            <p className="text-xs text-outline mt-4">Veuillez patienter...</p>
+          </div>
+        </div>
+      )}
+
       <main className="pt-6 pb-16 px-6 max-w-7xl mx-auto min-h-screen">
         <header className="mb-8">
           <p className="text-primary font-label text-xs uppercase tracking-widest font-bold mb-2">
