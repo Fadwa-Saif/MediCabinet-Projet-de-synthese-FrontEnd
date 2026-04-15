@@ -18,6 +18,9 @@ export function DoctorDashboard() {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState("all");
   const [appointments, setAppointments] = useState([]);
+  const [selectedPatientDetail, setSelectedPatientDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState(null);
   const [saveNotice, setSaveNotice] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
@@ -106,6 +109,44 @@ export function DoctorDashboard() {
 
   const nextPatient =
     appointments.find((item) => item.canLaunch) || appointments[0];
+
+  const openPatientDetails = async (appointment) => {
+    if (!appointment?.patientId) {
+      setDetailError("Patient introuvable pour ce rendez-vous.");
+      setSelectedPatientDetail({ appointment, patient: null, consultations: [] });
+      return;
+    }
+
+    setDetailLoading(true);
+    setDetailError(null);
+    setSelectedPatientDetail({ appointment, patient: null, consultations: [] });
+
+    try {
+      const response = await api.get(`/patients/${appointment.patientId}`);
+      const patient = response.data?.data || response.data || null;
+      const consultations = Array.isArray(patient?.consultations)
+        ? [...patient.consultations]
+            .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+            .slice(0, 5)
+        : [];
+
+      setSelectedPatientDetail({ appointment, patient, consultations });
+    } catch (err) {
+      setDetailError(
+        err.response?.data?.message ||
+          err.message ||
+          "Impossible de charger les détails du patient.",
+      );
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const closePatientDetails = () => {
+    setSelectedPatientDetail(null);
+    setDetailError(null);
+    setDetailLoading(false);
+  };
 
   return (
     <Navbar userRole="medecin" pageTitle="Rendez-vous du jour">
@@ -329,27 +370,26 @@ export function DoctorDashboard() {
                           </span>
                         </td>
                         <td className="px-6 py-5 text-right">
-                          {item.canLaunch ? (
+                          <div className="inline-flex items-center gap-2">
                             <button
                               type="button"
-                              onClick={() =>
-                                navigate(`/medecin/rapport/${item.id}`)
-                              }
-                              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-700"
-                            >
-                              Lancer la consultation
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                navigate(`/medecin/rapport/${item.id}`)
-                              }
+                              onClick={() => openPatientDetails(item)}
                               className="text-sm font-bold text-blue-600 transition hover:underline"
                             >
                               Details
                             </button>
-                          )}
+                            {item.canLaunch && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  navigate(`/medecin/rapport/${item.id}`)
+                                }
+                                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-700"
+                              >
+                                Lancer la consultation
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -369,6 +409,104 @@ export function DoctorDashboard() {
             </div>
           </section>
         </div>
+
+        {selectedPatientDetail && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/40"
+              onClick={closePatientDetails}
+            />
+            <div className="relative z-10 w-full max-w-3xl rounded-2xl border border-slate-200 bg-white shadow-xl">
+              <div className="flex items-start justify-between border-b border-slate-200 px-6 py-4">
+                <div>
+                  <h4 className="text-xl font-extrabold text-slate-900">
+                    Détails patient
+                  </h4>
+                  <p className="text-sm text-slate-500">
+                    Rendez-vous de {selectedPatientDetail.appointment?.time || "—"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closePatientDetails}
+                  className="rounded-lg px-3 py-1 text-sm font-bold text-slate-500 hover:bg-slate-100"
+                >
+                  Fermer
+                </button>
+              </div>
+
+              <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
+                {detailLoading ? (
+                  <p className="text-sm font-medium text-slate-500">Chargement...</p>
+                ) : detailError ? (
+                  <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+                    {detailError}
+                  </p>
+                ) : (
+                  <>
+                    <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <h5 className="text-sm font-bold uppercase tracking-[0.12em] text-slate-500">
+                        Informations patient
+                      </h5>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <p className="text-sm text-slate-700">
+                          <span className="font-semibold">Nom:</span>{" "}
+                          {`${selectedPatientDetail.patient?.user?.prenom || ""} ${selectedPatientDetail.patient?.user?.nom || ""}`.trim() || "—"}
+                        </p>
+                        <p className="text-sm text-slate-700">
+                          <span className="font-semibold">CIN:</span>{" "}
+                          {selectedPatientDetail.patient?.cin || "—"}
+                        </p>
+                        <p className="text-sm text-slate-700">
+                          <span className="font-semibold">Date de naissance:</span>{" "}
+                          {selectedPatientDetail.patient?.date_naissance || "—"}
+                        </p>
+                        <p className="text-sm text-slate-700">
+                          <span className="font-semibold">Téléphone:</span>{" "}
+                          {selectedPatientDetail.patient?.user?.telephone || "—"}
+                        </p>
+                      </div>
+                    </section>
+
+                    <section className="mt-5">
+                      <h5 className="text-sm font-bold uppercase tracking-[0.12em] text-slate-500">
+                        Dernières consultations
+                      </h5>
+                      {selectedPatientDetail.consultations.length === 0 ? (
+                        <p className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                          Aucune consultation trouvée.
+                        </p>
+                      ) : (
+                        <div className="mt-3 space-y-2">
+                          {selectedPatientDetail.consultations.map((consultation) => (
+                            <div
+                              key={consultation.id}
+                              className="rounded-lg border border-slate-200 bg-white px-3 py-3"
+                            >
+                              <p className="text-sm font-bold text-slate-900">
+                                {new Date(consultation.date || Date.now()).toLocaleDateString("fr-FR", {
+                                  day: "2-digit",
+                                  month: "long",
+                                  year: "numeric",
+                                })}
+                              </p>
+                              <p className="mt-1 text-sm text-slate-700">
+                                Diagnostic: {consultation.diagnostic || "—"}
+                              </p>
+                              <p className="mt-1 text-sm text-slate-600">
+                                Notes: {consultation.notes_medecin || consultation.symptomes || "—"}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         <ChatBot userName="Marie" userRole="Docteur" />
       </div>
     </Navbar>

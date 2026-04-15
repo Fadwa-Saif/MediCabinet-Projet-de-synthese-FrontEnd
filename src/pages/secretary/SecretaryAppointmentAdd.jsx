@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
 import { Calendar, User, Clock, ArrowLeft, Save, AlertCircle, CheckCircle2, Search } from "lucide-react";
 
 export function SecretaryAppointmentAdd() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const preSelectedPatientId = searchParams.get("patientId");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -17,7 +19,7 @@ export function SecretaryAppointmentAdd() {
   const [loadingSlots, setLoadingSlots] = useState(false);
 
   const [formData, setFormData] = useState({
-    patient_id: "",
+    patient_id: preSelectedPatientId || "",
     admin_id: "",
     date: "",
     time: "",
@@ -183,7 +185,10 @@ export function SecretaryAppointmentAdd() {
                         name="patient_id"
                         value={formData.patient_id}
                         onChange={handleChange}
-                        className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl appearance-none focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
+                        disabled={!!preSelectedPatientId}
+                        className={`w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl appearance-none focus:ring-2 focus:ring-blue-500 outline-none transition-all ${
+                          preSelectedPatientId ? "cursor-not-allowed opacity-75" : "cursor-pointer"
+                        }`}
                       >
                         <option value="">Choisir un patient...</option>
                         {patients.map((p) => (

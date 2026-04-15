@@ -21,13 +21,6 @@ import api from "../../services/api";
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-// const quickActions = [
-// { label: "Envoyer", icon: Mail },
-// { label: "Analyses", icon: FlaskConical },
-// { label: "Teleconsult.", icon: Video },
-// { label: "Dossier", icon: ClipboardList },
-// ];
-
 const ANALYSIS_CATEGORIES = [
   {
     id: "hematologie",
