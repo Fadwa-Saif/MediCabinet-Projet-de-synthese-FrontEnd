@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
@@ -48,7 +48,7 @@ export function DoctorPatients() {
     fetchPatients();
   }, []);
 
-  const filteredPatients = useMemo(() => {
+  const filteredPatients = (() => {
     const q = query.trim().toLowerCase();
     if (!q) return patients;
 
@@ -58,7 +58,7 @@ export function DoctorPatients() {
         full.includes(q) || patient.id.toString().toLowerCase().includes(q)
       );
     });
-  }, [query, patients]);
+  })();
 
   const openMedicalRecord = (patientId) => {
     navigate(`/medecin/medical-record/${patientId}`);

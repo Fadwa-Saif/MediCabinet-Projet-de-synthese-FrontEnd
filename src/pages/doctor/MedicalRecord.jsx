@@ -227,6 +227,15 @@ export function MedicalRecord() {
         if (isDoctorView) {
           const patientRes = await api.get(`/patients/${patientId}`);
           const patientData = patientRes.data?.data || patientRes.data;
+          let consultations = Array.isArray(patientData?.consultations)
+            ? [...patientData.consultations].sort(
+                (a, b) => new Date(b.date || 0) - new Date(a.date || 0),
+              )
+            : [];
+          let historiqueData = consultations;
+          let ordonnancesFromConsultations = [];
+          let analysesFromConsultations = [];
+          let notesFromConsultations = [];
 
           setPatient({
             nom: patientData?.user?.nom,
@@ -234,21 +243,15 @@ export function MedicalRecord() {
             patient: patientData,
           });
 
-          const consultations = Array.isArray(patientData?.consultations)
-            ? [...patientData.consultations].sort(
-                (a, b) => new Date(b.date || 0) - new Date(a.date || 0),
-              )
-            : [];
-
           try {
             const historiqueRes = await api.get(`/patients/${patientId}/historique`);
-            const historiqueData = historiqueRes.data?.data?.data || historiqueRes.data?.data || [];
-            setHistorique(Array.isArray(historiqueData) ? historiqueData : []);
+            historiqueData = historiqueRes.data?.data?.data || historiqueRes.data?.data || [];
           } catch {
-            setHistorique(consultations);
+            historiqueData = consultations;
           }
+          setHistorique(Array.isArray(historiqueData) ? historiqueData : []);
 
-          const ordonnancesFromConsultations = consultations.flatMap((consultation) =>
+          ordonnancesFromConsultations = consultations.flatMap((consultation) =>
             (consultation.ordonnances || []).map((ordonnance) => ({
               ...ordonnance,
               date: ordonnance.date || consultation.date,
@@ -260,7 +263,7 @@ export function MedicalRecord() {
           );
           setPrescriptions(ordonnancesFromConsultations);
 
-          const analysesFromConsultations = consultations.flatMap((consultation) =>
+          analysesFromConsultations = consultations.flatMap((consultation) =>
             (consultation.analyses || []).map((analyse) => ({
               ...analyse,
               date: analyse.date_analyse || consultation.date,
@@ -272,7 +275,7 @@ export function MedicalRecord() {
           );
           setAnalyses(analysesFromConsultations);
 
-          const notesFromConsultations = consultations
+          notesFromConsultations = consultations
             .filter((consultation) => consultation.notes_medecin || consultation.diagnostic || consultation.symptomes)
             .map((consultation) => ({
               id: consultation.id,
