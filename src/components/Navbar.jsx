@@ -278,6 +278,12 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
           path: "/medecin/rapports",
           icon: FileText,
         },
+        {
+          label: "Attestation",
+          labelAr: "شهادة طبية",
+          path: "/medecin/attestation",
+          icon: FileText,
+        },
       ],
       secretaire: [
         {
@@ -472,7 +478,8 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            {/* ── Notification Bell ── */}
+            {/* ── Notification Bell (hidden for secretaire) ── */}
+            {userRole !== "secretaire" && (
             <div className="relative" ref={notifRef}>
               <button
                 onClick={() => {
@@ -568,6 +575,7 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
                 </div>
               )}
             </div>
+            )}
 
             {/* ── Profile ── */}
             <div className="relative">

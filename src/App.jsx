@@ -23,6 +23,7 @@ import { DoctorPatients } from "./pages/doctor/DoctorPatients";
 import { DoctorReports } from "./pages/doctor/DoctorReports";
 import { MedicalRecord } from "./pages/doctor/MedicalRecord";
 import { DoctorAnalysisDetails } from "./pages/doctor/DoctorAnalysisDetails";
+import { DoctorAttestationNew } from "./pages/doctor/DoctorAttestationNew";
 
 // Secretary Pages
 import { SecretaireDashboard } from "./pages/secretary/SecretaireDashboard";
@@ -196,6 +197,14 @@ export default function App() {
             element={
               <ProtectedRoute requiredRole="medecin">
                 <DoctorAnalysisDetails />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/medecin/attestation"
+            element={
+              <ProtectedRoute requiredRole="medecin">
+                <DoctorAttestationNew />
               </ProtectedRoute>
             }
           />

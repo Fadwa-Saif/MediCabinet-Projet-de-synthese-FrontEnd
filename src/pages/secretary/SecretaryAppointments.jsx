@@ -2,7 +2,17 @@ import { useState, useEffect } from "react";
 import { Navbar } from "../../components/Navbar";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+<<<<<<< HEAD
 import { ChevronLeft, ChevronRight, MoreVertical, Save, X } from "lucide-react";
+=======
+import {
+  ChevronLeft,
+  ChevronRight,
+  MoreVertical,
+  Save,
+  X,
+} from "lucide-react";
+>>>>>>> origin/merging_front_3
 
 function mapStatusLabel(statusKey) {
   if (statusKey === "confirme") return "Confirme";
