@@ -3,16 +3,10 @@ import { Navbar } from "../../components/Navbar";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import {
-  Ban,
-  Calendar,
   ChevronLeft,
   ChevronRight,
-  CheckCircle2,
-  Eye,
   MoreVertical,
-  PencilLine,
   Save,
-  Search,
   X,
 } from "lucide-react";
 

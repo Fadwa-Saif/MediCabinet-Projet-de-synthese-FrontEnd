@@ -24,15 +24,6 @@ const formatTime = (dateStr) => {
   });
 };
 
-const formatDateShort = (dateStr) => {
-  if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-};
-
 // ─── Section Card ────────────────────────────────────────────────────────────
 
 const SectionCard = ({ icon, title, children }) => (
