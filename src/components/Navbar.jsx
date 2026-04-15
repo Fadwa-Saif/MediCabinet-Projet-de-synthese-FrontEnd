@@ -16,8 +16,6 @@ import {
   Microscope,
   Users,
   FileText,
-  ChevronLeft,
-  ChevronRight,
   PanelLeft,
   PanelLeftClose,
 } from "lucide-react";

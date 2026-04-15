@@ -2,19 +2,7 @@ import { useState, useEffect } from "react";
 import { Navbar } from "../../components/Navbar";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
-import {
-  Ban,
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  CheckCircle2,
-  Eye,
-  MoreVertical,
-  PencilLine,
-  Save,
-  Search,
-  X,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, MoreVertical, Save, X } from "lucide-react";
 
 function mapStatusLabel(statusKey) {
   if (statusKey === "confirme") return "Confirme";
