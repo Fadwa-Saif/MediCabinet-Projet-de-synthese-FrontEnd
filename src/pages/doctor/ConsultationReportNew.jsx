@@ -337,7 +337,10 @@ const getInitials = (fullName) => {
 };
 
 const createAnalysisGroupId = () => {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   return `grp-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -775,16 +778,9 @@ export function ConsultationReportNew() {
             return;
           }
           setPatientData(resolvePatient(patient));
-          try {
-            const cRes = await api.get("/consultations");
-            const all = cRes.data.data || cRes.data || [];
-            const existing = all.find(
-              (c) => String(c.patient_id) === String(pid),
-            );
-            if (existing) await fetchSavedAnalyses(existing.id);
-          } catch {
-            /* non-blocking */
-          }
+          // When creating a NEW consultation (not editing), don't fetch saved analyses
+          // Only fetch saved analyses when editing an existing consultation (Case 1)
+          setSavedAnalyses([]);
         }
       } catch (err) {
         console.error(err);
