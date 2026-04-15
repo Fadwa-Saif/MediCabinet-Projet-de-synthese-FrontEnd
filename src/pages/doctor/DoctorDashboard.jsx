@@ -18,6 +18,7 @@ export function DoctorDashboard() {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState("all");
   const [appointments, setAppointments] = useState([]);
+  const [saveNotice, setSaveNotice] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     completed: 0,
@@ -71,6 +72,21 @@ export function DoctorDashboard() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const raw = sessionStorage.getItem("consultation_save_notice");
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed?.consultationId) {
+        setSaveNotice(`Consultation #${parsed.consultationId} enregistree avec succes.`);
+      }
+    } catch {
+      // ignore malformed flash data
+    } finally {
+      sessionStorage.removeItem("consultation_save_notice");
+    }
+  }, []);
+
   const displayedAppointments = (() => {
     if (activeFilter === "morning") {
       return appointments.filter((item) => item.period === "morning");
@@ -95,6 +111,12 @@ export function DoctorDashboard() {
     <Navbar userRole="medecin" pageTitle="Rendez-vous du jour">
       <div className="min-h-full bg-[#f2f4f8] px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl space-y-6">
+          {saveNotice && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+              {saveNotice}
+            </div>
+          )}
+
           <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-7">
             <div>
               <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
