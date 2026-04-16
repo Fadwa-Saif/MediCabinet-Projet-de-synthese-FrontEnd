@@ -24,6 +24,7 @@ import { DoctorReports } from "./pages/doctor/DoctorReports";
 import { MedicalRecord } from "./pages/doctor/MedicalRecord";
 import { DoctorAnalysisDetails } from "./pages/doctor/DoctorAnalysisDetails";
 import { DoctorAttestationNew } from "./pages/doctor/DoctorAttestationNew";
+import DoctorProfilePage from "./pages/doctor/profil";
 
 // Secretary Pages
 import { SecretaireDashboard } from "./pages/secretary/SecretaireDashboard";
@@ -33,6 +34,8 @@ import { SecretaryPatientDetail } from "./pages/secretary/SecretaryPatientDetail
 import { SecretaryPatientAdd } from "./pages/secretary/SecretaryPatientAdd";
 import { SecretaryPatientEdit } from "./pages/secretary/SecretaryPatientEdit";
 import { SecretaryAppointmentAdd } from "./pages/secretary/SecretaryAppointmentAdd";
+import SecretaryProfilePage from "./pages/secretary/profil";
+import PatientProfilePage from "./pages/patient/profil";
 
 export default function App() {
   return (
@@ -128,6 +131,15 @@ export default function App() {
           />
 
           {/* Doctor (médecin) routes - protected, role: medecin */}
+          {/* Patient profile */}
+          <Route
+            path="/patient/profil"
+            element={
+              <ProtectedRoute requiredRole="patient">
+                <PatientProfilePage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/medecin/dashboard"
             element={
@@ -210,6 +222,15 @@ export default function App() {
           />
 
           {/* Secretary (secrétaire) routes - protected, role: secretaire */}
+          {/* Doctor profile */}
+          <Route
+            path="/medecin/profil"
+            element={
+              <ProtectedRoute requiredRole="medecin">
+                <DoctorProfilePage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/secretaire/dashboard"
             element={
@@ -268,6 +289,15 @@ export default function App() {
           />
 
           {/* Catch-all - redirect to login */}
+          {/* Secretary profile */}
+          <Route
+            path="/secretaire/profil"
+            element={
+              <ProtectedRoute requiredRole="secretaire">
+                <SecretaryProfilePage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
