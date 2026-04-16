@@ -139,9 +139,7 @@ export default function PatientProfilePage() {
     try {
       const formData = new FormData();
       formData.append("photo_profil", photoFile);
-      const res = await api.post("/profil/photo", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await api.post("/profil/photo", formData);
       const newUrl = res.data.photo_profil || res.data.data?.photo_profil;
       setProfile((p) => ({ ...p, photo_profil: newUrl }));
       const stored = JSON.parse(
