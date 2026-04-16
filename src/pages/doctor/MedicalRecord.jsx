@@ -565,6 +565,8 @@ const pdfNorm = (s = "") =>
     .replace(/_+/g, "_")
     .replace(/^_|_$/g, "");
 
+// ─── Build checked analysis grid HTML for PDF ─────────────────────────────────
+
 const buildCheckedAnalysisGridHTML = (analyses = []) => {
   if (!analyses.length) {
     return "";
@@ -614,7 +616,6 @@ const buildAnalysisFormHTML = (analyses = [], isPatientView = false) => {
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
 
-  // For patient view, only show analyses with fichier (validated by doctor)
   const displayAnalyses = isPatientView
     ? analyses.filter((a) => a.fichier)
     : analyses;
@@ -628,7 +629,6 @@ const buildAnalysisFormHTML = (analyses = [], isPatientView = false) => {
 
   const rowsHtml = buildCheckedAnalysisGridHTML(displayAnalyses);
 
-  // Add results/fichier section
   const resultsHtml = displayAnalyses
     .filter((a) => a.fichier)
     .map((a) => {
@@ -652,10 +652,6 @@ const buildAnalysisFormHTML = (analyses = [], isPatientView = false) => {
 
   return `${rowsHtml}${resultsHtml}${isPatientView ? "" : notesHtml}`;
 };
-
-// ─── PDF builder ────────────────────────────────────────────────────────────────
-// Old buildPDFHTML has been replaced by buildPDFWithData (see below) which fetches
-// ordonnances, prescriptions and analyses from API before generating the PDF
 
 // ─── PDF builder with enriched data (from API fetch) ────────────────────────
 
@@ -1091,88 +1087,84 @@ export function MedicalRecord() {
       container.style.top = "0";
       container.style.width = "210mm";
       container.style.background = "#fff";
+      container.style.top = "0";
+      container.style.width = "210mm";
+      container.style.background = "#fff";
       document.body.appendChild(container);
 
-      setExportProgress("Conversion en image...");
+      document.body.appendChild(container);
 
-      // Wait for fonts
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      setExportProgress("Rendu du PDF...");
 
-      // Get canvas from html2canvas
-      const canvas = await html2canvas(container, {
+      // Use html2canvas with scale 3 for higher quality
+      const canvas = await html2canvas(container.firstChild, {
         scale: 3,
         useCORS: true,
         allowTaint: true,
-        logging: false,
         backgroundColor: "#ffffff",
-        windowHeight: container.scrollHeight,
-        windowWidth: container.scrollWidth,
-        imageTimeout: 0,
+        logging: false,
       });
 
-      setExportProgress("Création du PDF...");
+      document.body.removeChild(container);
 
-      // Calculate dimensions
-      const pdfWidth = 210;
-      const pdfHeight = 297;
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const pageHeightPx = Math.floor((imgWidth * pdfHeight) / pdfWidth);
-      const totalPages = Math.max(1, Math.ceil(imgHeight / pageHeightPx));
+      // Calculate page dimensions
+      const pageHeightPx = 297 * 3; // A4 height * scale
+      const pageWidthPx = 210 * 3; // A4 width * scale
+      const canvasHeight = canvas.height;
+      const totalPages = Math.ceil(canvasHeight / pageHeightPx);
 
-      // Create PDF
-      const pdf = new jsPDF("p", "mm", "a4");
+      setExportProgress("Assemblage des pages...");
 
-      // Slice the long canvas into page-sized chunks to avoid seam artifacts.
-      for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
-        if (pageIndex > 0) {
-          pdf.addPage();
-        }
+      // Create PDF with calculated dimensions
+      const pdf = new jsPDF("p", "mm", "A4");
+      const imgWidth = 210;
+      const imgHeight = (pageHeightPx / pageWidthPx) * imgWidth;
 
-        const sy = pageIndex * pageHeightPx;
-        const sHeight = Math.min(pageHeightPx, imgHeight - sy);
+      // Process each page
+      for (let page = 0; page < totalPages; page++) {
+        if (page > 0) pdf.addPage();
 
+        // Create a temporary canvas for this page
         const pageCanvas = document.createElement("canvas");
-        pageCanvas.width = imgWidth;
-        pageCanvas.height = sHeight;
+        pageCanvas.width = pageWidthPx;
+        pageCanvas.height = pageHeightPx;
 
-        const pageCtx = pageCanvas.getContext("2d");
-        if (!pageCtx) {
-          throw new Error("Impossible de préparer une page PDF.");
-        }
+        const ctx = pageCanvas.getContext("2d");
+        const sourceY = page * pageHeightPx;
 
-        pageCtx.drawImage(
+        // Draw the relevant portion of the full canvas
+        ctx.drawImage(
           canvas,
           0,
-          sy,
-          imgWidth,
-          sHeight,
+          sourceY,
+          pageWidthPx,
+          Math.min(pageHeightPx, canvasHeight - sourceY),
           0,
           0,
-          imgWidth,
-          sHeight,
+          pageWidthPx,
+          Math.min(pageHeightPx, canvasHeight - sourceY),
         );
 
-        const pageImgData = pageCanvas.toDataURL("image/png");
-        const pageHeightMm = (sHeight * pdfWidth) / imgWidth;
-        pdf.addImage(pageImgData, "PNG", 0, 0, pdfWidth, pageHeightMm);
-      }
+        // Convert page to image data
+        const pageImageData = pageCanvas.toDataURL("image/png");
 
-      // Cleanup
-      document.body.removeChild(container);
+        // Add to PDF
+        pdf.addImage(pageImageData, "PNG", 0, 0, imgWidth, imgHeight);
+      }
 
       setExportProgress("Téléchargement...");
 
-      // Save PDF
-      pdf.save(`Dossier-Medical-${fullName.replace(/\s+/g, "_")}.pdf`);
+      // Save the PDF
+      const filename = `${fullName.replace(/\s+/g, "_")}_MedicalRecord_${new Date().toISOString().split("T")[0]}.pdf`;
+      pdf.save(filename);
 
       // Success
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      toast.success("PDF exporté avec succès!");
       setPdfExporting(false);
       setExportProgress("");
     } catch (err) {
       console.error("PDF Export Error:", err);
-      alert(`Erreur lors de l'export du PDF:\n${err.message}`);
+      toast.error(`Erreur lors de l'export du PDF: ${err.message}`);
       setPdfExporting(false);
       setExportProgress("");
     }
