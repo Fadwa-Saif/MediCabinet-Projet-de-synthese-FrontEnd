@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLanguage } from "../../context/LanguageContext";
 import { Navbar } from "../../components/Navbar";
 import {
   Camera,
@@ -49,7 +48,6 @@ function Field({ label, icon: Icon, children }) {
 
 export default function SecretaryProfilePage() {
   const navigate = useNavigate();
-  const { language } = useLanguage();
   const fileInputRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
