@@ -565,26 +565,18 @@ const pdfNorm = (s = "") =>
     .replace(/_+/g, "_")
     .replace(/^_|_$/g, "");
 
-// ─── Build analysis form HTML for PDF ─────────────────────────────────────────
+const buildCheckedAnalysisGridHTML = (analyses = []) => {
+  if (!analyses.length) {
+    return "";
+  }
 
-const buildAnalysisFormHTML = (analyses = []) => {
-  const esc = (s) =>
-    String(s ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-
-  if (!analyses.length)
-    return `<p class="empty-sub">Aucune analyse prescrite pour cette consultation.</p>`;
-
-  // Get all unique type_analyse values from analyses
   const selectedAnalyses = new Set(
     analyses
       .filter((a) => a.type_analyse)
       .map((a) => pdfNorm(a.type_analyse ?? "")),
   );
 
-  const isOn = (category, item) => {
+  const isOn = (item) => {
     const itemKey = pdfNorm(item);
     return selectedAnalyses.has(itemKey);
   };
@@ -593,12 +585,12 @@ const buildAnalysisFormHTML = (analyses = []) => {
     (row) =>
       `<div class="arow">${row.columns
         .map((col) => {
-          const active = col.items.some((item) => isOn(col.category, item));
+          const active = col.items.some((item) => isOn(item));
           return `<div class="acol">
         <div class="acol-h${active ? " active" : ""}">${col.label}</div>
         <div class="acol-b">${col.items
           .map((item) => {
-            const on = isOn(col.category, item);
+            const on = isOn(item);
             return `<div class="aitem${on ? " aon" : ""}">
             <div class="acb${on ? " aon" : ""}"></div>
             <span class="albl${on ? " aon" : ""}">${item}</span>
@@ -610,8 +602,34 @@ const buildAnalysisFormHTML = (analyses = []) => {
         .join("")}</div>`,
   ).join("");
 
+  return `<div class="aform">${rowsHtml}</div>`;
+};
+
+// ─── Build analysis form HTML for PDF ─────────────────────────────────────────
+
+const buildAnalysisFormHTML = (analyses = [], isPatientView = false) => {
+  const esc = (s) =>
+    String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+  // For patient view, only show analyses with fichier (validated by doctor)
+  const displayAnalyses = isPatientView
+    ? analyses.filter((a) => a.fichier)
+    : analyses;
+
+  if (!displayAnalyses.length) {
+    const msg = isPatientView
+      ? "Aucune analyse complétée à afficher."
+      : "Aucune analyse prescrite pour cette consultation.";
+    return `<p class="empty-sub">${msg}</p>`;
+  }
+
+  const rowsHtml = buildCheckedAnalysisGridHTML(displayAnalyses);
+
   // Add results/fichier section
-  const resultsHtml = analyses
+  const resultsHtml = displayAnalyses
     .filter((a) => a.fichier)
     .map((a) => {
       const fileName = a.fichier.split("/").pop();
@@ -624,7 +642,7 @@ const buildAnalysisFormHTML = (analyses = []) => {
     })
     .join("");
 
-  const notes = analyses
+  const notes = displayAnalyses
     .filter((a) => a.commentaire_medecin && !a.fichier)
     .map((a) => a.commentaire_medecin)
     .filter(Boolean);
@@ -632,7 +650,7 @@ const buildAnalysisFormHTML = (analyses = []) => {
     ? `<div class="anotes"><strong>Notes :</strong> ${notes.join(" — ")}</div>`
     : "";
 
-  return `<div class="aform">${rowsHtml}</div>${resultsHtml}${notesHtml}`;
+  return `${rowsHtml}${resultsHtml}${isPatientView ? "" : notesHtml}`;
 };
 
 // ─── PDF builder ────────────────────────────────────────────────────────────────
@@ -641,7 +659,12 @@ const buildAnalysisFormHTML = (analyses = []) => {
 
 // ─── PDF builder with enriched data (from API fetch) ────────────────────────
 
-const buildPDFWithData = (consultations, fullName, patient) => {
+const buildPDFWithData = (
+  consultations,
+  fullName,
+  patient,
+  completedAnalyses = [],
+) => {
   const patientInfo = patient?.patient || {};
   const bloodType = patientInfo?.groupe_sanguin || "—";
   const allergies = patientInfo?.allergies || "Aucune connue";
@@ -708,11 +731,41 @@ const buildPDFWithData = (consultations, fullName, patient) => {
       ${c.notes_medecin || c.notes || c.rapport ? `<div class="detail-row"><span class="detail-label">Notes</span><span class="italic">${esc(c.notes_medecin || c.notes || c.rapport)}</span></div>` : ""}
       <div class="section-title">🧾 Traitement / Ordonnances</div>
       ${ordRows}
-      <div class="section-title">🔬 Formulaire d'Analyses prescrites</div>
-      ${buildAnalysisFormHTML(c._analyses || [])}
+      <div class="section-title">🔬 Analyses Complétées</div>
+      ${buildAnalysisFormHTML(c._analyses || [], true)}
     </div>`;
     })
     .join("");
+
+  const consultationIds = new Set(
+    consultations.map((c) => String(c.id)).filter(Boolean),
+  );
+
+  const standaloneAnalyses = completedAnalyses.filter((a) => {
+    const cid = a?.consultation_id;
+    return !cid || !consultationIds.has(String(cid));
+  });
+
+  const standaloneAnalysesHtml = standaloneAnalyses.length
+    ? `<div class="global-analyses">
+      <div class="global-analyses-title">Analyses déjà faites par le patient</div>
+      ${buildCheckedAnalysisGridHTML(standaloneAnalyses)}
+      ${standaloneAnalyses
+        .map((a) => {
+          const fileName = (a.fichier || "").split("/").pop() || "fichier";
+          return `<div class="aresult">
+            <div class="aresult-label">${esc(a.type_analyse || "Analyse")}</div>
+            <div class="aresult-info">
+              ${a.date_resultat ? `<div class="aresult-date">📅 ${formatDateShort(a.date_resultat)}</div>` : ""}
+              ${a.laboratoire ? `<div class="aresult-lab">🏥 ${esc(a.laboratoire)}</div>` : ""}
+            </div>
+            <div class="aresult-file">📎 ${esc(fileName)}</div>
+            ${a.commentaire_medecin ? `<div class="aresult-note">${esc(a.commentaire_medecin)}</div>` : ""}
+          </div>`;
+        })
+        .join("")}
+    </div>`
+    : "";
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -727,58 +780,61 @@ const buildPDFWithData = (consultations, fullName, patient) => {
 
   /* ── Cover — light ── */
   .cover {
-    background: #fff;
-    border-bottom: 3px solid #1a4fd6;
-    padding: 26px 32px 20px;
+    background: linear-gradient(135deg, #fff 0%, #f8fbff 100%);
+    border-bottom: 4px solid #1a4fd6;
+    padding: 32px 36px 28px;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
   }
-  .cover-eyebrow { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 2.5px; color: #1a4fd6; margin-bottom: 5px; }
-  .cover-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 26px; color: #1a2744; letter-spacing: -.3px; line-height: 1.1; margin-bottom: 14px; }
-  .cover-name { font-size: 16px; font-weight: 700; color: #1a2744; margin-bottom: 2px; }
+  .cover-eyebrow { font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 3px; color: #1a4fd6; margin-bottom: 8px; }
+  .cover-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 32px; color: #1a2744; letter-spacing: -.5px; line-height: 1.1; margin-bottom: 12px; font-weight: 700; }
+  .cover-name { font-size: 18px; font-weight: 700; color: #1a2744; margin-bottom: 2px; }
   .cover-since { font-size: 10px; color: #6b7da8; }
-  .cover-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .cover-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; text-align: right; }
   .cover-badge {
-    background: #e8effc; color: #1a4fd6; border: 1.5px solid #b8cdf8;
-    border-radius: 6px; padding: 4px 12px;
-    font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
+    background: linear-gradient(135deg, #e8effc 0%, #dce7fb 100%);
+    color: #1a4fd6; border: 1.5px solid #b8cdf8;
+    border-radius: 8px; padding: 6px 14px;
+    font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
   }
-  .cover-date { font-size: 9px; color: #8898b8; margin-top: 3px; }
+  .cover-date { font-size: 10px; color: #8898b8; margin-top: 4px; font-weight: 500; }
 
   /* ── Patient grid ── */
-  .patient-grid { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 2px solid #dce7fb; background: #f4f7fd; }
-  .pcell { padding: 11px 18px; border-right: 1px solid #dce7fb; }
+  .patient-grid { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 2px solid #dce7fb; background: linear-gradient(135deg, #f4f7fd 0%, #eef3fb 100%); }
+  .pcell { padding: 14px 20px; border-right: 1px solid #dce7fb; }
   .pcell:last-child { border-right: none; }
-  .pcell-label { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #8898b8; margin-bottom: 3px; }
-  .pcell-value { font-size: 12px; font-weight: 700; color: #1a2744; }
+  .pcell-label { font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #8898b8; margin-bottom: 4px; }
+  .pcell-value { font-size: 13px; font-weight: 700; color: #1a2744; }
 
   /* ── Content ── */
-  .content { padding: 20px 32px; }
+  .content { padding: 28px 36px; }
   .content-title {
-    font-family: 'DM Serif Display', Georgia, serif; font-size: 15px; color: #1a2744;
-    border-bottom: 2px solid #1a4fd6; padding-bottom: 6px; margin-bottom: 16px;
+    font-family: 'DM Serif Display', Georgia, serif; font-size: 16px; color: #1a2744;
+    border-bottom: 3px solid #1a4fd6; padding-bottom: 8px; margin-bottom: 20px;
     display: flex; justify-content: space-between; align-items: baseline;
   }
   .content-title span { font-family: 'DM Sans', Arial, sans-serif; font-size: 10px; color: #8898b8; font-weight: 500; }
+  .global-analyses { margin: 0 0 16px; padding: 10px 12px; border: 1px solid #dce7fb; border-radius: 8px; background: #f7faff; }
+  .global-analyses-title { font-size: 11px; font-weight: 700; color: #1a4fd6; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.8px; }
 
   /* ── Consultation block ── */
-  .consult-block { margin-bottom: 20px; border: 1px solid #d0daf0; border-radius: 8px; overflow: hidden; page-break-inside: avoid; }
-  .consult-head { display: flex; align-items: center; gap: 12px; background: #eef3fb; padding: 10px 16px; border-bottom: 1px solid #d0daf0; }
-  .consult-num { width: 30px; height: 30px; background: #1a4fd6; color: #fff; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0; }
+  .consult-block { margin-bottom: 18px; border: 1.5px solid #dce7fb; border-radius: 10px; overflow: hidden; page-break-inside: avoid; background: #ffffff; box-shadow: 0 1px 3px rgba(26, 79, 214, 0.08); }
+  .consult-head { display: flex; align-items: center; gap: 14px; background: linear-gradient(135deg, #eef3fb 0%, #e8effc 100%); padding: 12px 16px; border-bottom: 1.5px solid #dce7fb; }
+  .consult-num { width: 36px; height: 36px; background: linear-gradient(135deg, #1a4fd6 0%, #0f3aa3 100%); color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
   .consult-date { font-weight: 700; font-size: 12px; color: #1a2744; }
-  .consult-doctor { font-size: 10px; color: #6b7da8; margin-top: 1px; }
-  .detail-row { display: flex; gap: 10px; padding: 5px 16px; font-size: 11px; border-bottom: 1px solid #f0f3fa; }
-  .detail-label { font-weight: 700; color: #8898b8; width: 80px; flex-shrink: 0; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; }
-  .italic { font-style: italic; color: #3a4a6a; }
-  .diagnostic-box { margin: 8px 16px; padding: 9px 12px; background: #eef3fb; border-left: 3px solid #1a4fd6; border-radius: 0 6px 6px 0; font-size: 11px; color: #1a2744; }
-  .section-title { font-weight: 700; font-size: 8.5px; text-transform: uppercase; letter-spacing: 1.5px; color: #8898b8; padding: 9px 16px 4px; border-top: 1px solid #eef0f7; }
-  .sub-block { margin: 4px 16px 8px; padding: 7px 11px; background: #f8faff; border: 1px solid #dce7fb; border-radius: 6px; }
-  .sub-label { font-weight: 700; font-size: 10.5px; color: #1a2744; margin-bottom: 3px; }
-  .sub-text { font-size: 10.5px; color: #3a4a6a; margin-bottom: 3px; }
-  .med-list { padding-left: 16px; }
-  .med-list li { margin-bottom: 3px; font-size: 10.5px; color: #1a2744; }
-  .empty-sub { font-size: 10px; color: #9aabc4; font-style: italic; padding: 3px 16px 7px; }
+  .consult-doctor { font-size: 10px; color: #6b7da8; margin-top: 2px; }
+  .detail-row { display: flex; gap: 10px; padding: 7px 16px; font-size: 11px; border-bottom: 1px solid #f0f3fa; }
+  .detail-label { font-weight: 700; color: #8898b8; width: 85px; flex-shrink: 0; font-size: 9.5px; text-transform: uppercase; letter-spacing: .6px; }
+  .italic { font-style: italic; color: #3a4a6a; line-height: 1.4; }
+  .diagnostic-box { margin: 10px 16px; padding: 11px 14px; background: linear-gradient(135deg, #eef3fb 0%, #e8effc 100%); border-left: 4px solid #1a4fd6; border-radius: 0 6px 6px 0; font-size: 11px; color: #1a2744; }
+  .section-title { font-weight: 700; font-size: 9px; text-transform: uppercase; letter-spacing: 1.6px; color: #1a4fd6; padding: 11px 16px 6px; border-top: 1.5px solid #eef0f7; background: #fafbfd; }
+  .sub-block { margin: 6px 16px 10px; padding: 9px 12px; background: linear-gradient(135deg, #f8faff 0%, #f4f7fd 100%); border: 1px solid #dce7fb; border-left: 3px solid #1a4fd6; border-radius: 6px; }
+  .sub-label { font-weight: 700; font-size: 11px; color: #1a2744; margin-bottom: 4px; }
+  .sub-text { font-size: 10.5px; color: #3a4a6a; margin-bottom: 3px; line-height: 1.4; }
+  .med-list { padding-left: 18px; margin: 3px 0; }
+  .med-list li { margin-bottom: 4px; font-size: 10.5px; color: #1a2744; line-height: 1.4; }
+  .empty-sub { font-size: 10px; color: #9aabc4; font-style: italic; padding: 5px 16px 8px; }
 
   /* ── Analysis form ── */
   .aform { display: flex; flex-direction: column; gap: 4px; margin: 4px 16px 8px; }
@@ -794,15 +850,17 @@ const buildPDFWithData = (consultations, fullName, patient) => {
   .acb.aon::after { content: '✓'; display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 5pt; font-weight: 900; color: #fff; }
   .albl { font-size: 7pt; color: #7a8eab; line-height: 1.3; }
   .albl.aon { color: #1a2744; font-weight: 600; }
-  .aresult { margin: 6px 16px; padding: 7px 10px; background: #f8faff; border: 1px solid #dce7fb; border-left: 3px solid #1a4fd6; border-radius: 4px; }
-  .aresult-label { font-weight: 700; font-size: 10px; color: #1a2744; margin-bottom: 3px; }
-  .aresult-file { font-size: 9px; color: #0059bb; margin: 2px 0; }
-  .aresult-date { font-size: 8px; color: #6b7da8; margin-top: 2px; }
-  .aresult-note { font-size: 9px; color: #3a4a6a; font-style: italic; margin-top: 3px; }
-  .anotes { margin: 6px 16px; padding: 6px 10px; background: #eef3fb; border-radius: 5px; font-size: 10px; color: #3a4a6a; font-style: italic; }
+  .aresult { margin: 6px 16px; padding: 9px 12px; background: linear-gradient(135deg, #f0f7ff 0%, #f4f7fd 100%); border: 1px solid #c5d9f1; border-left: 4px solid #0f8643; border-radius: 6px; }
+  .aresult-label { font-weight: 700; font-size: 11px; color: #1a2744; margin-bottom: 4px; }
+  .aresult-info { display: flex; gap: 12px; margin-bottom: 4px; }
+  .aresult-date { font-size: 9px; color: #6b7da8; }
+  .aresult-lab { font-size: 9px; color: #6b7da8; }
+  .aresult-file { font-size: 10px; color: #0059bb; margin: 3px 0; font-weight: 600; }
+  .aresult-note { font-size: 10px; color: #3a4a6a; margin-top: 4px; line-height: 1.4; }
+  .anotes { margin: 8px 16px; padding: 8px 12px; background: linear-gradient(135deg, #eef3fb 0%, #e8effc 100%); border: 1px solid #dce7fb; border-left: 3px solid #1a4fd6; border-radius: 6px; font-size: 10px; color: #3a4a6a; line-height: 1.4; }
 
   /* ── Footer ── */
-  .footer { display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #9aabc4; border-top: 1px solid #dce7fb; padding-top: 14px; margin-top: 30px; }
+  .footer { display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #9aabc4; border-top: 2px solid #dce7fb; padding: 16px 36px; margin-top: 28px; background: linear-gradient(135deg, #f4f7fd 0%, #f0f4fc 100%); }
 </style>
 </head>
 <body>
@@ -828,6 +886,7 @@ const buildPDFWithData = (consultations, fullName, patient) => {
 
   <div class="content">
     <div class="content-title">Historique de Consultations <span>${consultations.length} consultation${consultations.length !== 1 ? "s" : ""}</span></div>
+    ${standaloneAnalysesHtml}
     ${blocks || `<p class="empty-sub">Aucune consultation enregistrée.</p>`}
   </div>
 
@@ -884,23 +943,28 @@ export function MedicalRecord() {
         const consultRes = await api.get("/consultations");
         const raw = consultRes.data?.data || consultRes.data || [];
 
-        // Enrich with nested data if not already present
-        const enriched = await Promise.all(
-          raw.map(async (c) => {
-            if (c.ordonnances?.length || c.analyses?.length) return c;
-            try {
-              const r = await api.get(`/consultations/${c.id}`);
-              const full = r.data?.data || r.data;
-              return {
-                ...c,
-                ordonnances: full?.ordonnances || [],
-                analyses: full?.analyses || [],
-              };
-            } catch {
-              return c;
-            }
-          }),
-        );
+        // Patient view: avoid /consultations/:id (doctor-only endpoint)
+        const [ordRes, anaRes] = await Promise.all([
+          api.get("/ordonnances").catch(() => ({ data: {} })),
+          api.get("/analyses").catch(() => ({ data: {} })),
+        ]);
+
+        const allOrdonnances = Array.isArray(ordRes.data?.data)
+          ? ordRes.data.data
+          : (ordRes.data ?? []);
+        const allAnalyses = Array.isArray(anaRes.data?.data)
+          ? anaRes.data.data
+          : (anaRes.data ?? []);
+
+        const enriched = raw.map((c) => ({
+          ...c,
+          ordonnances: allOrdonnances.filter(
+            (o) => String(o.consultation_id) === String(c.id),
+          ),
+          analyses: allAnalyses.filter(
+            (a) => String(a.consultation_id) === String(c.id),
+          ),
+        }));
 
         setConsultations(
           enriched.sort(
@@ -959,6 +1023,18 @@ export function MedicalRecord() {
         ? anaRes.data.data
         : (anaRes.data ?? []);
 
+      const currentPatientId = patient?.patient?.id || null;
+      const completedAnalyses = allAnalyses
+        .filter((a) => Boolean(a?.fichier))
+        .filter((a) =>
+          currentPatientId ? String(a?.patient_id) === String(currentPatientId) : true,
+        )
+        .sort(
+          (a, b) =>
+            new Date(b?.date_resultat || b?.date_analyse || 0) -
+            new Date(a?.date_resultat || a?.date_analyse || 0),
+        );
+
       setExportProgress("Enrichissement des données...");
 
       // Enrich consultations with their ordonnances, prescriptions and analyses
@@ -985,7 +1061,12 @@ export function MedicalRecord() {
       setExportProgress("Génération du document...");
 
       // Build HTML content
-      const html = buildPDFWithData(enrichedConsultations, fullName, patient);
+      const html = buildPDFWithData(
+        enrichedConsultations,
+        fullName,
+        patient,
+        completedAnalyses,
+      );
 
       // Create a hidden container with all styles embedded
       const container = document.createElement("div");
@@ -996,7 +1077,13 @@ export function MedicalRecord() {
         .replace(/<\/body>/, "")
         .replace(/<\/html>/, "")}</body></html>`;
 
-      container.innerHTML = styledHtml;
+      const extractedCss =
+        html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)?.[1] || "";
+
+      container.innerHTML = styledHtml.replace(
+        /<style>[\s\S]*?<\/style>/i,
+        `<style>${extractedCss}</style>`,
+      );
       container.style.position = "absolute";
       container.style.left = "-9999px";
       container.style.top = "0";
@@ -1011,7 +1098,7 @@ export function MedicalRecord() {
 
       // Get canvas from html2canvas
       const canvas = await html2canvas(container, {
-        scale: 2,
+        scale: 3,
         useCORS: true,
         allowTaint: true,
         logging: false,
@@ -1023,37 +1110,50 @@ export function MedicalRecord() {
 
       setExportProgress("Création du PDF...");
 
-      // Convert canvas to image
-      const imgData = canvas.toDataURL("image/png");
-
       // Calculate dimensions
       const pdfWidth = 210;
       const pdfHeight = 297;
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
-
-      // Calculate proportional height
-      const totalHeightMm = (imgHeight * pdfWidth) / imgWidth / 3.779;
+      const pageHeightPx = Math.floor((imgWidth * pdfHeight) / pdfWidth);
+      const totalPages = Math.max(1, Math.ceil(imgHeight / pageHeightPx));
 
       // Create PDF
       const pdf = new jsPDF("p", "mm", "a4");
 
-      // Add the full image
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, totalHeightMm);
+      // Slice the long canvas into page-sized chunks to avoid seam artifacts.
+      for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
+        if (pageIndex > 0) {
+          pdf.addPage();
+        }
 
-      // Add additional pages if image is longer than one page
-      let heightRendered = pdfHeight;
-      while (heightRendered < totalHeightMm) {
-        pdf.addPage();
-        pdf.addImage(
-          imgData,
-          "PNG",
+        const sy = pageIndex * pageHeightPx;
+        const sHeight = Math.min(pageHeightPx, imgHeight - sy);
+
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.width = imgWidth;
+        pageCanvas.height = sHeight;
+
+        const pageCtx = pageCanvas.getContext("2d");
+        if (!pageCtx) {
+          throw new Error("Impossible de préparer une page PDF.");
+        }
+
+        pageCtx.drawImage(
+          canvas,
           0,
-          -heightRendered,
-          pdfWidth,
-          totalHeightMm,
+          sy,
+          imgWidth,
+          sHeight,
+          0,
+          0,
+          imgWidth,
+          sHeight,
         );
-        heightRendered += pdfHeight;
+
+        const pageImgData = pageCanvas.toDataURL("image/png");
+        const pageHeightMm = (sHeight * pdfWidth) / imgWidth;
+        pdf.addImage(pageImgData, "PNG", 0, 0, pdfWidth, pageHeightMm);
       }
 
       // Cleanup
