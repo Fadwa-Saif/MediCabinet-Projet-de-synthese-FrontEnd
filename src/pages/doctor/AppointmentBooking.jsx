@@ -5,6 +5,7 @@ import api from "../../services/api";
 
 export function AppointmentBooking() {
   const [appointments, setAppointments] = useState([]);
+  const [selectedDate, setSelectedDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -18,14 +19,18 @@ export function AppointmentBooking() {
         
         const allAppointments = data.map((rdv) => {
           const safeDate = rdv.date_heure ? rdv.date_heure.replace(' ', 'T') : null;
+          const jsDate = safeDate ? new Date(safeDate) : null;
           return {
             id: rdv.id,
-            date: safeDate ? new Date(safeDate).toLocaleDateString("fr-FR", {
+            date: jsDate ? jsDate.toLocaleDateString("fr-FR", {
               day: "2-digit",
               month: "long",
               year: "numeric",
             }) : "—",
-            time: safeDate ? new Date(safeDate).toLocaleTimeString("fr-FR", {
+            dateValue: jsDate && !Number.isNaN(jsDate.getTime())
+              ? jsDate.toISOString().slice(0, 10)
+              : "",
+            time: jsDate ? jsDate.toLocaleTimeString("fr-FR", {
               hour: "2-digit",
               minute: "2-digit",
             }) : "—",
@@ -47,6 +52,10 @@ export function AppointmentBooking() {
     fetchAppointments();
   }, []);
 
+  const displayedAppointments = selectedDate
+    ? appointments.filter((appointment) => appointment.dateValue === selectedDate)
+    : appointments;
+
   return (
     <Navbar userRole="medecin" pageTitle="Rendez-vous">
       <div className="p-8">
@@ -57,13 +66,35 @@ export function AppointmentBooking() {
               Vue rapide des consultations programmees pour aujourd&apos;hui.
             </p>
           </div>
-          <div className="rounded-xl bg-blue-50 px-4 py-3 text-right">
-            <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
-              Total
-            </p>
-            <p className="text-2xl font-bold text-blue-900">
-              {loading ? "..." : appointments.length}
-            </p>
+          <div className="flex items-end gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Filtrer par date
+              </label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(event) => setSelectedDate(event.target.value)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
+              />
+            </div>
+            {selectedDate && (
+              <button
+                type="button"
+                onClick={() => setSelectedDate("")}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Réinitialiser
+              </button>
+            )}
+            <div className="rounded-xl bg-blue-50 px-4 py-3 text-right">
+              <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+                Total
+              </p>
+              <p className="text-2xl font-bold text-blue-900">
+                {loading ? "..." : displayedAppointments.length}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -79,13 +110,13 @@ export function AppointmentBooking() {
               <div key={i} className="animate-pulse h-24 rounded-2xl bg-slate-200" />
             ))}
           </div>
-        ) : appointments.length === 0 ? (
+        ) : displayedAppointments.length === 0 ? (
           <div className="rounded-lg p-8 text-center bg-slate-50 border border-slate-200">
-            <p className="text-gray-600">Aucun rendez-vous prévu pour aujourd'hui.</p>
+            <p className="text-gray-600">Aucun rendez-vous pour la date sélectionnée.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {appointments.map((appointment) => (
+            {displayedAppointments.map((appointment) => (
               <div
                 key={appointment.id}
                 className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"

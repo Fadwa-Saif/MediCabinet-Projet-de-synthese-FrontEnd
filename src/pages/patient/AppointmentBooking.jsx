@@ -311,7 +311,7 @@ export function AppointmentBooking() {
     };
 
     fetchSlots();
-  }, [adminId, selectedDate, selectedCreneau, isEditMode]);
+  }, [adminId, selectedDate, isEditMode, selectedCreneau]);
 
   const creneauxDuJour = creneaux.filter((c) => c.date === selectedDate);
 

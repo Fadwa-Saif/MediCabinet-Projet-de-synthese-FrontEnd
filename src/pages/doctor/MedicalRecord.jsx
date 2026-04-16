@@ -1,82 +1,44 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams, useParams } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import {
-  Download,
   AlertCircle,
-  FileText,
-  Pill,
   FlaskConical,
-  StickyNote,
-  ChevronRight,
   Calendar,
   User,
   Droplet,
   AlertTriangle,
-  Eye,
+  Download,
+  Stethoscope,
+  ClipboardList,
+  Activity,
+  ChevronRight,
 } from "lucide-react";
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("fr-FR", {
+const formatDate = (d) => {
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString("fr-FR", {
     day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const formatDateShort = (d) => {
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString("fr-FR", {
+    day: "2-digit",
     month: "short",
     year: "numeric",
   });
 };
 
-const getStatusColor = (status) => {
-  const s = status?.toLowerCase() || "";
-  if (s.includes("actif") || s.includes("active") || s.includes("confirmé")) {
-    return "bg-tertiary-container text-on-tertiary-container";
-  }
-  if (
-    s.includes("complété") ||
-    s.includes("completed") ||
-    s.includes("terminé")
-  ) {
-    return "bg-primary-fixed text-on-primary-fixed";
-  }
-  if (s.includes("annulé") || s.includes("cancelled")) {
-    return "bg-error-container text-on-error-container";
-  }
-  return "bg-surface-variant text-on-surface-variant";
-};
-
-// ─── Tab Button Component ───────────────────────────────────────────────────
-
-const TabButton = ({ active, onClick, icon: Icon, label, count }) => (
-  <button
-    onClick={onClick}
-    className={`flex items-center gap-2 px-4 py-3 font-medium text-sm transition-all border-b-2 whitespace-nowrap ${
-      active
-        ? "text-primary border-primary bg-primary-container/30"
-        : "text-on-surface-variant border-transparent hover:text-on-surface hover:bg-surface-container"
-    }`}
-  >
-    <Icon
-      size={18}
-      className={active ? "text-primary" : "text-on-surface-variant"}
-    />
-    <span>{label}</span>
-    {count > 0 && (
-      <span
-        className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${
-          active
-            ? "bg-primary text-on-primary"
-            : "bg-surface-container-high text-on-surface-variant"
-        }`}
-      >
-        {count}
-      </span>
-    )}
-  </button>
-);
-
-// ─── Info Card Component ────────────────────────────────────────────────────
+// ─── Info Card ────────────────────────────────────────────────────────────────
 
 const InfoCard = ({
   label,
@@ -99,274 +61,919 @@ const InfoCard = ({
   </div>
 );
 
-// ─── Record Card Component ──────────────────────────────────────────────────
-
-const RecordCard = ({ item, type, onClick, onVoir }) => {
-  const icons = {
-    historique: FileText,
-    prescriptions: Pill,
-    analyses: FlaskConical,
-    notes: StickyNote,
-  };
-  const Icon = icons[type] || FileText;
-  const isAnalyse = type === "analyses";
-
-  return (
-    <div
-      onClick={onClick}
-      className="group bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md hover:bg-surface transition-all cursor-pointer border border-outline-variant/30 hover:border-primary/20"
-    >
-      <div className="flex justify-between items-start gap-4">
-        <div className="flex gap-4 flex-1">
-          <div className="w-12 h-12 rounded-xl bg-secondary-container/50 flex items-center justify-center text-secondary shrink-0 group-hover:bg-secondary-container transition-colors">
-            <Icon size={24} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-headline font-bold text-lg text-on-surface truncate">
-              {item.titre || item.title || item.medicament || "—"}
-            </h3>
-            <div className="flex items-center gap-3 mt-1 flex-wrap">
-              <span className="flex items-center gap-1 text-sm text-on-surface-variant">
-                <Calendar size={14} />
-                {formatDate(
-                  item.date || item.created_at || item.date_prescription,
-                )}
-              </span>
-              {item.medecin_nom && (
-                <span className="flex items-center gap-1 text-sm text-on-surface-variant">
-                  <User size={14} />
-                  {item.medecin_nom}
-                </span>
-              )}
-            </div>
-            <p className="text-on-surface-variant text-sm mt-2 line-clamp-2">
-              {item.description ||
-                item.notes ||
-                item.resultat ||
-                "Pas de description disponible"}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-col items-end gap-2 shrink-0">
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getStatusColor(item.statut)}`}
-          >
-            {item.statut || "Actif"}
-          </span>
-
-          {/* ── "Voir" button for analyses ── */}
-          {isAnalyse ? (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onVoir?.();
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary-container/50 hover:bg-secondary-container text-secondary text-xs font-bold uppercase tracking-wide transition-all group-hover:shadow-sm"
-            >
-              <Eye size={14} />
-              Voir
-            </button>
-          ) : (
-            <ChevronRight
-              size={20}
-              className="text-outline group-hover:text-primary group-hover:translate-x-1 transition-all"
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ─── Loading Skeleton ────────────────────────────────────────────────────────
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 const SkeletonCard = () => (
-  <div className="bg-surface-container-lowest p-5 rounded-xl animate-pulse">
+  <div className="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/20 animate-pulse">
     <div className="flex gap-4">
-      <div className="w-12 h-12 rounded-xl bg-surface-container-high shrink-0" />
+      <div className="w-10 h-10 rounded-xl bg-surface-container-high shrink-0" />
       <div className="flex-1 space-y-2">
-        <div className="h-5 bg-surface-container-high rounded w-1/3" />
         <div className="h-4 bg-surface-container-high rounded w-1/4" />
-        <div className="h-4 bg-surface-container-high rounded w-3/4" />
+        <div className="h-4 bg-surface-container-high rounded w-2/3" />
+        <div className="h-3 bg-surface-container-high rounded w-1/3" />
       </div>
     </div>
   </div>
 );
 
-// ─── Main Component ──────────────────────────────────────────────────────────
+// ─── Consultation Card — navigate on click ────────────────────────────────────
+
+const ConsultationCard = ({ consultation, index, onClick }) => {
+  const ordonnances = consultation.ordonnances || [];
+  const analyses = consultation.analyses || [];
+  const doctorName = consultation.admin?.user
+    ? `Dr. ${consultation.admin.user.prenom || ""} ${consultation.admin.user.nom || ""}`.trim()
+    : consultation.medecin_nom || null;
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left rounded-2xl border border-outline-variant/30 hover:border-primary/30 hover:shadow-md bg-surface-container-lowest transition-all duration-200 group"
+    >
+      <div className="p-5 flex items-start gap-4">
+        <div className="w-10 h-10 rounded-xl bg-surface-container-high group-hover:bg-primary group-hover:text-on-primary text-on-surface-variant flex items-center justify-center text-sm font-bold shrink-0 transition-colors">
+          {String(index).padStart(2, "0")}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-1.5">
+            <span className="flex items-center gap-1.5 text-sm font-semibold text-on-surface">
+              <Calendar size={14} className="text-primary" />
+              {formatDate(consultation.date || consultation.date_heure)}
+            </span>
+            {doctorName && (
+              <span className="flex items-center gap-1.5 text-sm text-on-surface-variant">
+                <User size={14} />
+                {doctorName}
+              </span>
+            )}
+          </div>
+
+          {consultation.diagnostic && (
+            <p className="text-on-surface font-medium text-sm leading-snug line-clamp-2">
+              <span className="text-on-surface-variant font-normal">
+                Diagnostic :{" "}
+              </span>
+              {consultation.diagnostic}
+            </p>
+          )}
+
+          {consultation.symptomes && (
+            <p className="text-on-surface-variant text-xs mt-1 line-clamp-1">
+              Symptômes : {consultation.symptomes}
+            </p>
+          )}
+
+          <div className="flex items-center gap-3 mt-2.5 flex-wrap">
+            {ordonnances.length > 0 && (
+              <span className="flex items-center gap-1 text-xs text-tertiary font-medium bg-tertiary-container/40 px-2 py-0.5 rounded-full">
+                <ClipboardList size={11} />
+                {ordonnances.length} ordonnance
+                {ordonnances.length > 1 ? "s" : ""}
+              </span>
+            )}
+            {analyses.length > 0 && (
+              <span className="flex items-center gap-1 text-xs text-secondary font-medium bg-secondary-container/40 px-2 py-0.5 rounded-full">
+                <FlaskConical size={11} />
+                {analyses.length} analyse{analyses.length > 1 ? "s" : ""}
+              </span>
+            )}
+            {!ordonnances.length && !analyses.length && (
+              <span className="text-xs text-outline italic">
+                Pas de documents associés
+              </span>
+            )}
+          </div>
+        </div>
+
+        <ChevronRight
+          size={18}
+          className="text-outline group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0 mt-1"
+        />
+      </div>
+    </button>
+  );
+};
+
+// ─── PDF: FORM definition (mirrors LabAnalysisFormViewer) ─────────────────────
+
+const PDF_FORM = [
+  {
+    id: "r1",
+    columns: [
+      {
+        category: "hematologie",
+        label: "HÉMATOLOGIE",
+        items: [
+          "Hémoglobine",
+          "Globules Rouges - Hct",
+          "Globules Blancs",
+          "Formule leucocytaire",
+          "Plaquettes",
+          "Réticulocytes",
+          "Morphologie des GR",
+        ],
+      },
+      {
+        category: "anemie",
+        label: "ANÉMIE",
+        items: [
+          "Fer",
+          "Transferrine (+ % saturation)",
+          "Hémochromatose",
+          "Vit B12 (1x/an)",
+          "Acide folique (1x/an)",
+          "Haptoglobine",
+          "Ac. folique érythro.",
+        ],
+      },
+      {
+        category: "coagulation",
+        label: "COAGULATION",
+        items: [
+          "Quick-INR",
+          "Tps de céphaline activée",
+          "Fibrinogène",
+          "Temps de thrombine",
+          "D-Dimères",
+          "Plaquettes (sur citrate)",
+          "Anti-Xa HBPM",
+          "Anti-Xa Xarelto",
+          "Anti-Xa Eliquis",
+          "PFA",
+          "Facteur VIII",
+          "Facteur IX",
+          "Ag vWF",
+          "Activité vWF",
+        ],
+      },
+      {
+        category: "thrombophilie",
+        label: "THROMBOPHILIE",
+        items: [
+          "Protéine C",
+          "Protéine S",
+          "Antithrombine",
+          "APC Résistance",
+          "Facteur V Leiden",
+          "Mut. Prothrombine",
+          "Anticoagulant lupique",
+          "AC anti-cardiolipine",
+          "AC anti-β2 GP1",
+          "Anti PF4",
+          "CIVD",
+        ],
+      },
+    ],
+  },
+  {
+    id: "r2",
+    columns: [
+      {
+        category: "immuno_hemato",
+        label: "IMMUNO-HÉMATO",
+        items: [
+          "Parasites sanguins",
+          "Groupe ABOD",
+          "Electrophorèse Hb",
+          "Sous-groupes RH",
+          "Sphérocytose",
+          "Carte de groupe",
+          "Phénotypage érythrocytaire",
+          "Agglutinines irrégulières (RAI)",
+          "Typage T-B-NK",
+          "Typage CD4-CD8",
+          "Gène RHD fœtal",
+          "Coombs direct",
+          "Agglutinines froides",
+          "Cryoglobulines",
+          "B27",
+        ],
+      },
+    ],
+  },
+  {
+    id: "r3",
+    columns: [
+      {
+        category: "biochimie_foie",
+        label: "BIOCHIMIE – Foie / Pancréas",
+        items: [
+          "TGO",
+          "TGP",
+          "LDH",
+          "GGT",
+          "Ph. alcalines",
+          "Bilirubines Totale + Directe",
+          "Acides biliaires",
+          "Amylase",
+          "Lipase",
+          "NH3 veineux",
+          "NH3 artériel",
+        ],
+      },
+      {
+        category: "biochimie_reins",
+        label: "BIOCHIMIE – Reins / Ions",
+        items: [
+          "Urée",
+          "Créatinine (+GFR)",
+          "Acide urique",
+          "Na",
+          "K",
+          "Cl",
+          "HCO3-",
+          "Ca",
+          "Ca corrigé",
+          "P",
+          "Mg",
+          "Osmolalité",
+          "pH artériel",
+          "pH veineux",
+        ],
+      },
+      {
+        category: "biochimie_proteines",
+        label: "BIOCHIMIE – Protéines spécifiques",
+        items: [
+          "CRP",
+          "VS",
+          "Protéines",
+          "Albumine",
+          "Electro. Protéines",
+          "Immunoélectrophorèse",
+          "Chaînes légères libres",
+          "IgG",
+          "IgA",
+          "IgM",
+          "C3",
+          "C4",
+          "CH50",
+          "β2 microglobuline",
+          "Préalbumine",
+          "Procalcitonine",
+          "CRP ultrasensible",
+          "Homocystéine",
+        ],
+      },
+      {
+        category: "biochimie_glucides",
+        label: "BIOCHIMIE – Glucides / Lipides",
+        items: [
+          "Glycémie",
+          "HbA1c",
+          "Insuline",
+          "C-peptide",
+          "Cholestérol Total",
+          "Triglycérides",
+          "HDL (+LDL calculé)",
+          "ApoA",
+          "ApoB",
+          "LDL dosé",
+          "Lp(a)",
+          "CPK",
+          "Troponine I",
+          "NT-proBNP",
+        ],
+      },
+    ],
+  },
+  {
+    id: "r4",
+    columns: [
+      {
+        category: "chimie_urinaire",
+        label: "CHIMIE URINAIRE",
+        items: [
+          "Sédiment + culture",
+          "Glucose urinaire",
+          "Protéines urinaires",
+          "Urée urinaire",
+          "Créatinine urinaire",
+          "Acide urique urinaire",
+          "Na urinaire",
+          "K urinaire",
+          "Cl urinaire",
+          "Ca urinaire",
+          "P urinaire",
+          "Mg urinaire",
+          "Citrate urinaire",
+          "Oxalate urinaire",
+          "Electro. Prot. urinaire",
+          "Bence-Jones",
+          "µAlbumine",
+          "α1 µglobuline",
+          "β2 µglobuline",
+        ],
+      },
+    ],
+  },
+  {
+    id: "r5",
+    columns: [
+      {
+        category: "serologie_virale",
+        label: "SÉROLOGIE Virale",
+        items: [
+          "Hépatite A IgM",
+          "Hépatite B Ag surface",
+          "Hépatite B Ac core",
+          "Hépatite C",
+          "Hépatite A Ac totaux",
+          "Hépatite B Ac surface",
+          "Hépatite B Ag e",
+          "Hépatite B Ac e",
+          "Hépatite D",
+          "Hépatite E IgG+IgM",
+          "CMV IgG+IgM",
+          "EBV IgG+IgM",
+          "Rubéole IgG",
+          "H. simplex IgG+IgM",
+          "Varicelle IgG+IgM",
+          "Oreillons IgG+IgM",
+          "Parvovirus B19 IgG+IgM",
+          "Rougeole IgG+IgM",
+          "HIV",
+          "HTLV I/II",
+          "Covid 19",
+        ],
+      },
+      {
+        category: "serologie_bacterienne",
+        label: "SÉROLOGIE Bactérienne",
+        items: [
+          "Syphilis",
+          "ASLO",
+          "Borrelia IgG+IgM",
+          "Brucella",
+          "Bartonella IgG+IgM",
+          "Bordetella",
+          "Mycoplasme IgG+IgM",
+          "Chl. Pneumoniae IgG+IgA",
+          "Chl. Trachomatis IgG+IgA",
+          "Rickettsies",
+          "Coxiella burnetii (fièvre Q)",
+        ],
+      },
+      {
+        category: "serologie_non_infectieuse",
+        label: "SÉROLOGIE Non infectieuse",
+        items: [
+          "AAN + identification",
+          "ENA",
+          "DNA",
+          "AC anti-muq. gastrique",
+          "AC anti-mitochondries",
+          "AC anti-muscles lisses",
+          "AC anti-LKM",
+          "AC anti-LC1",
+          "AC anti-SLA",
+          "Panel myosite",
+          "AC anti-CCP",
+          "Facteur rhumatoïde",
+          "ANCA + identification",
+          "AC anti-MPO",
+          "AC anti-PR3",
+          "AC anti-GBM",
+          "ASCA IgG+IgA",
+          "AC anti-transglutaminase IgA",
+        ],
+      },
+    ],
+  },
+  {
+    id: "r6",
+    columns: [
+      {
+        category: "hormonologie_thyroide",
+        label: "HORMONOLOGIE – Thyroïde",
+        items: [
+          "TSH",
+          "T4 libre",
+          "T3 libre",
+          "AC anti-TPO",
+          "AC anti-TG",
+          "Thyroglobuline",
+          "AC anti-TSI",
+        ],
+      },
+      {
+        category: "hormonologie_grossesse",
+        label: "HORMONOLOGIE – Grossesse",
+        items: [
+          "β-HCG",
+          "Oestradiol",
+          "Progestérone",
+          "AMH",
+          "PLGF (pré-éclampsie)",
+          "sFlt-1/PLGF",
+          "TPNI",
+        ],
+      },
+      {
+        category: "hormonologie_hypophyse",
+        label: "HORMONOLOGIE – Hypophyse",
+        items: ["LH", "FSH", "Prolactine", "ACTH", "hGH / IgF1"],
+      },
+      {
+        category: "hormonologie_gonades",
+        label: "HORMONOLOGIE – Gonades / Surrénales",
+        items: [
+          "Testostérone",
+          "SHBG",
+          "Androstanediol glucuronide",
+          "Oestrone",
+          "Cortisol",
+          "17-OH progestérone",
+          "Δ4-androstènedione",
+          "DHEA-Sulfate",
+          "Aldostérone",
+          "Rénine",
+        ],
+      },
+    ],
+  },
+  {
+    id: "r7",
+    columns: [
+      {
+        category: "marqueurs",
+        label: "MARQUEURS TUMORAUX",
+        items: [
+          "CEA",
+          "CA19.9",
+          "CA125",
+          "CA15.3",
+          "NSE",
+          "β-HCG (marqueur)",
+          "AFP",
+          "PSA dépistage",
+          "PSA libre",
+          "PSA suivi",
+          "Chromogranine A",
+          "Thyrocalcitonine",
+          "Thyroglobuline",
+          "Angiotensine convertase",
+        ],
+      },
+      {
+        category: "allergie",
+        label: "ALLERGIE",
+        items: [
+          "IgE totales",
+          "Tryptase (mastocytose)",
+          "DAO",
+          "IgE phléole",
+          "IgE poussières d1",
+          "IgE poussières d2",
+          "IgE bouleau t3",
+          "IgE chat e1",
+          "IgE chien e5",
+          "IgE armoise w6",
+          "IgE plantain w9",
+          "IgE moisissures mx1",
+          "IgE Asp. fumigatus m3",
+          "IgE blanc oeuf f1",
+          "IgE lait f2",
+          "IgE froment f4",
+          "IgE soja f14",
+        ],
+      },
+      {
+        category: "metabolisme_osseux",
+        label: "MÉTABOLISME OSSEUX",
+        items: [
+          "Ca osseux",
+          "P osseux",
+          "Calcium ionisé",
+          "PTH",
+          "Vit D",
+          "Phosph. alcaline osseuse",
+          "C-télopeptides (CTX)",
+        ],
+      },
+    ],
+  },
+];
+
+const pdfNorm = (s = "") =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+
+const buildCheckedAnalysisGridHTML = (analyses = []) => {
+  if (!analyses.length) {
+    return "";
+  }
+
+  const selectedAnalyses = new Set(
+    analyses
+      .filter((a) => a.type_analyse)
+      .map((a) => pdfNorm(a.type_analyse ?? "")),
+  );
+
+  const isOn = (item) => {
+    const itemKey = pdfNorm(item);
+    return selectedAnalyses.has(itemKey);
+  };
+
+  const rowsHtml = PDF_FORM.map(
+    (row) =>
+      `<div class="arow">${row.columns
+        .map((col) => {
+          const active = col.items.some((item) => isOn(item));
+          return `<div class="acol">
+        <div class="acol-h${active ? " active" : ""}">${col.label}</div>
+        <div class="acol-b">${col.items
+          .map((item) => {
+            const on = isOn(item);
+            return `<div class="aitem${on ? " aon" : ""}">
+            <div class="acb${on ? " aon" : ""}"></div>
+            <span class="albl${on ? " aon" : ""}">${item}</span>
+          </div>`;
+          })
+          .join("")}</div>
+      </div>`;
+        })
+        .join("")}</div>`,
+  ).join("");
+
+  return `<div class="aform">${rowsHtml}</div>`;
+};
+
+// ─── Build analysis form HTML for PDF ─────────────────────────────────────────
+
+const buildAnalysisFormHTML = (analyses = [], isPatientView = false) => {
+  const esc = (s) =>
+    String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+  // For patient view, only show analyses with fichier (validated by doctor)
+  const displayAnalyses = isPatientView
+    ? analyses.filter((a) => a.fichier)
+    : analyses;
+
+  if (!displayAnalyses.length) {
+    const msg = isPatientView
+      ? "Aucune analyse complétée à afficher."
+      : "Aucune analyse prescrite pour cette consultation.";
+    return `<p class="empty-sub">${msg}</p>`;
+  }
+
+  const rowsHtml = buildCheckedAnalysisGridHTML(displayAnalyses);
+
+  // Add results/fichier section
+  const resultsHtml = displayAnalyses
+    .filter((a) => a.fichier)
+    .map((a) => {
+      const fileName = a.fichier.split("/").pop();
+      return `<div class="aresult">
+        <div class="aresult-label">${esc(a.type_analyse || "Analyse")}</div>
+        <div class="aresult-file">📎 ${esc(fileName)}</div>
+        ${a.date_resultat ? `<div class="aresult-date">Résultat: ${formatDateShort(a.date_resultat)}</div>` : ""}
+        ${a.commentaire_medecin ? `<div class="aresult-note">${esc(a.commentaire_medecin)}</div>` : ""}
+      </div>`;
+    })
+    .join("");
+
+  const notes = displayAnalyses
+    .filter((a) => a.commentaire_medecin && !a.fichier)
+    .map((a) => a.commentaire_medecin)
+    .filter(Boolean);
+  const notesHtml = notes.length
+    ? `<div class="anotes"><strong>Notes :</strong> ${notes.join(" — ")}</div>`
+    : "";
+
+  return `${rowsHtml}${resultsHtml}${isPatientView ? "" : notesHtml}`;
+};
+
+// ─── PDF builder ────────────────────────────────────────────────────────────────
+// Old buildPDFHTML has been replaced by buildPDFWithData (see below) which fetches
+// ordonnances, prescriptions and analyses from API before generating the PDF
+
+// ─── PDF builder with enriched data (from API fetch) ────────────────────────
+
+const buildPDFWithData = (
+  consultations,
+  fullName,
+  patient,
+  completedAnalyses = [],
+) => {
+  const patientInfo = patient?.patient || {};
+  const bloodType = patientInfo?.groupe_sanguin || "—";
+  const allergies = patientInfo?.allergies || "Aucune connue";
+  const birthDate = patientInfo?.date_naissance
+    ? formatDate(patientInfo.date_naissance)
+    : "—";
+  const dossierSince = patientInfo?.date_creation_dossier
+    ? new Date(patientInfo.date_creation_dossier).getFullYear()
+    : "—";
+
+  const esc = (s) =>
+    String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+  const blocks = consultations
+    .map((c, idx) => {
+      const doctorName = c.admin?.user
+        ? `Dr. ${c.admin.user.prenom || ""} ${c.admin.user.nom || ""}`.trim()
+        : c.medecin_nom || "—";
+
+      // Use enriched ordonnances and prescriptions from API fetch
+      const ordonnances = c._ordonnances || [];
+      const prescriptions = c._prescriptions || [];
+
+      const ordRows =
+        ordonnances
+          .map((ord) => {
+            const ordPrescriptions = prescriptions.filter(
+              (p) => p.ordonnance_id === ord.id,
+            );
+            const prescs = ordPrescriptions
+              .map(
+                (p) => `
+        <li>
+          <strong>${esc(p.medicament_nom || "Médicament")}</strong>
+          ${p.posologie ? ` — ${esc(p.posologie)}` : ""}
+          ${p.quantite ? ` · Qté: ${esc(p.quantite)}` : ""}
+          ${p.duree_traitement ? ` · Durée: ${esc(p.duree_traitement)}` : ""}
+          ${p.observation ? `<br><em>${esc(p.observation)}</em>` : ""}
+        </li>`,
+              )
+              .join("");
+            return `<div class="sub-block">
+        <div class="sub-label">Ordonnance — ${esc(formatDateShort(ord.date || ord.created_at))}</div>
+        ${ord.instructions ? `<p class="sub-text"><em>${esc(ord.instructions)}</em></p>` : ""}
+        ${prescs ? `<ul class="med-list">${prescs}</ul>` : `<p class="empty-sub">Aucun médicament prescrit.</p>`}
+      </div>`;
+          })
+          .join("") || `<p class="empty-sub">Aucune ordonnance.</p>`;
+
+      return `<div class="consult-block">
+      <div class="consult-head">
+        <div class="consult-num">${String(idx + 1).padStart(2, "0")}</div>
+        <div>
+          <div class="consult-date">${esc(formatDate(c.date || c.date_heure))}</div>
+          <div class="consult-doctor">${esc(doctorName)}</div>
+        </div>
+      </div>
+      ${c.motif ? `<div class="detail-row"><span class="detail-label">Motif</span><span>${esc(c.motif)}</span></div>` : ""}
+      ${c.symptomes ? `<div class="detail-row"><span class="detail-label">Symptômes</span><span>${esc(c.symptomes)}</span></div>` : ""}
+      ${c.diagnostic ? `<div class="diagnostic-box"><strong>Diagnostic :</strong> ${esc(c.diagnostic)}</div>` : ""}
+      ${c.notes_medecin || c.notes || c.rapport ? `<div class="detail-row"><span class="detail-label">Notes</span><span class="italic">${esc(c.notes_medecin || c.notes || c.rapport)}</span></div>` : ""}
+      <div class="section-title">🧾 Traitement / Ordonnances</div>
+      ${ordRows}
+      <div class="section-title">🔬 Analyses Complétées</div>
+      ${buildAnalysisFormHTML(c._analyses || [], true)}
+    </div>`;
+    })
+    .join("");
+
+  const consultationIds = new Set(
+    consultations.map((c) => String(c.id)).filter(Boolean),
+  );
+
+  const standaloneAnalyses = completedAnalyses.filter((a) => {
+    const cid = a?.consultation_id;
+    return !cid || !consultationIds.has(String(cid));
+  });
+
+  const standaloneAnalysesHtml = standaloneAnalyses.length
+    ? `<div class="global-analyses">
+      <div class="global-analyses-title">Analyses déjà faites par le patient</div>
+      ${buildCheckedAnalysisGridHTML(standaloneAnalyses)}
+      ${standaloneAnalyses
+        .map((a) => {
+          const fileName = (a.fichier || "").split("/").pop() || "fichier";
+          return `<div class="aresult">
+            <div class="aresult-label">${esc(a.type_analyse || "Analyse")}</div>
+            <div class="aresult-info">
+              ${a.date_resultat ? `<div class="aresult-date">📅 ${formatDateShort(a.date_resultat)}</div>` : ""}
+              ${a.laboratoire ? `<div class="aresult-lab">🏥 ${esc(a.laboratoire)}</div>` : ""}
+            </div>
+            <div class="aresult-file">📎 ${esc(fileName)}</div>
+            ${a.commentaire_medecin ? `<div class="aresult-note">${esc(a.commentaire_medecin)}</div>` : ""}
+          </div>`;
+        })
+        .join("")}
+    </div>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<title>Dossier Médical — ${esc(fullName)}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+  @page { size: A4; margin: 14mm 16mm; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', Arial, sans-serif; color: #1a2744; background: #fff; font-size: 11px; line-height: 1.6; }
+
+  /* ── Cover — light ── */
+  .cover {
+    background: linear-gradient(135deg, #fff 0%, #f8fbff 100%);
+    border-bottom: 4px solid #1a4fd6;
+    padding: 32px 36px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .cover-eyebrow { font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 3px; color: #1a4fd6; margin-bottom: 8px; }
+  .cover-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 32px; color: #1a2744; letter-spacing: -.5px; line-height: 1.1; margin-bottom: 12px; font-weight: 700; }
+  .cover-name { font-size: 18px; font-weight: 700; color: #1a2744; margin-bottom: 2px; }
+  .cover-since { font-size: 10px; color: #6b7da8; }
+  .cover-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; text-align: right; }
+  .cover-badge {
+    background: linear-gradient(135deg, #e8effc 0%, #dce7fb 100%);
+    color: #1a4fd6; border: 1.5px solid #b8cdf8;
+    border-radius: 8px; padding: 6px 14px;
+    font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
+  }
+  .cover-date { font-size: 10px; color: #8898b8; margin-top: 4px; font-weight: 500; }
+
+  /* ── Patient grid ── */
+  .patient-grid { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 2px solid #dce7fb; background: linear-gradient(135deg, #f4f7fd 0%, #eef3fb 100%); }
+  .pcell { padding: 14px 20px; border-right: 1px solid #dce7fb; }
+  .pcell:last-child { border-right: none; }
+  .pcell-label { font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #8898b8; margin-bottom: 4px; }
+  .pcell-value { font-size: 13px; font-weight: 700; color: #1a2744; }
+
+  /* ── Content ── */
+  .content { padding: 28px 36px; }
+  .content-title {
+    font-family: 'DM Serif Display', Georgia, serif; font-size: 16px; color: #1a2744;
+    border-bottom: 3px solid #1a4fd6; padding-bottom: 8px; margin-bottom: 20px;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .content-title span { font-family: 'DM Sans', Arial, sans-serif; font-size: 10px; color: #8898b8; font-weight: 500; }
+  .global-analyses { margin: 0 0 16px; padding: 10px 12px; border: 1px solid #dce7fb; border-radius: 8px; background: #f7faff; }
+  .global-analyses-title { font-size: 11px; font-weight: 700; color: #1a4fd6; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.8px; }
+
+  /* ── Consultation block ── */
+  .consult-block { margin-bottom: 18px; border: 1.5px solid #dce7fb; border-radius: 10px; overflow: hidden; page-break-inside: avoid; background: #ffffff; box-shadow: 0 1px 3px rgba(26, 79, 214, 0.08); }
+  .consult-head { display: flex; align-items: center; gap: 14px; background: linear-gradient(135deg, #eef3fb 0%, #e8effc 100%); padding: 12px 16px; border-bottom: 1.5px solid #dce7fb; }
+  .consult-num { width: 36px; height: 36px; background: linear-gradient(135deg, #1a4fd6 0%, #0f3aa3 100%); color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+  .consult-date { font-weight: 700; font-size: 12px; color: #1a2744; }
+  .consult-doctor { font-size: 10px; color: #6b7da8; margin-top: 2px; }
+  .detail-row { display: flex; gap: 10px; padding: 7px 16px; font-size: 11px; border-bottom: 1px solid #f0f3fa; }
+  .detail-label { font-weight: 700; color: #8898b8; width: 85px; flex-shrink: 0; font-size: 9.5px; text-transform: uppercase; letter-spacing: .6px; }
+  .italic { font-style: italic; color: #3a4a6a; line-height: 1.4; }
+  .diagnostic-box { margin: 10px 16px; padding: 11px 14px; background: linear-gradient(135deg, #eef3fb 0%, #e8effc 100%); border-left: 4px solid #1a4fd6; border-radius: 0 6px 6px 0; font-size: 11px; color: #1a2744; }
+  .section-title { font-weight: 700; font-size: 9px; text-transform: uppercase; letter-spacing: 1.6px; color: #1a4fd6; padding: 11px 16px 6px; border-top: 1.5px solid #eef0f7; background: #fafbfd; }
+  .sub-block { margin: 6px 16px 10px; padding: 9px 12px; background: linear-gradient(135deg, #f8faff 0%, #f4f7fd 100%); border: 1px solid #dce7fb; border-left: 3px solid #1a4fd6; border-radius: 6px; }
+  .sub-label { font-weight: 700; font-size: 11px; color: #1a2744; margin-bottom: 4px; }
+  .sub-text { font-size: 10.5px; color: #3a4a6a; margin-bottom: 3px; line-height: 1.4; }
+  .med-list { padding-left: 18px; margin: 3px 0; }
+  .med-list li { margin-bottom: 4px; font-size: 10.5px; color: #1a2744; line-height: 1.4; }
+  .empty-sub { font-size: 10px; color: #9aabc4; font-style: italic; padding: 5px 16px 8px; }
+
+  /* ── Analysis form ── */
+  .aform { display: flex; flex-direction: column; gap: 4px; margin: 4px 16px 8px; }
+  .arow { display: flex; gap: 4px; align-items: flex-start; }
+  .acol { flex: 1; border: 1px solid #d0daf0; border-radius: 4px; overflow: hidden; }
+  .acol-h { background: #f0f4fc; border-bottom: 1px solid #d0daf0; padding: 3px 7px; font-size: 6.2pt; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #6b7da8; }
+  .acol-h.active { background: #dce7fb; color: #1a4fd6; }
+  .acol-b { padding: 3px 5px; display: flex; flex-direction: column; gap: 1px; }
+  .aitem { display: flex; align-items: center; gap: 4px; padding: 1px 2px; border-radius: 2px; }
+  .aitem.aon { background: #eef3fb; }
+  .acb { width: 8px; height: 8px; flex-shrink: 0; border: 1.5px solid #b0bdd8; border-radius: 1px; position: relative; }
+  .acb.aon { border-color: #1a4fd6; background: #1a4fd6; }
+  .acb.aon::after { content: '✓'; display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 5pt; font-weight: 900; color: #fff; }
+  .albl { font-size: 7pt; color: #7a8eab; line-height: 1.3; }
+  .albl.aon { color: #1a2744; font-weight: 600; }
+  .aresult { margin: 6px 16px; padding: 9px 12px; background: linear-gradient(135deg, #f0f7ff 0%, #f4f7fd 100%); border: 1px solid #c5d9f1; border-left: 4px solid #0f8643; border-radius: 6px; }
+  .aresult-label { font-weight: 700; font-size: 11px; color: #1a2744; margin-bottom: 4px; }
+  .aresult-info { display: flex; gap: 12px; margin-bottom: 4px; }
+  .aresult-date { font-size: 9px; color: #6b7da8; }
+  .aresult-lab { font-size: 9px; color: #6b7da8; }
+  .aresult-file { font-size: 10px; color: #0059bb; margin: 3px 0; font-weight: 600; }
+  .aresult-note { font-size: 10px; color: #3a4a6a; margin-top: 4px; line-height: 1.4; }
+  .anotes { margin: 8px 16px; padding: 8px 12px; background: linear-gradient(135deg, #eef3fb 0%, #e8effc 100%); border: 1px solid #dce7fb; border-left: 3px solid #1a4fd6; border-radius: 6px; font-size: 10px; color: #3a4a6a; line-height: 1.4; }
+
+  /* ── Footer ── */
+  .footer { display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #9aabc4; border-top: 2px solid #dce7fb; padding: 16px 36px; margin-top: 28px; background: linear-gradient(135deg, #f4f7fd 0%, #f0f4fc 100%); }
+</style>
+</head>
+<body>
+  <div class="cover">
+    <div>
+      <div class="cover-eyebrow">Dossier Médical</div>
+      <div class="cover-title">MediCabinet</div>
+      <div class="cover-name">${esc(fullName)}</div>
+      <div class="cover-since">Dossier depuis ${esc(String(dossierSince))}</div>
+    </div>
+    <div class="cover-right">
+      <div class="cover-badge">Dossier Complet</div>
+      <div class="cover-date">${new Date().toLocaleDateString("fr-FR")}</div>
+    </div>
+  </div>
+
+  <div class="patient-grid">
+    <div class="pcell"><div class="pcell-label">Groupe Sanguin</div><div class="pcell-value">${esc(bloodType)}</div></div>
+    <div class="pcell"><div class="pcell-label">Allergies</div><div class="pcell-value">${esc(allergies)}</div></div>
+    <div class="pcell"><div class="pcell-label">Date de Naissance</div><div class="pcell-value">${esc(birthDate)}</div></div>
+    <div class="pcell"><div class="pcell-label">Consultations</div><div class="pcell-value">${consultations.length}</div></div>
+  </div>
+
+  <div class="content">
+    <div class="content-title">Historique de Consultations <span>${consultations.length} consultation${consultations.length !== 1 ? "s" : ""}</span></div>
+    ${standaloneAnalysesHtml}
+    ${blocks || `<p class="empty-sub">Aucune consultation enregistrée.</p>`}
+  </div>
+
+  <div class="footer">
+    <span>Document généré automatiquement — MediCabinet</span>
+    <span>Usage médical uniquement</span>
+  </div>
+
+</body>
+</html>`;
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export function MedicalRecord() {
   const navigate = useNavigate();
   const { patientId } = useParams();
-  const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState(
-    searchParams.get("tab") || "historique",
-  );
-
-  // Determine if this is doctor viewing a patient or patient viewing their own record
   const isDoctorView = !!patientId;
   const userRole = isDoctorView ? "medecin" : "patient";
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Data states
   const [patient, setPatient] = useState(null);
-  const [historique, setHistorique] = useState([]);
-  const [prescriptions, setPrescriptions] = useState([]);
-  const [analyses, setAnalyses] = useState([]);
-  const [notes, setNotes] = useState([]);
+  const [consultations, setConsultations] = useState([]);
+  const [pdfExporting, setPdfExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState("");
 
-  // Fetch all data on mount
+  // ── Fetch ──────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const fetchMedicalRecord = async () => {
+    const load = async () => {
       try {
         setLoading(true);
         setError(null);
 
         if (isDoctorView) {
-          const patientRes = await api.get(`/patients/${patientId}`);
-          const patientData = patientRes.data?.data || patientRes.data;
-
+          const { data } = await api.get(`/patients/${patientId}`);
+          const pd = data?.data || data;
           setPatient({
-            nom: patientData?.user?.nom,
-            prenom: patientData?.user?.prenom,
-            patient: patientData,
+            nom: pd?.user?.nom,
+            prenom: pd?.user?.prenom,
+            patient: pd,
           });
-
-          const consultations = Array.isArray(patientData?.consultations)
-            ? [...patientData.consultations].sort(
-                (a, b) => new Date(b.date || 0) - new Date(a.date || 0),
-              )
-            : [];
-
-          try {
-            const historiqueRes = await api.get(`/patients/${patientId}/historique`);
-            const historiqueData = historiqueRes.data?.data?.data || historiqueRes.data?.data || [];
-            setHistorique(Array.isArray(historiqueData) ? historiqueData : []);
-          } catch {
-            setHistorique(consultations);
-          }
-
-          const ordonnancesFromConsultations = consultations.flatMap((consultation) =>
-            (consultation.ordonnances || []).map((ordonnance) => ({
-              ...ordonnance,
-              date: ordonnance.date || consultation.date,
-              medecin_nom:
-                consultation.admin?.user
-                  ? `${consultation.admin.user.prenom || ""} ${consultation.admin.user.nom || ""}`.trim()
-                  : ordonnance.medecin_nom,
-            })),
+          setConsultations(
+            [...(pd?.consultations || [])].sort(
+              (a, b) => new Date(b.date || 0) - new Date(a.date || 0),
+            ),
           );
-          setPrescriptions(ordonnancesFromConsultations);
-
-          const analysesFromConsultations = consultations.flatMap((consultation) =>
-            (consultation.analyses || []).map((analyse) => ({
-              ...analyse,
-              date: analyse.date_analyse || consultation.date,
-              titre: analyse.type_analyse || "Analyse médicale",
-              medecin_nom: consultation.admin?.user
-                ? `${consultation.admin.user.prenom || ""} ${consultation.admin.user.nom || ""}`.trim()
-                : undefined,
-            })),
-          );
-          setAnalyses(analysesFromConsultations);
-
-          const notesFromConsultations = consultations
-            .filter((consultation) => consultation.notes_medecin || consultation.diagnostic || consultation.symptomes)
-            .map((consultation) => ({
-              id: consultation.id,
-              titre: `Consultation du ${formatDate(consultation.date)}`,
-              date: consultation.date,
-              description: consultation.notes_medecin || consultation.diagnostic || consultation.symptomes,
-              medecin_nom: consultation.admin?.user
-                ? `${consultation.admin.user.prenom || ""} ${consultation.admin.user.nom || ""}`.trim()
-                : undefined,
-              statut: "Complété",
-            }));
-          setNotes(notesFromConsultations);
-
           return;
         }
 
-        // Fetch patient profile
-        const patientRes = await api.get("/auth/me");
-        const userData = patientRes.data.user || patientRes.data;
-        setPatient(userData);
+        const meRes = await api.get("/auth/me");
+        setPatient(meRes.data.user || meRes.data);
 
-        const historiqueRes = await api.get("/consultations");
-        const allConsultations =
-          historiqueRes.data.data || historiqueRes.data || [];
-        const pastConsultations = allConsultations
-          .map((c) => ({
-            id: c.id,
-            titre: `Consultation du ${new Date(c.date).toLocaleDateString(
-              "fr-FR",
-              {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              },
-            )}`,
-            date: c.date,
-            description: c.diagnostic || c.symptomes || "Consultation médicale",
-            medecin_nom: c.medecin_nom || "Médecin",
-            statut: c.statut || "Complétée",
-          }))
-          .sort((a, b) => new Date(b.date) - new Date(a.date));
-        setHistorique(pastConsultations);
+        const consultRes = await api.get("/consultations");
+        const raw = consultRes.data?.data || consultRes.data || [];
 
-        // Fetch prescriptions
-        try {
-          const ordRes = await api.get("/ordonnances");
-          setPrescriptions(ordRes.data.data || ordRes.data || []);
-        } catch (err) {
-          console.warn("Failed to fetch prescriptions:", err);
-          setPrescriptions([]);
-        }
+        // Patient view: avoid /consultations/:id (doctor-only endpoint)
+        const [ordRes, anaRes] = await Promise.all([
+          api.get("/ordonnances").catch(() => ({ data: {} })),
+          api.get("/analyses").catch(() => ({ data: {} })),
+        ]);
 
-        // Fetch analyses
-        try {
-          const analysesRes = await api.get("/analyses");
-          const rawAnalyses = analysesRes.data.data || analysesRes.data || [];
-          setAnalyses(
-            rawAnalyses.map((a) => ({
-              id: a.id,
-              titre: a.type_analyse || `Analyse #${a.id}`,
-              date: a.created_at,
-              description: a.commentaire_medecin || a.description || "",
-              statut: a.fichier ? "Résultat reçu" : "En attente",
-              fichier: a.fichier ?? null,
-              consultation_id: a.consultation_id,
-            })),
-          );
-        } catch (err) {
-          console.warn("Failed to fetch analyses:", err);
-          setAnalyses([]);
-        }
+        const allOrdonnances = Array.isArray(ordRes.data?.data)
+          ? ordRes.data.data
+          : (ordRes.data ?? []);
+        const allAnalyses = Array.isArray(anaRes.data?.data)
+          ? anaRes.data.data
+          : (anaRes.data ?? []);
 
-        // Fetch notes (from consultations or dedicated endpoint)
-        try {
-          const notesRes = await api.get("/consultations");
-          const consultations = notesRes.data.data || notesRes.data || [];
-          // Extract notes from consultations
-          const extractedNotes = consultations
-            .filter((c) => c.notes || c.resume)
-            .map((c) => ({
-              id: c.id,
-              titre: `Consultation du ${formatDate(c.date_heure)}`,
-              date: c.date_heure,
-              description: c.notes || c.resume,
-              medecin_nom: c.medecin_nom,
-              statut: "Complété",
-            }));
-          setNotes(extractedNotes);
-        } catch (err) {
-          console.warn("Failed to fetch notes:", err);
-          setNotes([]);
-        }
+        const enriched = raw.map((c) => ({
+          ...c,
+          ordonnances: allOrdonnances.filter(
+            (o) => String(o.consultation_id) === String(c.id),
+          ),
+          analyses: allAnalyses.filter(
+            (a) => String(a.consultation_id) === String(c.id),
+          ),
+        }));
+
+        setConsultations(
+          enriched.sort(
+            (a, b) =>
+              new Date(b.date || b.date_heure || 0) -
+              new Date(a.date || a.date_heure || 0),
+          ),
+        );
       } catch (err) {
-        console.error("Medical record fetch error:", err);
         setError(
           err.response?.data?.message ||
             "Impossible de charger le dossier médical.",
@@ -375,88 +982,253 @@ export function MedicalRecord() {
         setLoading(false);
       }
     };
-
-    fetchMedicalRecord();
+    load();
   }, [isDoctorView, patientId]);
 
-  const getTabData = () => {
-    switch (activeTab) {
-      case "prescriptions":
+  // ── Navigate to detail page ────────────────────────────────────────────────
+  const handleCardClick = (id) => {
+    navigate(
+      isDoctorView
+        ? `/medecin/consultations/${id}`
+        : `/patient/consultations/${id}`,
+    );
+  };
+
+  // ── PDF Export ─────────────────────────────────────────────────────────────
+  const handleExportPDF = useCallback(async () => {
+    try {
+      setPdfExporting(true);
+      setExportProgress("Préparation du document...");
+
+      const fullName = patient
+        ? `${patient.prenom || ""} ${patient.nom || ""}`.trim()
+        : "Patient";
+
+      setExportProgress("Récupération des données...");
+
+      // Fetch ordonnances, prescriptions and analyses in parallel
+      const [ordRes, presRes, anaRes] = await Promise.all([
+        api.get("/ordonnances").catch(() => ({ data: {} })),
+        api.get("/prescriptions").catch(() => ({ data: {} })),
+        api.get("/analyses").catch(() => ({ data: {} })),
+      ]);
+
+      const allOrdonnances = Array.isArray(ordRes.data?.data)
+        ? ordRes.data.data
+        : (ordRes.data ?? []);
+      const allPrescriptions = Array.isArray(presRes.data?.data)
+        ? presRes.data.data
+        : (presRes.data ?? []);
+      const allAnalyses = Array.isArray(anaRes.data?.data)
+        ? anaRes.data.data
+        : (anaRes.data ?? []);
+
+      const currentPatientId = patient?.patient?.id || null;
+      const completedAnalyses = allAnalyses
+        .filter((a) => Boolean(a?.fichier))
+        .filter((a) =>
+          currentPatientId ? String(a?.patient_id) === String(currentPatientId) : true,
+        )
+        .sort(
+          (a, b) =>
+            new Date(b?.date_resultat || b?.date_analyse || 0) -
+            new Date(a?.date_resultat || a?.date_analyse || 0),
+        );
+
+      setExportProgress("Enrichissement des données...");
+
+      // Enrich consultations with their ordonnances, prescriptions and analyses
+      const enrichedConsultations = consultations.map((c) => {
+        const ordonnances = allOrdonnances.filter(
+          (o) => String(o.consultation_id) === String(c.id),
+        );
+        const ordonnanceIds = ordonnances.map((o) => o.id);
+        const prescriptions = allPrescriptions.filter((p) =>
+          ordonnanceIds.includes(p.ordonnance_id),
+        );
+        const analyses = allAnalyses.filter(
+          (a) => String(a.consultation_id) === String(c.id),
+        );
+
         return {
-          data: prescriptions,
-          count: prescriptions.length,
-          label: "Prescriptions",
+          ...c,
+          _ordonnances: ordonnances,
+          _prescriptions: prescriptions,
+          _analyses: analyses,
         };
-      case "analyses":
-        return { data: analyses, count: analyses.length, label: "Analyses" };
-      case "notes":
-        return { data: notes, count: notes.length, label: "Notes" };
-      default:
-        return {
-          data: historique,
-          count: historique.length,
-          label: "Historique",
-        };
+      });
+
+      setExportProgress("Génération du document...");
+
+      // Build HTML content
+      const html = buildPDFWithData(
+        enrichedConsultations,
+        fullName,
+        patient,
+        completedAnalyses,
+      );
+
+      // Create a hidden container with all styles embedded
+      const container = document.createElement("div");
+      const styledHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap');@page{size:A4;margin:14mm 16mm}*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',Arial,sans-serif;color:#1a2744;background:#fff;font-size:11px;line-height:1.6}.cover{background:#fff;border-bottom:3px solid #1a4fd6;padding:26px 32px 20px;display:flex;justify-content:space-between;align-items:flex-start}.cover-eyebrow{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;color:#1a4fd6;margin-bottom:5px}.cover-title{font-family:'DM Serif Display',Georgia,serif;font-size:26px;color:#1a2744;letter-spacing:-.3px;line-height:1.1;margin-bottom:14px}.cover-name{font-size:16px;font-weight:700;color:#1a2744;margin-bottom:2px}.cover-since{font-size:10px;color:#6b7da8}.cover-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}.cover-badge{background:#e8effc;color:#1a4fd6;border:1.5px solid #b8cdf8;border-radius:6px;padding:4px 12px;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px}.cover-date{font-size:9px;color:#8898b8;margin-top:3px}.patient-grid{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:2px solid #dce7fb;background:#f4f7fd}.pcell{padding:11px 18px;border-right:1px solid #dce7fb}.pcell:last-child{border-right:none}.pcell-label{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#8898b8;margin-bottom:3px}.pcell-value{font-size:12px;font-weight:700;color:#1a2744}.content{padding:20px 32px}.content-title{font-family:'DM Serif Display',Georgia,serif;font-size:15px;color:#1a2744;border-bottom:2px solid #1a4fd6;padding-bottom:6px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:baseline}.content-title span{font-family:'DM Sans',Arial,sans-serif;font-size:10px;color:#8898b8;font-weight:500}.consult-block{margin-bottom:20px;border:1px solid #d0daf0;border-radius:8px;overflow:hidden;page-break-inside:avoid}.consult-head{display:flex;align-items:center;gap:12px;background:#eef3fb;padding:10px 16px;border-bottom:1px solid #d0daf0}.consult-num{width:30px;height:30px;background:#1a4fd6;color:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0}.consult-date{font-weight:700;font-size:12px;color:#1a2744}.consult-doctor{font-size:10px;color:#6b7da8;margin-top:1px}.detail-row{display:flex;gap:10px;padding:5px 16px;font-size:11px;border-bottom:1px solid #f0f3fa}.detail-label{font-weight:700;color:#8898b8;width:80px;flex-shrink:0;font-size:10px;text-transform:uppercase;letter-spacing:.5px}.italic{font-style:italic;color:#3a4a6a}.diagnostic-box{margin:8px 16px;padding:9px 12px;background:#eef3fb;border-left:3px solid #1a4fd6;border-radius:0 6px 6px 0;font-size:11px;color:#1a2744}.section-title{font-weight:700;font-size:8.5px;text-transform:uppercase;letter-spacing:1.5px;color:#8898b8;padding:9px 16px 4px;border-top:1px solid #eef0f7}.sub-block{margin:4px 16px 8px;padding:7px 11px;background:#f8faff;border:1px solid #dce7fb;border-radius:6px}.sub-label{font-weight:700;font-size:10.5px;color:#1a2744;margin-bottom:3px}.sub-text{font-size:10.5px;color:#3a4a6a;margin-bottom:3px}.med-list{padding-left:16px}.med-list li{margin-bottom:3px;font-size:10.5px;color:#1a2744}.empty-sub{font-size:10px;color:#9aabc4;font-style:italic;padding:3px 16px 7px}.aform{display:flex;flex-direction:column;gap:4px;margin:4px 16px 8px}.arow{display:flex;gap:4px;align-items:flex-start}.acol{flex:1;border:1px solid #d0daf0;border-radius:4px;overflow:hidden}.acol-h{background:#f0f4fc;border-bottom:1px solid #d0daf0;padding:3px 7px;font-size:6.2pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6b7da8}.acol-h.active{background:#dce7fb;color:#1a4fd6}.acol-b{padding:3px 5px;display:flex;flex-direction:column;gap:1px}.aitem{display:flex;align-items:center;gap:4px;padding:1px 2px;border-radius:2px}.aitem.aon{background:#eef3fb}.acb{width:8px;height:8px;flex-shrink:0;border:1.5px solid #b0bdd8;border-radius:1px;position:relative}.acb.aon{border-color:#1a4fd6;background:#1a4fd6}.acb.aon::after{content:'✓';display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-size:5pt;font-weight:900;color:#fff}.albl{font-size:7pt;color:#7a8eab;line-height:1.3}.albl.aon{color:#1a2744;font-weight:600}.aresult{margin:6px 16px;padding:7px 10px;background:#f8faff;border:1px solid #dce7fb;border-left:3px solid #1a4fd6;border-radius:4px}.aresult-label{font-weight:700;font-size:10px;color:#1a2744;margin-bottom:3px}.aresult-file{font-size:9px;color:#0059bb;margin:2px 0}.aresult-date{font-size:8px;color:#6b7da8;margin-top:2px}.aresult-note{font-size:9px;color:#3a4a6a;font-style:italic;margin-top:3px}.anotes{margin:6px 16px;padding:6px 10px;background:#eef3fb;border-radius:5px;font-size:10px;color:#3a4a6a;font-style:italic}.footer{display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#9aabc4;border-top:1px solid #dce7fb;padding-top:14px;margin-top:30px}</style></head><body>${html
+        .replace(/<html[^>]*>/i, "")
+        .replace(/<head[^>]*>[\s\S]*?<\/head>/i, "")
+        .replace(/<body[^>]*>/, "")
+        .replace(/<\/body>/, "")
+        .replace(/<\/html>/, "")}</body></html>`;
+
+      const extractedCss =
+        html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)?.[1] || "";
+
+      container.innerHTML = styledHtml.replace(
+        /<style>[\s\S]*?<\/style>/i,
+        `<style>${extractedCss}</style>`,
+      );
+      container.style.position = "absolute";
+      container.style.left = "-9999px";
+      container.style.top = "0";
+      container.style.width = "210mm";
+      container.style.background = "#fff";
+      document.body.appendChild(container);
+
+      setExportProgress("Conversion en image...");
+
+      // Wait for fonts
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      // Get canvas from html2canvas
+      const canvas = await html2canvas(container, {
+        scale: 3,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+        windowHeight: container.scrollHeight,
+        windowWidth: container.scrollWidth,
+        imageTimeout: 0,
+      });
+
+      setExportProgress("Création du PDF...");
+
+      // Calculate dimensions
+      const pdfWidth = 210;
+      const pdfHeight = 297;
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const pageHeightPx = Math.floor((imgWidth * pdfHeight) / pdfWidth);
+      const totalPages = Math.max(1, Math.ceil(imgHeight / pageHeightPx));
+
+      // Create PDF
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      // Slice the long canvas into page-sized chunks to avoid seam artifacts.
+      for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
+        if (pageIndex > 0) {
+          pdf.addPage();
+        }
+
+        const sy = pageIndex * pageHeightPx;
+        const sHeight = Math.min(pageHeightPx, imgHeight - sy);
+
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.width = imgWidth;
+        pageCanvas.height = sHeight;
+
+        const pageCtx = pageCanvas.getContext("2d");
+        if (!pageCtx) {
+          throw new Error("Impossible de préparer une page PDF.");
+        }
+
+        pageCtx.drawImage(
+          canvas,
+          0,
+          sy,
+          imgWidth,
+          sHeight,
+          0,
+          0,
+          imgWidth,
+          sHeight,
+        );
+
+        const pageImgData = pageCanvas.toDataURL("image/png");
+        const pageHeightMm = (sHeight * pdfWidth) / imgWidth;
+        pdf.addImage(pageImgData, "PNG", 0, 0, pdfWidth, pageHeightMm);
+      }
+
+      // Cleanup
+      document.body.removeChild(container);
+
+      setExportProgress("Téléchargement...");
+
+      // Save PDF
+      pdf.save(`Dossier-Medical-${fullName.replace(/\s+/g, "_")}.pdf`);
+
+      // Success
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setPdfExporting(false);
+      setExportProgress("");
+    } catch (err) {
+      console.error("PDF Export Error:", err);
+      alert(`Erreur lors de l'export du PDF:\n${err.message}`);
+      setPdfExporting(false);
+      setExportProgress("");
     }
-  };
+  }, [patient, consultations]);
 
-  const { data: tabData, count, label } = getTabData();
-
-  const handleExportPDF = () => {
-    const previousTitle = document.title;
-    document.title = `Dossier_Medical_${fullName.replace(/\s+/g, "_")}`;
-    window.print();
-    document.title = previousTitle;
-  };
-
+  // ── Derived ────────────────────────────────────────────────────────────────
   const fullName = patient
     ? `${patient.prenom || ""} ${patient.nom || ""}`.trim()
     : "Patient";
-
   const patientInfo = patient?.patient || {};
-  const bloodType = patientInfo.groupe_sanguin || "—";
-  const allergies = patientInfo.allergies || "Aucune connue";
-  const birthDate = patientInfo.date_naissance
-    ? formatDate(patientInfo.date_naissance)
-    : "—";
-
-  // ─── Navigate from card ──────────────────────────────────────────────────
-  const handleCardClick = (item) => {
-    if (activeTab === "prescriptions") {
-      navigate(`/patient/ordonnances/${item.id}`);
-    } else if (activeTab === "analyses") {
-      navigate(
-        isDoctorView
-          ? `/medecin/analyses/${item.id}`
-          : `/patient/analyses/${item.id}`,
-      );
-    } else {
-      navigate(`/patient/rendezvous/${item.id}`);
-    }
-  };
+  const lastConsult = consultations[0]
+    ? formatDate(consultations[0].date || consultations[0].date_heure)
+    : "Aucune";
 
   return (
     <Navbar userRole={userRole} pageTitle="Dossier Médical">
-      <main className="pt-6 pb-12 px-6 max-w-7xl mx-auto min-h-screen">
-        {/* Header */}
+      {/* Loading Overlay for PDF Export */}
+      {pdfExporting && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm mx-4 text-center">
+            <div className="w-16 h-16 rounded-full bg-primary-container flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <Download className="text-primary" size={28} />
+            </div>
+            <h2 className="text-xl font-bold text-on-background mb-2">
+              Génération du PDF
+            </h2>
+            <p className="text-on-surface-variant mb-6 min-h-12 flex items-center justify-center">
+              {exportProgress}
+            </p>
+            <div className="w-full bg-outline-variant/20 rounded-full h-2 overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full animate-pulse"
+                style={{ width: "100%" }}
+              />
+            </div>
+            <p className="text-xs text-outline mt-4">Veuillez patienter...</p>
+          </div>
+        </div>
+      )}
+
+      <main className="pt-6 pb-16 px-6 max-w-7xl mx-auto min-h-screen">
         <header className="mb-8">
-          <p className="text-primary font-label text-sm uppercase tracking-widest font-bold mb-2">
+          <p className="text-primary font-label text-xs uppercase tracking-widest font-bold mb-2">
             Dossier Médical
           </p>
           <h1 className="text-4xl md:text-5xl font-headline font-extrabold tracking-tight text-on-background">
-            {isDoctorView ? "Dossier de Santé du patient" : "Mon Dossier de Santé"}
+            {isDoctorView ? "Dossier du patient" : "Mon Dossier de Santé"}
           </h1>
-          <p className="text-on-surface-variant mt-2">
+          <p className="text-on-surface-variant mt-2 text-sm">
             {isDoctorView
-              ? "Consultez l'historique médical complet de ce patient."
-              : "Consultez votre historique médical complet et vos documents"}
+              ? "Consultations et documents médicaux complets du patient."
+              : "Vos consultations et documents médicaux."}
           </p>
         </header>
 
-        {/* Error Alert */}
         {error && (
           <div className="mb-6 p-4 rounded-xl bg-error-container text-on-error-container font-medium flex items-center gap-3 border border-error/20">
-            <AlertCircle size={24} />
+            <AlertCircle size={22} />
             {error}
             <button
               onClick={() => window.location.reload()}
@@ -467,16 +1239,13 @@ export function MedicalRecord() {
           </div>
         )}
 
-        {/* Patient Info Card - Material Design 3 Elevated Card */}
+        {/* Patient card */}
         <section className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/20 overflow-hidden mb-8">
-          {/* Card Header with Primary Accent */}
-          <div className="h-2 bg-primary-container" />
-
+          <div className="h-1.5 bg-gradient-to-r from-primary via-secondary to-tertiary" />
           <div className="p-6 lg:p-8">
-            <div className="flex flex-col lg:flex-row justify-between items-start gap-6 mb-6">
-              {/* Patient Identity */}
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-5 mb-6">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-primary-container flex items-center justify-center text-primary font-bold text-2xl">
+                <div className="w-14 h-14 rounded-2xl bg-primary-container flex items-center justify-center text-primary font-bold text-xl">
                   {fullName
                     .split(" ")
                     .map((n) => n[0])
@@ -485,178 +1254,103 @@ export function MedicalRecord() {
                     .toUpperCase()}
                 </div>
                 <div>
-                  <h2 className="text-2xl font-headline font-bold text-on-surface">
+                  <h2 className="text-xl font-headline font-bold text-on-surface">
                     {fullName}
                   </h2>
-                  <p className="text-on-surface-variant">
-                    Patient depuis{" "}
-                    {patientInfo.date_creation_dossier
-                      ? new Date(
-                          patientInfo.date_creation_dossier,
-                        ).getFullYear()
-                      : "—"}
+                  <p className="text-on-surface-variant text-sm flex items-center gap-1.5 mt-0.5">
+                    <Activity size={13} className="text-primary" />
+                    {consultations.length} consultation
+                    {consultations.length !== 1 ? "s" : ""}
                   </p>
                 </div>
               </div>
 
-              {/* Export Button */}
               <button
                 onClick={handleExportPDF}
-                className="flex items-center gap-2 px-5 py-2.5 bg-surface-container-high hover:bg-secondary-container text-secondary hover:text-on-secondary-container rounded-xl font-medium transition-all border border-outline-variant hover:border-secondary/30"
+                className="flex items-center gap-2 px-4 py-2.5 bg-surface-container-high hover:bg-secondary-container text-secondary hover:text-on-secondary-container rounded-xl font-semibold text-sm transition-all border border-outline-variant hover:border-secondary/30"
               >
-                <Download size={18} />
+                <Download size={16} />
                 Exporter PDF
               </button>
             </div>
 
-            {/* Info Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <InfoCard
-                label="Date de naissance"
-                value={birthDate}
+                label="Naissance"
+                value={
+                  patientInfo?.date_naissance
+                    ? formatDate(patientInfo.date_naissance)
+                    : "—"
+                }
                 icon={Calendar}
               />
               <InfoCard
                 label="Groupe sanguin"
-                value={bloodType}
+                value={patientInfo?.groupe_sanguin || "—"}
                 icon={Droplet}
                 colorClass="text-tertiary"
               />
               <InfoCard
                 label="Allergies"
-                value={allergies}
+                value={patientInfo?.allergies || "Aucune connue"}
                 icon={AlertTriangle}
                 colorClass={
-                  allergies !== "Aucune connue" ? "text-error" : "text-primary"
+                  patientInfo?.allergies ? "text-error" : "text-primary"
                 }
               />
               <InfoCard
-                label="Dernière consultation"
-                value={
-                  historique[0] ? formatDate(historique[0].date) : "Aucune"
-                }
-                icon={FileText}
-              />
-            </div>
-
-            {/* Tabs */}
-            <div className="flex gap-1 border-b border-outline-variant/50 overflow-x-auto">
-              <TabButton
-                active={activeTab === "historique"}
-                onClick={() => setActiveTab("historique")}
-                icon={FileText}
-                label="Historique"
-                count={historique.length}
-              />
-              <TabButton
-                active={activeTab === "prescriptions"}
-                onClick={() => setActiveTab("prescriptions")}
-                icon={Pill}
-                label="Prescriptions"
-                count={prescriptions.length}
-              />
-              <TabButton
-                active={activeTab === "analyses"}
-                onClick={() => setActiveTab("analyses")}
-                icon={FlaskConical}
-                label="Analyses"
-                count={analyses.length}
-              />
-              <TabButton
-                active={activeTab === "notes"}
-                onClick={() => setActiveTab("notes")}
-                icon={StickyNote}
-                label="Notes"
-                count={notes.length}
+                label="Dernière consult"
+                value={lastConsult}
+                icon={Stethoscope}
               />
             </div>
           </div>
         </section>
 
-        {/* Tab Content */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-headline font-bold text-on-surface flex items-center gap-2">
-              {activeTab === "historique" && (
-                <FileText className="text-primary" size={24} />
-              )}
-              {activeTab === "prescriptions" && (
-                <Pill className="text-tertiary" size={24} />
-              )}
-              {activeTab === "analyses" && (
-                <FlaskConical className="text-secondary" size={24} />
-              )}
-              {activeTab === "notes" && (
-                <StickyNote className="text-primary" size={24} />
-              )}
-              {label}
+        {/* Consultations */}
+        <section>
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-lg font-headline font-bold text-on-surface flex items-center gap-2">
+              <Stethoscope size={20} className="text-primary" />
+              Consultations
             </h3>
-            <span className="text-sm font-label text-outline uppercase tracking-wider">
-              {count} élément{count !== 1 ? "s" : ""}
+            <span className="text-xs text-outline font-label uppercase tracking-wider">
+              {consultations.length} au total
             </span>
           </div>
 
           {loading ? (
-            <div className="grid gap-4">
+            <div className="space-y-3">
               <SkeletonCard />
               <SkeletonCard />
               <SkeletonCard />
             </div>
-          ) : tabData.length === 0 ? (
+          ) : consultations.length === 0 ? (
             <div className="bg-surface-container-lowest p-12 rounded-2xl text-center border border-outline-variant/20">
               <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center mx-auto mb-4">
-                {activeTab === "historique" && (
-                  <FileText size={32} className="text-outline" />
-                )}
-                {activeTab === "prescriptions" && (
-                  <Pill size={32} className="text-outline" />
-                )}
-                {activeTab === "analyses" && (
-                  <FlaskConical size={32} className="text-outline" />
-                )}
-                {activeTab === "notes" && (
-                  <StickyNote size={32} className="text-outline" />
-                )}
+                <Stethoscope size={32} className="text-outline" />
               </div>
-              <p className="text-on-surface-variant text-lg mb-2">
-                Aucun {label.toLowerCase()} trouvé
+              <p className="text-on-surface-variant text-base mb-1">
+                Aucune consultation enregistrée
               </p>
               <p className="text-outline text-sm">
-                {activeTab === "historique"
-                  ? "Vos consultations passées apparaîtront ici."
-                  : activeTab === "prescriptions"
-                    ? "Vos ordonnances actives et passées seront listées ici."
-                    : `Vos ${label.toLowerCase()} seront disponibles ici.`}
+                Les consultations passées apparaîtront ici.
               </p>
             </div>
           ) : (
-            <div className="grid gap-4">
-              {tabData.map((item) => (
-                <RecordCard
-                  key={item.id}
-                  item={item}
-                  type={activeTab}
-                  onClick={() => handleCardClick(item)}
-                  onVoir={() =>
-                    navigate(
-                      isDoctorView
-                        ? `/medecin/analyses/${item.id}`
-                        : `/patient/analyses/${item.id}`,
-                    )
-                  }
+            <div className="space-y-3">
+              {consultations.map((c, i) => (
+                <ConsultationCard
+                  key={c.id || i}
+                  consultation={c}
+                  index={i + 1}
+                  onClick={() => handleCardClick(c.id)}
                 />
               ))}
             </div>
           )}
         </section>
       </main>
-
-      {/* Material Icons Styles */}
-      <style>{`
-        .material-symbols-outlined {
-          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-      `}</style>
     </Navbar>
   );
 }

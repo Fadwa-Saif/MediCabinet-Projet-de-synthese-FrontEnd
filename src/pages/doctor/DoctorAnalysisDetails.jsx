@@ -187,6 +187,8 @@ const FileViewer = ({ fichierUrl, fichier }) => {
     }
   };
 
+  if (!fichierUrl) return null;
+
   return (
     <div className="space-y-4">
       {/* Preview */}

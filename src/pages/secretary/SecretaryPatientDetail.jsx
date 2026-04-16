@@ -65,7 +65,7 @@ export function SecretaryPatientDetail() {
               Modifier le profil
             </button>
             <button
-              onClick={() => navigate("/secretaire/rendezvous/nouveau")}
+              onClick={() => navigate(`/secretaire/rendezvous/nouveau?patientId=${patientId}`)}
               className="px-6 py-3 bg-gradient-to-r from-blue-700 to-blue-600 text-white font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-blue-500/20 hover:scale-95 transition-transform"
             >
               <span className="material-symbols-outlined">add</span>
