@@ -1,14 +1,17 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
-import { UserPlus, ArrowLeft, Save, AlertCircle, CheckCircle2 } from "lucide-react";
+import { UserPlus, ArrowLeft, Save, AlertCircle, CheckCircle2, Camera, X } from "lucide-react";
 
 export function SecretaryPatientAdd() {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
 
   const [formData, setFormData] = useState({
     nom: "",
@@ -34,6 +37,37 @@ export function SecretaryPatientAdd() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Handle photo selection
+  const handlePhotoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setError("Veuillez sélectionner une image valide.");
+      return;
+    }
+    
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setError("L'image ne doit pas dépasser 2 Mo.");
+      return;
+    }
+    
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+    setError(null);
+  };
+
+  // Remove selected photo
+  const handleRemovePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -41,7 +75,22 @@ export function SecretaryPatientAdd() {
     setSuccess(false);
 
     try {
-      await api.post("/patients", formData);
+      // Create FormData to handle file upload
+      const data = new FormData();
+      
+      // Add all text fields
+      Object.keys(formData).forEach((key) => {
+        data.append(key, formData[key]);
+      });
+      
+      // Add photo if selected
+      if (photoFile) {
+        data.append("photo_profil", photoFile);
+      }
+      
+      await api.post("/patients", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       setSuccess(true);
       setTimeout(() => navigate("/secretaire/patients"), 2000);
     } catch (err) {
@@ -86,8 +135,63 @@ export function SecretaryPatientAdd() {
           )}
 
           {/* Form Card */}
-          <form onSubmit={handleSubmit} className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+          <form onSubmit={handleSubmit} autoComplete="off" className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="p-8 space-y-8">
+              {/* Photo Upload Section */}
+              <section>
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600">
+                    <Camera size={18} />
+                  </div>
+                  <h2 className="text-lg font-bold text-slate-900">Photo du patient (optionnel)</h2>
+                </div>
+                
+                <div className="flex flex-col items-center gap-6">
+                  {/* Photo Preview or Upload Area */}
+                  {photoPreview ? (
+                    <div className="relative">
+                      <img
+                        src={photoPreview}
+                        alt="preview"
+                        className="w-32 h-32 rounded-2xl object-cover border-2 border-blue-200 shadow-md"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemovePhoto}
+                        className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition"
+                        title="Supprimer la photo"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-32 h-32 rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-100 transition"
+                    >
+                      <Camera size={32} className="text-blue-400 mb-1" />
+                      <span className="text-xs text-blue-600 font-medium text-center px-2">Cliquez pour ajouter une photo</span>
+                    </div>
+                  )}
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoSelect}
+                  />
+                  
+                  {photoFile && (
+                    <p className="text-xs text-gray-600 text-center">
+                      Fichier sélectionné: <span className="font-semibold">{photoFile.name}</span>
+                    </p>
+                  )}
+                </div>
+              </section>
+
+              <hr className="border-slate-100" />
+
               {/* Identity Section */}
               <section>
                 <div className="flex items-center gap-2 mb-6">
@@ -128,6 +232,7 @@ export function SecretaryPatientAdd() {
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
+                      autoComplete="off"
                       placeholder="patient@exemple.com"
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                     />
@@ -141,6 +246,7 @@ export function SecretaryPatientAdd() {
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
+                      autoComplete="new-password"
                       placeholder="Mot de passe du patient"
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                     />

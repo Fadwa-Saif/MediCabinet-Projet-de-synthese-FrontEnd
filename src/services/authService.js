@@ -70,6 +70,7 @@ const authService = {
         localStorage.setItem("role", response.data.role);
         localStorage.setItem("profile", JSON.stringify(response.data.profile));
         localStorage.setItem("medicabinet_user", JSON.stringify(uiUser));
+        localStorage.setItem("medicabinet_last_login_password", password);
       }
 
       return response.data;
@@ -90,6 +91,7 @@ const authService = {
       localStorage.removeItem("role");
       localStorage.removeItem("profile");
       localStorage.removeItem("medicabinet_user");
+      localStorage.removeItem("medicabinet_last_login_password");
     }
   },
 

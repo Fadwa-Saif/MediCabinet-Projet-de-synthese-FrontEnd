@@ -18,6 +18,8 @@ import {
   FileText,
   PanelLeft,
   PanelLeftClose,
+  UserCircle,
+  LogOut,
 } from "lucide-react";
 import api from "../services/api";
 
@@ -314,6 +316,12 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
       userRole
     ] || "Utilisateur";
 
+  // ── Navigate to profile page ───────────────────────────────────────────────
+  const handleGoToProfile = () => {
+    setShowProfileMenu(false);
+    navigate(`/${userRole}/profil`);
+  };
+
   const handleLogout = () => {
     ["token", "user", "role", "profile", "medicabinet_user"].forEach((k) =>
       localStorage.removeItem(k),
@@ -594,8 +602,16 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
                   </p>
                   <p className="text-xs text-gray-400">{getRoleLabel()}</p>
                 </div>
-                <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
-                  {initials}
+                <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 overflow-hidden">
+                  {userData.photo_profil ? (
+                    <img
+                      src={userData.photo_profil}
+                      alt="avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    initials
+                  )}
                 </div>
                 <span className="text-gray-400 text-xs hidden sm:block">▾</span>
               </button>
@@ -617,10 +633,24 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
                         {userData.email || ""}
                       </p>
                     </div>
+
+                    {/* ── Profile button ── */}
+                    <button
+                      onClick={handleGoToProfile}
+                      className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 font-medium transition flex items-center gap-2"
+                    >
+                      <UserCircle size={16} className="text-blue-500" />
+                      {language === "fr" ? "Mon profil" : "ملفي الشخصي"}
+                    </button>
+
+                    <div className="border-t border-gray-100" />
+
+                    {/* ── Logout button ── */}
                     <button
                       onClick={handleLogout}
                       className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 font-medium transition flex items-center gap-2"
                     >
+                      <LogOut size={16} />
                       {language === "fr" ? "Déconnexion" : "تسجيل الخروج"}
                     </button>
                   </div>
