@@ -1,5 +1,7 @@
 stages:
   - build
+  - sonar
+  - deploy
 
 image: node:18
 
@@ -14,3 +16,22 @@ build:
   stage: build
   script:
     - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 hour
+
+sonarcloud:
+  stage: sonar
+  image: sonarsource/sonar-scanner-cli:latest
+  variables:
+    GIT_DEPTH: "0"
+  script:
+    - sonar-scanner
+      -Dsonar.projectKey=$SONAR_PROJECT_KEY
+      -Dsonar.organization=basmach12
+      -Dsonar.sources=src
+      -Dsonar.host.url=$SONAR_HOST_URL
+      -Dsonar.login=$SONAR_TOKEN
+  only:
+    - main
