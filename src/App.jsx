@@ -5,6 +5,8 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 // Auth Pages
 import { LoginPage } from "./auth/pages/LoginPage";
 import { InscriptionPage } from "./auth/pages/InscriptionPage";
+import { ForgotPasswordPage } from "./auth/pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "./auth/pages/ResetPasswordPage";
 
 // Patient Pages
 import { PatientDashboard } from "./pages/patient/PatientDashboard";
@@ -46,6 +48,8 @@ export default function App() {
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/inscription" element={<InscriptionPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
 
           {/* Patient routes - protected, role: patient */}

@@ -79,6 +79,29 @@ const authService = {
     }
   },
 
+  forgotPassword: async (email) => {
+    try {
+      const response = await api.post("/auth/forgot-password", { email });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: "Erreur lors de la demande" };
+    }
+  },
+
+  resetPassword: async ({ email, token, password, passwordConfirmation }) => {
+    try {
+      const response = await api.post("/auth/reset-password", {
+        email,
+        token,
+        password,
+        password_confirmation: passwordConfirmation,
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: "Erreur de réinitialisation" };
+    }
+  },
+
   /**
    * Logout user
    */
