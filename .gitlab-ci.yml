@@ -1,5 +1,6 @@
 stages:
   - build
+  - test
   - sonar
   - deploy
 
@@ -21,17 +22,16 @@ build:
       - dist/
     expire_in: 1 hour
 
-sonarcloud:
-  stage: sonar
-  image: sonarsource/sonar-scanner-cli:latest
-  variables:
-    GIT_DEPTH: "0"
+test:
+  stage: test
   script:
-    - sonar-scanner
-      -Dsonar.projectKey=$SONAR_PROJECT_KEY
-      -Dsonar.organization=basmach12
-      -Dsonar.sources=src
-      -Dsonar.host.url=$SONAR_HOST_URL
-      -Dsonar.login=$SONAR_TOKEN
+    - npm test -- --watchAll=false --passWithNoTests
+
+sonarcloud-check:
+  stage: sonar
+  image: node:18
+  script:
+    - npm install
+    - npx sonar-scanner -Dsonar.projectKey=basmach12_medicabinet-frontend -Dsonar.organization=basmach12 -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_TOKEN -Dsonar.sources=src
   only:
     - main
