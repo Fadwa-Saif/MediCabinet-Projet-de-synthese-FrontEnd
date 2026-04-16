@@ -1,5 +1,8 @@
 stages:
   - build
+  - test
+  - sonar
+  - deploy
 
 image: node:18
 
@@ -14,3 +17,21 @@ build:
   stage: build
   script:
     - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 hour
+
+test:
+  stage: test
+  script:
+    - npm test -- --watchAll=false --passWithNoTests
+
+sonarcloud-check:
+  stage: sonar
+  image: node:18
+  script:
+    - npm install
+    - npx sonar-scanner -Dsonar.projectKey=basmach12_medicabinet-frontend -Dsonar.organization=basmach12 -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_TOKEN -Dsonar.sources=src
+  only:
+    - main

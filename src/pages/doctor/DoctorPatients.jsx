@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
@@ -48,7 +48,7 @@ export function DoctorPatients() {
     fetchPatients();
   }, []);
 
-  const filteredPatients = useMemo(() => {
+  const filteredPatients = (() => {
     const q = query.trim().toLowerCase();
     if (!q) return patients;
 
@@ -58,7 +58,7 @@ export function DoctorPatients() {
         full.includes(q) || patient.id.toString().toLowerCase().includes(q)
       );
     });
-  }, [query, patients]);
+  })();
 
   const openMedicalRecord = (patientId) => {
     navigate(`/medecin/medical-record/${patientId}`);
@@ -116,7 +116,7 @@ export function DoctorPatients() {
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="grid grid-cols-1 gap-4 border-b border-slate-200 px-6 py-5 sm:grid-cols-3">
+            <div className="border-b border-slate-200 px-6 py-5">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
                   Patients actifs
@@ -124,20 +124,6 @@ export function DoctorPatients() {
                 <p className="mt-1 text-3xl font-extrabold text-slate-900">
                   {patients.length}
                 </p>
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                  Suivi critique
-                </p>
-                <p className="mt-1 text-3xl font-extrabold text-orange-600">
-                  —
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                  Nouveaux ce mois
-                </p>
-                <p className="mt-1 text-3xl font-extrabold text-blue-700">—</p>
               </div>
             </div>
 
@@ -247,11 +233,11 @@ export function DoctorPatients() {
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation();
-                              handleSelectPatient(patient);
+                              openMedicalRecord(patient.id);
                             }}
                             className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-700"
                           >
-                            Sélectionner
+                            Voir
                           </button>
                         </td>
                       </tr>
