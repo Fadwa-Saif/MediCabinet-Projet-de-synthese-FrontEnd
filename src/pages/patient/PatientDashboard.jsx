@@ -44,10 +44,9 @@ const formatDateShort = (dateStr) => {
 
 // ─── Professional Appointment Card ───────────────────────────────────────────
 
-const AppointmentCard = ({ rdv, onDetails, isNext }) => (
+const AppointmentCard = ({ rdv, isNext }) => (
   <div
-    onClick={() => onDetails(rdv.id)}
-    className="group bg-surface-container-lowest border border-outline-variant/30 rounded-xl hover:border-primary/40 hover:shadow-md transition-all duration-200 cursor-pointer"
+    className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl transition-all duration-200"
   >
     <div className="p-5">
       <div className="flex items-start justify-between gap-4">
@@ -102,8 +101,8 @@ const AppointmentCard = ({ rdv, onDetails, isNext }) => (
           >
             {rdv.statut ?? "Confirmé"}
           </span>
-          <span className="text-primary text-sm font-medium group-hover:underline transition-all">
-            Détails →
+          <span className="text-on-surface-variant text-sm font-medium transition-all">
+            Confirmé
           </span>
         </div>
       </div>
@@ -176,8 +175,14 @@ export function PatientDashboard() {
         setLoading(true);
         setError(null);
 
-        const rdvResponse = await api.get("/rendezvous");
+        const [rdvResponse, consultationsResponse] = await Promise.all([
+          api.get("/rendezvous"),
+          api.get("/consultations").catch(() => ({ data: [] })),
+        ]);
+
         const allRendezVous = rdvResponse.data.data ?? rdvResponse.data ?? [];
+        const allConsultations =
+          consultationsResponse.data?.data ?? consultationsResponse.data ?? [];
 
         const now = new Date();
 
@@ -192,18 +197,13 @@ export function PatientDashboard() {
           })
           .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
 
-        const passes = allRendezVous
-          .filter((r) => {
-            const rdvDate = new Date(r.date_heure);
-            return (
-              rdvDate <= now ||
-              r.statut?.toLowerCase() === "terminé" ||
-              r.statut?.toLowerCase() === "termine" ||
-              r.statut?.toLowerCase() === "annulé" ||
-              r.statut?.toLowerCase() === "annule"
-            );
-          })
-          .sort((a, b) => new Date(b.date_heure) - new Date(a.date_heure))
+        const passes = allConsultations
+          .filter((c) => !!c)
+          .sort(
+            (a, b) =>
+              new Date(b.date || b.date_heure || 0) -
+              new Date(a.date || a.date_heure || 0),
+          )
           .slice(0, 5);
 
         setRdvAVenir(avenir);
@@ -211,7 +211,7 @@ export function PatientDashboard() {
 
         setStats({
           dernierCheckup: passes[0]
-            ? formatDate(passes[0].date_heure)
+            ? formatDate(passes[0].date || passes[0].date_heure)
             : "Aucun",
           ordonnancesActives: 0,
         });
@@ -298,7 +298,9 @@ export function PatientDashboard() {
               }
               subtext={
                 !loading && stats.dernierCheckup !== "Aucun"
-                  ? formatDateShort(consultations[0]?.date_heure)
+                  ? formatDateShort(
+                      consultations[0]?.date || consultations[0]?.date_heure,
+                    )
                   : null
               }
               icon="●"
@@ -350,9 +352,6 @@ export function PatientDashboard() {
                         key={rdv.id}
                         rdv={rdv}
                         isNext={index === 0}
-                        onDetails={(id) =>
-                          navigate(`/patient/rendezvous/${id}`)
-                        }
                       />
                     ))
                   )}
@@ -366,7 +365,7 @@ export function PatientDashboard() {
                     Historique des consultations
                   </h2>
                   <button
-                    onClick={() => navigate("/patient/rendezvous")}
+                    onClick={() => navigate("/patient/consultations")}
                     className="text-sm font-medium text-primary hover:text-on-primary-fixed-variant transition-colors"
                   >
                     Voir tout →
@@ -417,27 +416,33 @@ export function PatientDashboard() {
                             className="hover:bg-surface-container-low transition-colors"
                           >
                             <td className="px-5 py-4 text-sm text-on-surface-variant whitespace-nowrap">
-                              {formatDateShort(c.date_heure)}
+                              {formatDateShort(c.date || c.date_heure)}
                             </td>
                             <td className="px-5 py-4">
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-xs font-semibold text-on-secondary-container">
-                                  {c.medecin_nom
-                                    ? getInitials(c.medecin_nom)
+                                  {c.admin?.user
+                                    ? getInitials(
+                                        `${c.admin.user.prenom || ""} ${c.admin.user.nom || ""}`,
+                                      )
+                                    : c.medecin_nom
+                                      ? getInitials(c.medecin_nom)
                                     : "M"}
                                 </div>
                                 <span className="text-sm font-medium text-on-surface">
-                                  {c.medecin_nom ?? "—"}
+                                  {c.admin?.user
+                                    ? `Dr. ${c.admin.user.prenom || ""} ${c.admin.user.nom || ""}`.trim()
+                                    : c.medecin_nom ?? "—"}
                                 </span>
                               </div>
                             </td>
                             <td className="px-5 py-4 text-sm text-on-surface-variant">
-                              {c.motif ?? "Consultation"}
+                              {c.motif ?? c.diagnostic ?? "Consultation"}
                             </td>
                             <td className="px-5 py-4 text-right">
                               <button
                                 onClick={() =>
-                                  navigate(`/patient/rendezvous/${c.id}`)
+                                  navigate(`/patient/consultations/${c.id}`)
                                 }
                                 className="text-primary hover:text-on-primary-fixed-variant text-sm font-medium transition-colors"
                               >
