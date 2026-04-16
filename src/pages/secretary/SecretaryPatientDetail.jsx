@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
+import { normalizePhotoUrl } from "../../services/photoUrl";
 
 export function SecretaryPatientDetail() {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ export function SecretaryPatientDetail() {
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
 
   useEffect(() => {
     const fetchPatient = async () => {
@@ -41,6 +43,14 @@ export function SecretaryPatientDetail() {
   const appointmentHistory = Array.isArray(patient?.rendezVous)
     ? patient.rendezVous
     : [];
+
+  const avatarUrl = avatarLoadFailed
+    ? null
+    : normalizePhotoUrl(patient?.user?.photo_profil || null);
+
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [patient?.user?.photo_profil]);
 
   return (
     <Navbar userRole="secretaire" pageTitle="Détail Patient">
@@ -91,8 +101,17 @@ export function SecretaryPatientDetail() {
               <section className="bg-white rounded-xl p-8 shadow-sm border border-slate-200 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-r from-blue-700 to-blue-600 opacity-5 rounded-bl-full"></div>
                 <div className="flex flex-col items-center text-center mb-8">
-                  <div className="w-24 h-24 rounded-full border-4 border-slate-100 p-1 mb-4 flex items-center justify-center bg-blue-50 text-blue-700 font-bold text-3xl">
-                    {(patient.user?.prenom?.[0] || "") + (patient.user?.nom?.[0] || "")}
+                  <div className="w-24 h-24 rounded-full border-4 border-slate-100 p-1 mb-4 flex items-center justify-center bg-blue-50 text-blue-700 font-bold text-3xl overflow-hidden">
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={fullName}
+                        className="w-full h-full object-cover rounded-full"
+                        onError={() => setAvatarLoadFailed(true)}
+                      />
+                    ) : (
+                      (patient.user?.prenom?.[0] || "") + (patient.user?.nom?.[0] || "")
+                    )}
                   </div>
                   <h3 className="text-xl font-bold">{fullName}</h3>
                   <span className="mt-2 px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold uppercase tracking-wider rounded-full">Patient</span>

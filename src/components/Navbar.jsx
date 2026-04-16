@@ -22,6 +22,7 @@ import {
   LogOut,
 } from "lucide-react";
 import api from "../services/api";
+import { normalizePhotoUrl } from "../services/photoUrl";
 
 // ── Parse notification contenu ───────────────────────────────────────────────
 function parseContenu(contenu) {
@@ -107,10 +108,15 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifLoading, setNotifLoading] = useState(false);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
 
   const notifRef = useRef(null);
 
   const userData = JSON.parse(localStorage.getItem("medicabinet_user") || "{}");
+  const avatarUrl = normalizePhotoUrl(
+    userData.photo_profil || userData.raw?.photo_profil || null,
+  );
+  const resolvedAvatarUrl = avatarLoadFailed ? null : avatarUrl;
   const userName = userData.firstName
     ? `${userData.firstName} ${userData.lastName}`
     : "Utilisateur";
@@ -138,6 +144,10 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
     const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [avatarUrl]);
 
   // Close popup when clicking outside
   useEffect(() => {
@@ -603,11 +613,12 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
                   <p className="text-xs text-gray-400">{getRoleLabel()}</p>
                 </div>
                 <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 overflow-hidden">
-                  {userData.photo_profil ? (
+                  {resolvedAvatarUrl ? (
                     <img
-                      src={userData.photo_profil}
+                      src={resolvedAvatarUrl}
                       alt="avatar"
                       className="w-full h-full object-cover"
+                      onError={() => setAvatarLoadFailed(true)}
                     />
                   ) : (
                     initials

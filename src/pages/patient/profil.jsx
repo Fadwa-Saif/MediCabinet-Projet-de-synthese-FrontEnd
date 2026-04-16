@@ -16,6 +16,7 @@ import {
   Pencil,
 } from "lucide-react";
 import api from "../../services/api";
+import { normalizePhotoUrl } from "../../services/photoUrl";
 
 function Toast({ message, type = "success", onClose }) {
   useEffect(() => {
@@ -65,6 +66,7 @@ export default function PatientProfilePage() {
   });
   const [previewPhoto, setPreviewPhoto] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
 
   const [passwords, setPasswords] = useState({
     current: "",
@@ -88,7 +90,7 @@ export default function PatientProfilePage() {
           prenom: data.prenom || "",
           email: data.email || "",
           telephone: data.telephone || "",
-          photo_profil: data.photo_profil || "",
+          photo_profil: normalizePhotoUrl(data.photo_profil) || "",
         });
       } catch {
         const stored = JSON.parse(
@@ -98,8 +100,10 @@ export default function PatientProfilePage() {
           nom: stored.lastName || "",
           prenom: stored.firstName || "",
           email: stored.email || "",
-          telephone: stored.telephone || "",
-          photo_profil: stored.photo_profil || "",
+          telephone: stored.phone || stored.telephone || "",
+          photo_profil: normalizePhotoUrl(
+            stored.photo_profil || stored.raw?.photo_profil || null,
+          ) || "",
         });
       } finally {
         setLoading(false);
@@ -112,11 +116,16 @@ export default function PatientProfilePage() {
     setToast({ message, type });
   };
 
-  const avatarSrc = previewPhoto || profile.photo_profil || null;
+  const avatarSrc = normalizePhotoUrl(previewPhoto || profile.photo_profil || null);
+  const resolvedAvatarSrc = avatarLoadFailed ? null : avatarSrc;
   const initials =
     profile.prenom && profile.nom
       ? `${profile.prenom[0]}${profile.nom[0]}`.toUpperCase()
       : "?";
+
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [avatarSrc]);
 
   const handlePhotoSelect = (e) => {
     const file = e.target.files?.[0];
@@ -140,14 +149,23 @@ export default function PatientProfilePage() {
       const formData = new FormData();
       formData.append("photo_profil", photoFile);
       const res = await api.post("/profil/photo", formData);
-      const newUrl = res.data.photo_profil || res.data.data?.photo_profil;
-      setProfile((p) => ({ ...p, photo_profil: newUrl }));
+      const newUrl = normalizePhotoUrl(
+        res.data.photo_profil || res.data.data?.photo_profil,
+      );
+      setProfile((p) => ({ ...p, photo_profil: newUrl || "" }));
       const stored = JSON.parse(
         localStorage.getItem("medicabinet_user") || "{}"
       );
       localStorage.setItem(
         "medicabinet_user",
-        JSON.stringify({ ...stored, photo_profil: newUrl })
+        JSON.stringify({
+          ...stored,
+          photo_profil: newUrl || "",
+          raw: {
+            ...stored.raw,
+            photo_profil: newUrl || "",
+          },
+        })
       );
       setPhotoFile(null);
       setPreviewPhoto(null);
@@ -261,11 +279,12 @@ export default function PatientProfilePage() {
             <div className="flex flex-col sm:flex-row items-center gap-6">
               <div className="relative flex-shrink-0">
                 <div className="w-24 h-24 rounded-full overflow-hidden bg-blue-600 flex items-center justify-center text-3xl font-bold text-white shadow-md">
-                  {avatarSrc ? (
+                  {resolvedAvatarSrc ? (
                     <img
-                      src={avatarSrc}
+                      src={resolvedAvatarSrc}
                       alt="avatar"
                       className="w-full h-full object-cover"
+                      onError={() => setAvatarLoadFailed(true)}
                     />
                   ) : (
                     initials

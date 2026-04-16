@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
+import { normalizePhotoUrl } from "../../services/photoUrl";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import {
@@ -913,6 +914,7 @@ export function MedicalRecord() {
   const [consultations, setConsultations] = useState([]);
   const [pdfExporting, setPdfExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState("");
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -1181,9 +1183,16 @@ export function MedicalRecord() {
     ? `${patient.prenom || ""} ${patient.nom || ""}`.trim()
     : "Patient";
   const patientInfo = patient?.patient || {};
+  const rawAvatarPath =
+    patient?.photo_profil || patientInfo?.user?.photo_profil || null;
+  const avatarUrl = avatarLoadFailed ? null : normalizePhotoUrl(rawAvatarPath);
   const lastConsult = consultations[0]
     ? formatDate(consultations[0].date || consultations[0].date_heure)
     : "Aucune";
+
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [rawAvatarPath]);
 
   return (
     <Navbar userRole={userRole} pageTitle="Dossier Médical">
@@ -1245,13 +1254,22 @@ export function MedicalRecord() {
           <div className="p-6 lg:p-8">
             <div className="flex flex-col sm:flex-row justify-between items-start gap-5 mb-6">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-primary-container flex items-center justify-center text-primary font-bold text-xl">
-                  {fullName
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .slice(0, 2)
-                    .toUpperCase()}
+                <div className="w-14 h-14 rounded-2xl bg-primary-container flex items-center justify-center text-primary font-bold text-xl overflow-hidden">
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={fullName}
+                      className="w-full h-full object-cover"
+                      onError={() => setAvatarLoadFailed(true)}
+                    />
+                  ) : (
+                    fullName
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase()
+                  )}
                 </div>
                 <div>
                   <h2 className="text-xl font-headline font-bold text-on-surface">

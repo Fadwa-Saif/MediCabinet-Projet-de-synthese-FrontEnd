@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
+import { normalizePhotoUrl } from "../../services/photoUrl";
 import ChatBot from "../shared/ChatBot";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -78,15 +79,26 @@ function PatientRow({
   isMenuOpen,
   onToggleMenu,
 }) {
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const initials = getInitials(patient.firstName, patient.lastName);
   const badge = getBadge(patient.lastVisit);
+  const avatarUrl = avatarLoadFailed ? null : patient.photoProfil;
 
   return (
     <tr className="hover:bg-gray-50 transition-colors group">
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xs flex-shrink-0">
-            {initials}
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={`${patient.firstName} ${patient.lastName}`.trim() || "patient"}
+                className="w-full h-full rounded-full object-cover"
+                onError={() => setAvatarLoadFailed(true)}
+              />
+            ) : (
+              initials
+            )}
           </div>
           <div>
             <p className="font-bold text-gray-900">{patient.firstName}</p>
@@ -226,6 +238,7 @@ export default function PatientsPage() {
           id: patient.id,
           firstName: patient.user?.prenom || "",
           lastName: patient.user?.nom || "",
+          photoProfil: normalizePhotoUrl(patient.user?.photo_profil || null),
           cin: patient.cin,
           phone: patient.user?.telephone,
           dateOfBirth: patient.date_naissance,

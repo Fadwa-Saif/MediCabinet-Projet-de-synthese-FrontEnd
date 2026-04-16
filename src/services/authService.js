@@ -1,6 +1,11 @@
 import api from "./api";
+import { normalizePhotoUrl } from "./photoUrl";
 
 function toUiUser(user, role, token, profile = null) {
+  const photoProfil = normalizePhotoUrl(
+    user?.photo_profil || profile?.photo_profil || null,
+  );
+
   return {
     id: user?.id,
     role: role || "patient",
@@ -8,6 +13,7 @@ function toUiUser(user, role, token, profile = null) {
     lastName: user?.nom || "",
     email: user?.email || "",
     phone: user?.telephone || "",
+    photo_profil: photoProfil,
     token,
     profile,
     raw: user,
