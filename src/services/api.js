@@ -66,6 +66,18 @@ const api = {
       ...options,
     }),
 
+  put: (path, body, options = {}) =>
+    request(path, {
+      method: "PUT",
+      body:
+        body === undefined
+          ? undefined
+          : body instanceof FormData
+            ? body
+            : JSON.stringify(body),
+      ...options,
+    }),
+
   delete: (path, options = {}) =>
     request(path, { method: "DELETE", ...options }),
 };
