@@ -1027,7 +1027,9 @@ export function MedicalRecord() {
       const completedAnalyses = allAnalyses
         .filter((a) => Boolean(a?.fichier))
         .filter((a) =>
-          currentPatientId ? String(a?.patient_id) === String(currentPatientId) : true,
+          currentPatientId
+            ? String(a?.patient_id) === String(currentPatientId)
+            : true,
         )
         .sort(
           (a, b) =>
