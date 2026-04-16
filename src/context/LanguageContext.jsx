@@ -89,6 +89,54 @@ export const translations = {
     doctor: "Médecin",
     secretary: "Secrétaire",
     patient: "Patient",
+
+    // Status Labels
+    enAttente: "En attente",
+    confirme: "Confirmé",
+    annule: "Annulé",
+    termine: "Terminé",
+    valide: "Validé",
+    enCours: "En cours",
+    completee: "Complétée",
+
+    // Appointment & Consultation
+    myAppointments: "Mes Rendez-vous",
+    myConsultations: "Mes Consultations",
+    newAppointment: "Nouveau rendez-vous",
+    appointmentTime: "Heure du rendez-vous",
+    reason: "Motif",
+    motif: "Motif",
+    confirmAppointment: "Confirmer le rendez-vous",
+    cancelAppointment: "Annuler le rendez-vous",
+    prescribedAnalysis: "Analyse prescrite",
+    sendAnalysis: "Envoyer une Analyse",
+    pendingForms: "Formulaires d'analyses en attente",
+
+    // Doctor Dashboard
+    appointmentsToday: "Rendez-vous du jour",
+    dayOverview: "Vue d'ensemble de la journee",
+    launchConsultation: "Lancer la consultation",
+    diagnosis: "Diagnostic",
+    prescription: "Prescription",
+
+    // Common Actions
+    view: "Voir",
+    filter: "Filtrer",
+    search: "Rechercher",
+
+    // Table Headers
+    date: "Date",
+    time: "Heure",
+    status: "Statut",
+    action: "Action",
+    actions: "Actions",
+    type: "Type",
+
+    // Messages
+    noAppointments: "Aucun rendez-vous",
+    noConsultations: "Aucune consultation trouvée",
+    unknownPatient: "Patient Inconnu",
+    generalConsultation: "Consultation générale",
   },
 
   ar: {
@@ -146,5 +194,53 @@ export const translations = {
     doctor: "الطبيب",
     secretary: "السكرتيرة",
     patient: "المريض",
+
+    // Status Labels
+    enAttente: "في الانتظار",
+    confirme: "مؤكد",
+    annule: "ملغاة",
+    termine: "مكتمل",
+    valide: "صالح",
+    enCours: "جارٍ",
+    completee: "مكتملة",
+
+    // Appointment & Consultation
+    myAppointments: "مواعيدي",
+    myConsultations: "استشاراتي",
+    newAppointment: "موعد جديد",
+    appointmentTime: "وقت الموعد",
+    reason: "السبب",
+    motif: "السبب",
+    confirmAppointment: "تأكيد الموعد",
+    cancelAppointment: "إلغاء الموعد",
+    prescribedAnalysis: "التحليل الموصوف",
+    sendAnalysis: "إرسال تحليل",
+    pendingForms: "نماذج التحليلات المعلقة",
+
+    // Doctor Dashboard
+    appointmentsToday: "المواعيد اليوم",
+    dayOverview: "نظرة عامة على اليوم",
+    launchConsultation: "بدء الاستشارة",
+    diagnosis: "التشخيص",
+    prescription: "الوصفة",
+
+    // Common Actions
+    view: "عرض",
+    filter: "تصفية",
+    search: "بحث",
+
+    // Table Headers
+    date: "التاريخ",
+    time: "الوقت",
+    status: "الحالة",
+    action: "إجراء",
+    actions: "الإجراءات",
+    type: "النوع",
+
+    // Messages
+    noAppointments: "لا توجد مواعيد",
+    noConsultations: "لم يتم العثور على استشارات",
+    unknownPatient: "مريض مجهول",
+    generalConsultation: "استشارة عامة",
   },
 };
