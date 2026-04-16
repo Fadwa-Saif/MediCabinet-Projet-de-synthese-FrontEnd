@@ -88,13 +88,19 @@ export function SecretaryPatientAdd() {
         data.append("photo_profil", photoFile);
       }
       
-      await api.post("/patients", data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await api.post("/patients", data);
       setSuccess(true);
       setTimeout(() => navigate("/secretaire/patients"), 2000);
     } catch (err) {
-      setError(err.response?.data?.message || "Une erreur est survenue lors de l'enregistrement.");
+      const errors = err.response?.data?.errors;
+      const firstValidationError = errors
+        ? Object.values(errors).flat()[0]
+        : null;
+      setError(
+        firstValidationError ||
+          err.response?.data?.message ||
+          "Une erreur est survenue lors de l'enregistrement.",
+      );
     } finally {
       setLoading(false);
     }
