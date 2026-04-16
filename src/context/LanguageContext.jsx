@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from "react";
 
+// Create a context for language management (arabic)
 const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
