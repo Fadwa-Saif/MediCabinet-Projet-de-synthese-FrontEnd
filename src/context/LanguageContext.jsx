@@ -184,9 +184,6 @@ export const translations = {
 
     // Buttons
     new: "Nouveau",
-    edit: "Modifier",
-    delete: "Supprimer",
-    view: "Voir",
     download: "Télécharger",
     print: "Imprimer",
     submit: "Soumettre",
@@ -345,9 +342,6 @@ export const translations = {
 
     // Buttons
     new: "جديد",
-    edit: "تعديل",
-    delete: "حذف",
-    view: "عرض",
     download: "تنزيل",
     print: "طباعة",
     submit: "إرسال",
