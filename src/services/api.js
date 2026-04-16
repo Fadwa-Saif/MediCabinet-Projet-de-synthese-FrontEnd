@@ -1,6 +1,5 @@
 const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "http://127.0.0.1:8000/api";
-
+  "https://medicabinet-projet-de-synthese-backend-test-backend-zjf36q.free.laravel.cloud/api";
 function getAuthHeaders() {
   const tokenFromStorage = localStorage.getItem("token");
   const medicabinetUser = JSON.parse(
