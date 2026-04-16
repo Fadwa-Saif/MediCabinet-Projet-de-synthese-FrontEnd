@@ -137,6 +137,62 @@ export const translations = {
     noConsultations: "Aucune consultation trouvée",
     unknownPatient: "Patient Inconnu",
     generalConsultation: "Consultation générale",
+
+    // Additional Pages
+    myProfile: "Mon profil",
+    editProfile: "Modifier le profil",
+    changePassword: "Changer le mot de passe",
+    oldPassword: "Ancien mot de passe",
+    currentPassword: "Mot de passe actuel",
+    newPassword: "Nouveau mot de passe",
+    confirmNewPassword: "Confirmer le nouveau mot de passe",
+
+    // Medical Records
+    medicalRecords: "Dossier médical",
+    analysisResults: "Résultats d'analyses",
+    uploadAnalysis: "Télécharger une analyse",
+    prescriptionHistory: "Historique des ordonnances",
+
+    // Doctor Pages
+    myPatients: "Mes Patients",
+    patientHistory: "Historique du patient",
+    consultationHistory: "Historique des consultations",
+    createNewReport: "Créer un nouveau rapport",
+    editReport: "Modifier le rapport",
+    medications: "Médicaments",
+    treatmentPlan: "Plan de traitement",
+    medicalAttestation: "Attestation médicale",
+    createAttestation: "Créer une attestation",
+
+    // Secretary Pages
+    managePatients: "Gérer les patients",
+    patientID: "ID Patient",
+    birthDate: "Date de naissance",
+    address: "Adresse",
+    city: "Ville",
+    confirmDelete: "Êtes-vous sûr?",
+    appointmentCreated: "Rendez-vous créé",
+    appointmentUpdated: "Rendez-vous mis à jour",
+    appointmentDeleted: "Rendez-vous supprimé",
+
+    // Status Related
+    pending: "En attente",
+    completed: "Complété",
+    cancelled: "Annulé",
+    confirmed: "Confirmé",
+    inProgress: "En cours",
+
+    // Buttons
+    new: "Nouveau",
+    edit: "Modifier",
+    delete: "Supprimer",
+    view: "Voir",
+    download: "Télécharger",
+    print: "Imprimer",
+    submit: "Soumettre",
+    reset: "Réinitialiser",
+    confirm: "Confirmer",
+    close: "Fermer",
   },
 
   ar: {
@@ -242,5 +298,61 @@ export const translations = {
     noConsultations: "لم يتم العثور على استشارات",
     unknownPatient: "مريض مجهول",
     generalConsultation: "استشارة عامة",
+
+    // Additional Pages
+    myProfile: "ملفي الشخصي",
+    editProfile: "تعديل الملف الشخصي",
+    changePassword: "تغيير كلمة المرور",
+    oldPassword: "كلمة المرور القديمة",
+    currentPassword: "كلمة المرور الحالية",
+    newPassword: "كلمة المرور الجديدة",
+    confirmNewPassword: "تأكيد كلمة المرور الجديدة",
+
+    // Medical Records
+    medicalRecords: "الملف الطبي",
+    analysisResults: "نتائج التحليلات",
+    uploadAnalysis: "تحميل تحليل",
+    prescriptionHistory: "سجل الوصفات الطبية",
+
+    // Doctor Pages
+    myPatients: "مرضاي",
+    patientHistory: "سجل المريض",
+    consultationHistory: "سجل الاستشارات",
+    createNewReport: "إنشاء تقرير جديد",
+    editReport: "تعديل التقرير",
+    medications: "الأدوية",
+    treatmentPlan: "خطة العلاج",
+    medicalAttestation: "شهادة طبية",
+    createAttestation: "إنشاء شهادة",
+
+    // Secretary Pages
+    managePatients: "إدارة المرضى",
+    patientID: "معرف المريض",
+    birthDate: "تاريخ الميلاد",
+    address: "العنوان",
+    city: "المدينة",
+    confirmDelete: "هل أنت متأكد؟",
+    appointmentCreated: "تم إنشاء الموعد",
+    appointmentUpdated: "تم تحديث الموعد",
+    appointmentDeleted: "تم حذف الموعد",
+
+    // Status Related
+    pending: "قيد الانتظار",
+    completed: "مكتمل",
+    cancelled: "ملغى",
+    confirmed: "مؤكد",
+    inProgress: "جارٍ",
+
+    // Buttons
+    new: "جديد",
+    edit: "تعديل",
+    delete: "حذف",
+    view: "عرض",
+    download: "تنزيل",
+    print: "طباعة",
+    submit: "إرسال",
+    reset: "إعادة تعيين",
+    confirm: "تأكيد",
+    close: "إغلاق",
   },
 };
