@@ -115,7 +115,7 @@ const FileViewer = ({ fichierUrl, fichier }) => {
   const getFullUrl = (url) => {
     if (!url) return null;
     if (url.startsWith("http")) return url;
-    const baseUrl = process.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+    const baseUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
     return url.startsWith("/api")
       ? url.replace("/api", baseUrl)
       : `${baseUrl}${url}`;
