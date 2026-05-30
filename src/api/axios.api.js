@@ -1,11 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-<<<<<<< HEAD
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000/api", // Adjust to your Laravel URL
-=======
-  baseURL: 'hthttps://medicabinet-backend.up.railway.app/api', // Adjust to your Laravel URL
->>>>>>> 52ea4a9cff4a0192803574b8fa1151db18eb100c
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
