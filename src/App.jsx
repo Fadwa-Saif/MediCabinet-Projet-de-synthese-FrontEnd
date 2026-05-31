@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LanguageProvider } from "./context/LanguageContext.jsx";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import LandingPage from "./pages/LandingPage";
 
 // Auth Pages
 import { LoginPage } from "./auth/pages/LoginPage";
@@ -44,9 +45,9 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           {/* Public routes */}
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/inscription" element={<InscriptionPage />} />
-          <Route path="/" element={<Navigate to="/login" replace />} />
 
           {/* Patient routes - protected, role: patient */}
           <Route
