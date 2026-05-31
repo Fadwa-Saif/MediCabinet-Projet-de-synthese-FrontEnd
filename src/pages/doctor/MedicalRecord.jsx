@@ -6,6 +6,7 @@ import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import {
   AlertCircle,
+  CheckCircle,
   FlaskConical,
   Calendar,
   User,
@@ -19,6 +20,24 @@ import {
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function Toast({ message, type = "success", onClose }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 3500);
+    return () => clearTimeout(t);
+  }, [onClose]);
+
+  return (
+    <div
+      className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl text-sm font-medium transition-all animate-fade-in ${
+        type === "success" ? "bg-green-600 text-white" : "bg-red-500 text-white"
+      }`}
+    >
+      {type === "success" ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+      {message}
+    </div>
+  );
+}
 
 const formatDate = (d) => {
   if (!d) return "—";
@@ -909,6 +928,7 @@ export function MedicalRecord() {
   const [consultations, setConsultations] = useState([]);
   const [pdfExporting, setPdfExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState("");
+  const [toast, setToast] = useState(null);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -1159,12 +1179,12 @@ export function MedicalRecord() {
       pdf.save(filename);
 
       // Success
-      toast.success("PDF exporté avec succès!");
+      setToast({ message: "PDF exporté avec succès!", type: "success" });
       setPdfExporting(false);
       setExportProgress("");
     } catch (err) {
       console.error("PDF Export Error:", err);
-      toast.error(`Erreur lors de l'export du PDF: ${err.message}`);
+      setToast({ message: `Erreur lors de l'export du PDF: ${err.message}`, type: "error" });
       setPdfExporting(false);
       setExportProgress("");
     }
@@ -1203,6 +1223,14 @@ export function MedicalRecord() {
             <p className="text-xs text-outline mt-4">Veuillez patienter...</p>
           </div>
         </div>
+      )}
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
 
       <main className="pt-6 pb-16 px-6 max-w-7xl mx-auto min-h-screen">
