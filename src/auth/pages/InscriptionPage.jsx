@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage, translations } from "../../context/LanguageContext.jsx";
 import authService from "../../services/authService";
+import { BrandLogo } from "../../components/BrandLogo";
 
 export function InscriptionPage() {
   const navigate = useNavigate();
@@ -98,44 +99,36 @@ export function InscriptionPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-4 py-8 bg-gradient-to-br from-slate-100 to-blue-50"
+      className="min-h-screen flex items-center justify-center bg-[#F5F6FA] p-4 py-8"
       dir={isRTL ? "rtl" : "ltr"}
     >
       {/* Language Toggle Button */}
       <button
         onClick={toggleLanguage}
-        className="absolute top-6 right-6 px-4 py-2 rounded text-sm font-medium transition-all hover:opacity-90"
-        style={{ backgroundColor: "#007BFF", color: "#FFFFFF" }}
+        className="absolute top-6 right-6 rounded-full bg-sky-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-sky-700"
       >
         {language === "fr" ? "العربية" : "Français"}
       </button>
 
       {/* Registration Card */}
-      <div className="w-full max-w-md rounded-lg shadow-lg p-8 bg-white border-t-4 border-blue-600">
+      <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-xl shadow-slate-200/70 ring-1 ring-slate-200">
         {/* Logo */}
-        <div className="flex justify-center mb-6 relative">
-          <img
-            src="/MediCabinet-Logo.png"
-            alt="MediCabinet Logo"
-            width="60"
-            height="60"
-            className="object-contain"
-          />
+        <div className="mb-6 flex justify-center relative">
+          <BrandLogo showText={false} />
         </div>
 
         {/* Title and Subtitle */}
-        <h1 className="text-2xl font-bold text-center mb-2 text-gray-800">
+        <h1 className="mb-2 text-center text-2xl font-bold text-slate-800">
           {t.createAccountTitle}
         </h1>
-        <p className="text-center text-sm mb-8 text-gray-600">
+        <p className="mb-8 text-center text-sm text-slate-500">
           {t.createAccountSubtitle}
         </p>
 
         {/* Error Message */}
         {error && (
           <div
-            className="mb-4 p-3 rounded text-sm text-white"
-            style={{ backgroundColor: "#DC3545" }}
+            className="mb-4 rounded-md bg-red-500 p-3 text-sm text-white"
           >
             {error}
           </div>
@@ -147,29 +140,27 @@ export function InscriptionPage() {
           {/* Row 1: Nom + Prénom */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="lastName" className="block text-sm font-semibold mb-1 text-gray-700">
+              <label htmlFor="lastName" className="mb-1 block text-sm font-semibold text-slate-700">
                 {t.lastName}
               </label>
               <input
                 id="lastName" name="lastName" type="text"
                 placeholder={t.lastNamePlaceholder}
                 value={formData.lastName} onChange={handleChange}
-                className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-                style={{ borderColor: errors.lastName ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
+                className={`w-full rounded-md border px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 ${errors.lastName ? "border-red-400" : "border-slate-200 bg-white"}`}
               />
               {errors.lastName && <p className="text-xs mt-1 text-red-600">{errors.lastName}</p>}
             </div>
 
             <div>
-              <label htmlFor="firstName" className="block text-sm font-semibold mb-1 text-gray-700">
+              <label htmlFor="firstName" className="mb-1 block text-sm font-semibold text-slate-700">
                 {t.firstName}
               </label>
               <input
                 id="firstName" name="firstName" type="text"
                 placeholder={t.firstNamePlaceholder}
                 value={formData.firstName} onChange={handleChange}
-                className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-                style={{ borderColor: errors.firstName ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
+                className={`w-full rounded-md border px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 ${errors.firstName ? "border-red-400" : "border-slate-200 bg-white"}`}
               />
               {errors.firstName && <p className="text-xs mt-1 text-red-600">{errors.firstName}</p>}
             </div>
@@ -178,29 +169,27 @@ export function InscriptionPage() {
           {/* Row 2: Téléphone + Email */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="phone" className="block text-sm font-semibold mb-1 text-gray-700">
+              <label htmlFor="phone" className="mb-1 block text-sm font-semibold text-slate-700">
                 {t.phone}
               </label>
               <input
                 id="phone" name="phone" type="tel"
                 placeholder={t.phonePlaceholder}
                 value={formData.phone} onChange={handleChange}
-                className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-                style={{ borderColor: errors.phone ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
+                className={`w-full rounded-md border px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 ${errors.phone ? "border-red-400" : "border-slate-200 bg-white"}`}
               />
               {errors.phone && <p className="text-xs mt-1 text-red-600">{errors.phone}</p>}
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-semibold mb-1 text-gray-700">
+              <label htmlFor="email" className="mb-1 block text-sm font-semibold text-slate-700">
                 {t.email}
               </label>
               <input
                 id="email" name="email" type="email"
                 placeholder="votreemail@exemple.ma"
                 value={formData.email} onChange={handleChange}
-                className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-                style={{ borderColor: errors.email ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
+                className={`w-full rounded-md border px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 ${errors.email ? "border-red-400" : "border-slate-200 bg-white"}`}
               />
               {errors.email && <p className="text-xs mt-1 text-red-600">{errors.email}</p>}
             </div>
@@ -208,45 +197,42 @@ export function InscriptionPage() {
 
           {/* Row 3: CIN */}
           <div>
-            <label htmlFor="cin" className="block text-sm font-semibold mb-1 text-gray-700">
+            <label htmlFor="cin" className="mb-1 block text-sm font-semibold text-slate-700">
               {t.cin}
             </label>
             <input
               id="cin" name="cin" type="text"
               placeholder={t.cinPlaceholder}
               value={formData.cin} onChange={handleChange}
-              className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-              style={{ borderColor: errors.cin ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
+              className={`w-full rounded-md border px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 ${errors.cin ? "border-red-400" : "border-slate-200 bg-white"}`}
             />
             {errors.cin && <p className="text-xs mt-1 text-red-600">{errors.cin}</p>}
           </div>
 
           {/* Row 4: Mot de passe */}
           <div>
-            <label htmlFor="password" className="block text-sm font-semibold mb-1 text-gray-700">
+            <label htmlFor="password" className="mb-1 block text-sm font-semibold text-slate-700">
               {t.password}
             </label>
             <input
               id="password" name="password" type="password"
               placeholder={t.passwordPlaceholder}
               value={formData.password} onChange={handleChange}
-              className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-              style={{ borderColor: errors.password ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
+              className={`w-full rounded-md border px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 ${errors.password ? "border-red-400" : "border-slate-200 bg-white"}`}
             />
             {errors.password && <p className="text-xs mt-1 text-red-600">{errors.password}</p>}
           </div>
 
           {/* Row 5: Confirmer mot de passe */}
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-semibold mb-1 text-gray-700">
+            <label htmlFor="confirmPassword" className="mb-1 block text-sm font-semibold text-slate-700">
               {t.confirmPassword}
             </label>
             <input
               id="confirmPassword" name="confirmPassword" type="password"
               placeholder={t.confirmPasswordPlaceholder}
               value={formData.confirmPassword} onChange={handleChange}
-              className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-              style={{ borderColor: errors.confirmPassword ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
+              className={`w-full rounded-md border px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 ${errors.confirmPassword ? "border-red-400" : "border-slate-200 bg-white"}`}
             />
             {errors.confirmPassword && <p className="text-xs mt-1 text-red-600">{errors.confirmPassword}</p>}
           </div>
@@ -254,8 +240,7 @@ export function InscriptionPage() {
           {/* Submit */}
           <button
             type="submit" disabled={isLoading}
-            className="w-full py-2.5 rounded text-white font-semibold transition-all hover:opacity-90 disabled:opacity-70 mt-6 tracking-wide uppercase text-sm"
-            style={{ backgroundColor: "#007BFF" }}
+            className="mt-6 w-full rounded-md bg-sky-600 py-2.5 text-sm font-semibold uppercase tracking-wide text-white transition-all hover:bg-sky-700 disabled:opacity-70"
           >
             {isLoading ? "En cours..." : t.register}
           </button>
@@ -263,12 +248,11 @@ export function InscriptionPage() {
         </form>
 
         {/* Login Link */}
-        <div className="mt-6 text-center text-sm text-gray-700">
+        <div className="mt-6 text-center text-sm text-slate-700">
           {t.haveAccount}
           <button
             type="button"
-            className="font-semibold ml-1 hover:underline"
-            style={{ color: "#007BFF" }}
+            className="ml-1 font-semibold text-sky-600 hover:underline"
             onClick={() => navigate("/login")}
           >
             {t.signIn}

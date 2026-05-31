@@ -22,6 +22,7 @@ import {
   LogOut,
 } from "lucide-react";
 import api from "../services/api";
+import { BrandLogo } from "./BrandLogo";
 
 // ── Parse notification contenu ───────────────────────────────────────────────
 function parseContenu(contenu) {
@@ -37,8 +38,8 @@ function NotifIcon({ type }) {
   const cls = "w-8 h-8 rounded-full flex items-center justify-center shrink-0";
   if (type === "nouvelle_analyse")
     return (
-      <div className={`${cls} bg-blue-100`}>
-        <FlaskConical size={16} className="text-blue-600" />
+      <div className={`${cls} bg-sky-100`}>
+        <FlaskConical size={16} className="text-sky-600" />
       </div>
     );
   if (type === "rdv_rappel" || type === "confirmation")
@@ -358,7 +359,7 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
 
       {/* ── Sidebar ── */}
       <aside
-        className={`${sidebarWidth} bg-blue-600 text-white flex flex-col shadow-xl flex-shrink-0 transition-all duration-300 ease-in-out ${
+        className={`${sidebarWidth} bg-sky-600 text-white flex flex-col shadow-xl flex-shrink-0 transition-all duration-300 ease-in-out ${
           mobileMenuOpen
             ? "translate-x-0"
             : isRTL
@@ -368,16 +369,13 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
       >
         {/* Logo Section - Bigger */}
         <div
-          className={`px-5 py-6 border-b border-blue-500 flex items-center gap-3 ${sidebarCollapsed ? "justify-center px-3" : ""}`}
+          className={`px-5 py-6 border-b border-sky-500 flex items-center gap-3 ${sidebarCollapsed ? "justify-center px-3" : ""}`}
         >
-          <img
-            src="/MediCabinet-Logo.png"
-            alt="MediCabinet"
-            className={`object-contain ${sidebarCollapsed ? "w-10 h-10" : "w-14 h-14"}`}
+          <BrandLogo
+            showText={!sidebarCollapsed}
+            className={sidebarCollapsed ? "justify-center" : ""}
+            textClassName="text-white"
           />
-          {!sidebarCollapsed && (
-            <span className="font-bold text-xl tracking-wide">MediCabinet</span>
-          )}
         </div>
 
         {/* Navigation */}
@@ -394,8 +392,8 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-150 ${sidebarCollapsed ? "justify-center" : ""} ${
                   isActive(item.path)
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-blue-100 hover:bg-blue-500 hover:text-white"
+                    ? "bg-white text-sky-600 shadow-sm"
+                    : "text-sky-100 hover:bg-sky-500 hover:text-white"
                 }`}
               >
                 <IconComponent
@@ -407,7 +405,7 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
                     <span className="truncate">{label}</span>
                     {isActive(item.path) && (
                       <span
-                        className={`${isRTL ? "mr-auto" : "ml-auto"} w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0`}
+                        className={`${isRTL ? "mr-auto" : "ml-auto"} w-1.5 h-1.5 rounded-full bg-sky-600 shrink-0`}
                       />
                     )}
                   </>
@@ -431,11 +429,11 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
 
         {/* Language Toggle */}
         <div
-          className={`px-4 py-4 border-t border-blue-500 ${sidebarCollapsed ? "flex justify-center px-3" : ""}`}
+          className={`px-4 py-4 border-t border-sky-500 ${sidebarCollapsed ? "flex justify-center px-3" : ""}`}
         >
           <button
             onClick={toggleLanguage}
-            className={`rounded-lg bg-blue-700 hover:bg-blue-800 font-semibold tracking-wide transition flex items-center justify-center ${sidebarCollapsed ? "w-10 h-10 text-sm" : "w-full py-2.5 px-4 text-xs"}`}
+            className={`rounded-lg bg-sky-700 hover:bg-sky-800 font-semibold tracking-wide transition flex items-center justify-center ${sidebarCollapsed ? "w-10 h-10 text-sm" : "w-full py-2.5 px-4 text-xs"}`}
             title={
               language === "fr" ? "Switch to Arabic" : "Passer au français"
             }
