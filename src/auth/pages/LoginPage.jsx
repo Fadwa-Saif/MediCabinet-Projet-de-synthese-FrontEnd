@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage, translations } from "../../context/LanguageContext.jsx";
 import authService from "../../services/authService";
 
-// Top of LoginPage.jsx
-const DEBUG_URL = import.meta.env.VITE_API_URL || "FALLBACK_USED";
-console.log("DEBUG VITE_API_URL:", DEBUG_URL);
+// DEBUG: Verify API URL is set in Create React App
+const DEBUG_URL = process.env.REACT_APP_API_URL || "FALLBACK_USED";
+console.log("DEBUG REACT_APP_API_URL:", DEBUG_URL);
 
 export function LoginPage() {
   const navigate = useNavigate();

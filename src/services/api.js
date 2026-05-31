@@ -1,6 +1,10 @@
-console.log("API URL:", import.meta.env.VITE_API_URL);
+// DEBUG: Log the resolved API URL
+console.log(
+  "API_BASE_URL resolved to:",
+  process.env.REACT_APP_API_URL || "FALLBACK_USED"
+);
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
+  process.env.REACT_APP_API_URL ||
   "https://medicabinet-backend.up.railway.app/api";
 function getAuthHeaders() {
   const tokenFromStorage = localStorage.getItem("token");
