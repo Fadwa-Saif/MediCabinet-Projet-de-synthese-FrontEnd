@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage, translations } from "../../context/LanguageContext.jsx";
 import authService from "../../services/authService";
 
+// Top of LoginPage.jsx
+const DEBUG_URL = import.meta.env.VITE_API_URL || "FALLBACK_USED";
+console.log("DEBUG VITE_API_URL:", DEBUG_URL);
+
 export function LoginPage() {
   const navigate = useNavigate();
   const { language, toggleLanguage } = useLanguage();
