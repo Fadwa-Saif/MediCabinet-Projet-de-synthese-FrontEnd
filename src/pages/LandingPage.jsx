@@ -5,6 +5,7 @@ import {
   BriefcaseMedical,
   CalendarDays,
   CalendarRange,
+  CheckCircle2,
   Clock3,
   Eye,
   HeartPulse,
@@ -60,6 +61,17 @@ function SecondaryButton({ to, children, className = "" }) {
     >
       {children}
     </Link>
+  );
+}
+
+function AnchorButton({ href, children, className = "" }) {
+  return (
+    <a
+      href={href}
+      className={`inline-flex items-center justify-center gap-2 rounded-full border border-cyan-200 bg-white px-5 py-3 text-sm font-semibold text-cyan-700 transition-all hover:border-cyan-300 hover:bg-cyan-50 ${className}`}
+    >
+      {children}
+    </a>
   );
 }
 
@@ -123,13 +135,91 @@ function TeamCard({ initials, name, specialty }) {
   );
 }
 
+function PricingFeature({ children }) {
+  return (
+    <li className="flex items-start gap-2 text-sm text-slate-600">
+      <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-cyan-600" />
+      <span>{children}</span>
+    </li>
+  );
+}
+
+function PricingCard({
+  name,
+  priceMonthly,
+  priceAnnual,
+  description,
+  features,
+  cta,
+  highlighted = false,
+  badge = null,
+  annualBadge = false,
+  annualMonthlyEquivalent = null,
+  billing = "monthly",
+}) {
+  return (
+    <article
+      className={`relative rounded-2xl p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
+        highlighted ? "border-2 border-cyan-600 bg-white shadow-md" : "border border-slate-200 bg-white"
+      }`}
+    >
+      {badge && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-cyan-600 px-4 py-1 text-xs font-semibold text-white">
+          {badge}
+        </span>
+      )}
+      {annualBadge && (
+        <span className="absolute right-4 top-4 rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700 ring-1 ring-cyan-100">
+          2 mois offerts
+        </span>
+      )}
+      <h3 className="text-xl font-bold text-slate-800">{name}</h3>
+      <p className="mt-2 text-sm text-slate-500">{description}</p>
+
+      <div className="mt-6 border-t border-slate-200 pt-6">
+        {billing === "annual" && annualMonthlyEquivalent ? (
+          <div className="mb-2 flex items-end gap-3">
+            <span className="text-sm text-slate-400 line-through">{annualMonthlyEquivalent}</span>
+            <span className="text-3xl font-bold text-slate-800">{priceAnnual}</span>
+            <span className="pb-1 text-sm text-slate-400">/an</span>
+          </div>
+        ) : (
+          <div className="mb-2 flex items-end gap-1">
+            <span className="text-3xl font-bold text-slate-800">{priceMonthly}</span>
+            <span className="pb-1 text-sm text-slate-400">/mois</span>
+          </div>
+        )}
+
+        <ul className="space-y-3">
+          {features.map((feature) => (
+            <PricingFeature key={feature}>{feature}</PricingFeature>
+          ))}
+        </ul>
+
+        <Link
+          to="/inscription"
+          className={`mt-6 inline-flex w-full items-center justify-center rounded-full px-4 py-2.5 text-sm font-semibold transition-all ${
+            highlighted
+              ? "bg-cyan-600 text-white hover:bg-cyan-700"
+              : "border border-cyan-200 bg-white text-cyan-700 hover:bg-cyan-50"
+          }`}
+        >
+          {cta}
+        </Link>
+      </div>
+    </article>
+  );
+}
+
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [billing, setBilling] = useState("monthly");
 
   const navItems = [
     { label: "About", href: "#about" },
     { label: "Services", href: "#services" },
     { label: "Doctors", href: "#doctors" },
+    { label: "Pricing", href: "#pricing" },
     { label: "Contact", href: "#contact" },
   ];
 
@@ -154,12 +244,12 @@ export default function LandingPage() {
           <div className="hidden items-center gap-3 md:flex">
             <Link
               to="/login"
-              className="inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:text-sky-700"
+              className="inline-flex items-center justify-center rounded-full border border-cyan-600 px-4 py-2 text-sm font-semibold text-cyan-600 transition-colors hover:bg-cyan-50"
             >
-              Login
+              Se connecter
             </Link>
-            <PrimaryButton to="/login" className="px-5 py-2.5">
-              Appointment
+            <PrimaryButton to="/inscription" className="px-5 py-2.5">
+              S'inscrire
             </PrimaryButton>
           </div>
 
@@ -186,12 +276,12 @@ export default function LandingPage() {
                 <Link
                   to="/login"
                   onClick={closeMenu}
-                  className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                  className="inline-flex items-center justify-center rounded-full border border-cyan-600 px-4 py-3 text-sm font-semibold text-cyan-600 transition-colors hover:bg-cyan-50"
                 >
-                  Login
+                  Se connecter
                 </Link>
-                <PrimaryButton to="/login" className="w-full py-3.5" onClick={closeMenu}>
-                  Appointment
+                <PrimaryButton to="/inscription" className="w-full py-3.5" onClick={closeMenu}>
+                  S'inscrire
                 </PrimaryButton>
               </div>
             </div>
@@ -208,40 +298,27 @@ export default function LandingPage() {
               <div className="relative z-10 flex flex-col justify-center">
                 <p className="text-sm font-semibold uppercase tracking-[0.35em] text-sky-600">MEDICAL</p>
                 <h1 className="mt-4 max-w-xl text-4xl font-black tracking-tight text-slate-800 sm:text-5xl">
-                  Healthcare Solutions
+                  Votre santé, notre priorité
                 </h1>
                 <p className="mt-5 max-w-xl text-base leading-8 text-slate-500 sm:text-lg">
-                  Manage appointments, doctors, medical records, and follow-up care in one secure platform built for modern healthcare teams.
+                  Gérez vos rendez-vous, consultations et dossiers médicaux en toute simplicité.
                 </p>
                 <div className="mt-8 flex flex-wrap items-center gap-4">
-                  <PrimaryButton to="/login">Find Doctors</PrimaryButton>
-                  <SecondaryButton to="/login">Book Appointment</SecondaryButton>
+                  <PrimaryButton to="/inscription">S'inscrire gratuitement</PrimaryButton>
+                  <AnchorButton href="#pricing">Découvrir les offres</AnchorButton>
                 </div>
               </div>
 
               <div className="relative flex items-center justify-center">
-                <div className="relative h-[20rem] w-full max-w-[28rem] overflow-hidden rounded-[2rem] bg-[#EAF6FE] p-6 shadow-inner ring-1 ring-slate-200 sm:h-[24rem]">
-                  <div className="absolute right-[-2rem] top-[-2rem] h-32 w-32 rounded-full bg-sky-300/70 blur-2xl" />
-                  <div className="absolute left-[-1rem] bottom-[-1rem] h-36 w-36 rounded-full bg-cyan-300/50 blur-2xl" />
-                  <div className="relative grid h-full place-items-center rounded-[1.75rem] bg-white shadow-lg shadow-slate-200/60 ring-1 ring-white/70">
-                    <div className="grid place-items-center gap-5 text-sky-700">
-                      <div className="flex items-center gap-5">
-                        <div className="rounded-[1.75rem] bg-sky-600 p-5 text-white shadow-lg shadow-sky-600/20">
-                          <Stethoscope size={50} />
-                        </div>
-                        <div className="rounded-[1.75rem] bg-sky-50 p-5 text-sky-700 ring-1 ring-sky-100">
-                          <HeartPulse size={50} />
-                        </div>
-                      </div>
-                      <div className="rounded-[1.75rem] bg-white p-5 text-sky-600 shadow-lg ring-1 ring-slate-200">
-                        <UserCheck size={50} />
-                      </div>
+                <div className="relative flex h-[20rem] w-full max-w-[28rem] items-center justify-center overflow-hidden rounded-[2rem] bg-cyan-50 p-6 shadow-inner ring-1 ring-slate-200 sm:h-[24rem]">
+                  <div className="absolute inset-8 rounded-full bg-cyan-100/80 blur-2xl" />
+                  <div className="relative flex h-56 w-56 items-center justify-center rounded-full bg-cyan-600 text-white shadow-2xl shadow-cyan-600/20 sm:h-64 sm:w-64">
+                    <Stethoscope size={80} />
+                    <div className="absolute -left-4 top-10 rounded-full bg-white p-3 text-cyan-600 shadow-lg ring-1 ring-cyan-100">
+                      <HeartPulse size={34} />
                     </div>
-                    <div className="absolute left-6 top-6 rounded-full bg-sky-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-sky-600/20">
-                      Secure healthcare management
-                    </div>
-                    <div className="absolute right-6 top-8 rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-600 shadow-lg ring-1 ring-slate-200">
-                      Patients • Doctors • Records
+                    <div className="absolute -right-4 bottom-10 rounded-full bg-white p-3 text-cyan-600 shadow-lg ring-1 ring-cyan-100">
+                      <CalendarDays size={34} />
                     </div>
                   </div>
                 </div>
@@ -398,6 +475,127 @@ export default function LandingPage() {
 
             <div className="mt-10 flex justify-center">
               <SecondaryButton to="/login">See All</SecondaryButton>
+            </div>
+          </div>
+        </section>
+
+        <section id="pricing" className="bg-slate-50 py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <SectionLabel>PRICING</SectionLabel>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl">
+              Choisissez l'offre qui vous convient
+            </h2>
+
+            <div className="mt-6 flex justify-center">
+              <div className="inline-flex rounded-full bg-white p-1 shadow-sm ring-1 ring-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setBilling("monthly")}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    billing === "monthly" ? "bg-cyan-600 text-white" : "text-slate-600"
+                  }`}
+                >
+                  Mensuel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBilling("annual")}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    billing === "annual" ? "bg-cyan-600 text-white" : "text-slate-600"
+                  }`}
+                >
+                  Annuel
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-12 grid gap-10 lg:grid-cols-2">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800">Pour les Patients</h3>
+                <p className="mt-1 text-sm text-slate-500">Accédez à vos soins en toute simplicité</p>
+
+                <div className="mt-6 grid gap-6 sm:grid-cols-2">
+                  <PricingCard
+                    billing={billing}
+                    name="Starter"
+                    description="Idéal pour démarrer avec les fonctions essentielles."
+                    priceMonthly="0 DH"
+                    priceAnnual="0 DH"
+                    cta="Commencer gratuitement"
+                    features={[
+                      "Prise de RDV en ligne",
+                      "Historique des consultations",
+                      "Upload d'analyses médicales",
+                      "Messagerie avec le médecin",
+                    ]}
+                  />
+                  <PricingCard
+                    billing={billing}
+                    name="Premium Patient"
+                    description="Pour un suivi plus complet et prioritaire."
+                    priceMonthly="49 DH"
+                    priceAnnual="490 DH"
+                    annualMonthlyEquivalent="49 DH x 12"
+                    cta="Choisir Premium"
+                    highlighted
+                    badge="Le plus populaire"
+                    annualBadge={billing === "annual"}
+                    features={[
+                      "Tout du plan Starter",
+                      "Rappels SMS & Email automatiques",
+                      "Ordonnances numériques",
+                      "Accès prioritaire aux créneaux",
+                      "Stockage illimité d'analyses",
+                      "Support prioritaire",
+                    ]}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800">Pour les Cabinets</h3>
+                <p className="mt-1 text-sm text-slate-500">Gérez votre cabinet efficacement</p>
+
+                <div className="mt-6 grid gap-6 sm:grid-cols-2">
+                  <PricingCard
+                    billing={billing}
+                    name="Cabinet Starter"
+                    description="Une base solide pour un cabinet moderne."
+                    priceMonthly="299 DH"
+                    priceAnnual="2 990 DH"
+                    annualMonthlyEquivalent="299 DH x 12"
+                    cta="Essai gratuit 14 jours"
+                    annualBadge={billing === "annual"}
+                    features={[
+                      "1 médecin + 1 secrétaire",
+                      "Gestion des RDV",
+                      "Dossiers patients illimités",
+                      "Rapports de consultation",
+                      "Attestations médicales PDF",
+                    ]}
+                  />
+                  <PricingCard
+                    billing={billing}
+                    name="Cabinet Pro"
+                    description="La solution complète pour les cabinets exigeants."
+                    priceMonthly="599 DH"
+                    priceAnnual="5 990 DH"
+                    annualMonthlyEquivalent="599 DH x 12"
+                    cta="Choisir Cabinet Pro"
+                    highlighted
+                    badge="Recommandé"
+                    annualBadge={billing === "annual"}
+                    features={[
+                      "Tout du plan Essentiel",
+                      "Analyses de laboratoire avancées",
+                      "Statistiques & tableaux de bord",
+                      "Export PDF & Excel des rapports",
+                      "Support dédié 24/7",
+                      "Mises à jour prioritaires",
+                    ]}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </section>
