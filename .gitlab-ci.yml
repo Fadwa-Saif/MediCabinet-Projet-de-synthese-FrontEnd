@@ -10,7 +10,9 @@ build_frontend:
     paths:
       - .npm/
   script:
-    - npm ci --cache .npm --prefer-offline
+    - rm -rf .npm || true
+    - npm cache verify || true
+    - NPM_CONFIG_AUDIT=false npm ci --prefer-offline --no-progress --cache .npm
     - npm run build
   artifacts:
     paths:
