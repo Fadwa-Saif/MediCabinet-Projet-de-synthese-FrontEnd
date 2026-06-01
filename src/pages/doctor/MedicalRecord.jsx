@@ -21,24 +21,6 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function Toast({ message, type = "success", onClose }) {
-  useEffect(() => {
-    const t = setTimeout(onClose, 3500);
-    return () => clearTimeout(t);
-  }, [onClose]);
-
-  return (
-    <div
-      className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl text-sm font-medium transition-all animate-fade-in ${
-        type === "success" ? "bg-green-600 text-white" : "bg-red-500 text-white"
-      }`}
-    >
-      {type === "success" ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-      {message}
-    </div>
-  );
-}
-
 const formatDate = (d) => {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("fr-FR", {

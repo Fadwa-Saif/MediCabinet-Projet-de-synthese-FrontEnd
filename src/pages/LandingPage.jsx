@@ -14,7 +14,6 @@ import {
   Menu,
   Smile,
   Stethoscope,
-  UserCheck,
   Users,
   X,
   Bone,
