@@ -116,7 +116,8 @@ const FileViewer = ({ fichierUrl, fichier }) => {
     if (!url) return null;
     if (url.startsWith("http")) return url;
     const baseUrl =
-      process.env.REACT_APP_API_URL || "http://127.0.0.1:8000/api";
+      process.env.REACT_APP_API_URL ||
+      "https://medicabinet-backend.up.railway.app/api";
     return url.startsWith("/api")
       ? url.replace("/api", baseUrl)
       : `${baseUrl}${url}`;
