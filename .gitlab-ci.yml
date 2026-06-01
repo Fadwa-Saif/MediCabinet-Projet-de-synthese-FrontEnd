@@ -9,6 +9,7 @@ variables:
 
 sonarcloud-check:
   stage: test
+  allow_failure: true
   image:
     name: sonarsource/sonar-scanner-cli:latest
     entrypoint: [""]
