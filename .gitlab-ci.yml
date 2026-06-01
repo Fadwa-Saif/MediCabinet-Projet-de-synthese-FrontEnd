@@ -12,7 +12,10 @@ build_frontend:
   script:
     - rm -rf .npm || true
     - npm cache verify || true
-    - NPM_CONFIG_AUDIT=false npm ci --prefer-offline --no-progress --cache .npm
+    - node -v; npm -v
+    - |
+      NPM_CONFIG_AUDIT=false npm ci --prefer-offline --no-progress --cache .npm || \
+      (echo "npm ci failed, falling back to npm install" && NPM_CONFIG_AUDIT=false npm install --prefer-offline --no-progress --cache .npm)
     - npm run build
   artifacts:
     paths:
