@@ -1,5 +1,11 @@
 import { Navigate } from "react-router-dom";
 
+function normalizeRole(role) {
+  if (role === "doctor") return "medecin";
+  if (role === "secretary") return "secretaire";
+  return role;
+}
+
 export function ProtectedRoute({ children, requiredRole }) {
   // Get user from localStorage
   const userJSON = localStorage.getItem("medicabinet_user");
@@ -12,15 +18,17 @@ export function ProtectedRoute({ children, requiredRole }) {
 
   try {
     const user = JSON.parse(userJSON);
+    const userRole = normalizeRole(user.role);
+    const expectedRole = normalizeRole(requiredRole);
 
-    if (requiredRole && user.role !== requiredRole) {
+    if (expectedRole && userRole !== expectedRole) {
       // Wrong role, redirect to their dashboard
       const roleDashboards = {
         patient: "/patient/dashboard",
-        medecin: "/medecin/dashboard",
-        secretaire: "/secretaire/dashboard",
+        medecin: "/doctor/dashboard",
+        secretaire: "/secretary/dashboard",
       };
-      return <Navigate to={roleDashboards[user.role] || "/login"} replace />;
+      return <Navigate to={roleDashboards[userRole] || "/login"} replace />;
     }
 
     return children;

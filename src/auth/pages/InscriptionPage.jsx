@@ -1,69 +1,172 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useLanguage, translations } from "../../context/LanguageContext.jsx";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  ArrowLeft,
+  CircleUserRound,
+  ClipboardList,
+  CheckCircle2,
+  Search,
+  Stethoscope,
+} from "lucide-react";
 import authService from "../../services/authService";
+import { BrandLogo } from "../../components/BrandLogo";
+
+const ROLE_CARDS = [
+  { value: "patient", label: "Patient", icon: CircleUserRound },
+  { value: "medecin", label: "Docteur", icon: Stethoscope },
+  { value: "secretaire", label: "Secrétaire", icon: ClipboardList },
+];
+
+const SPECIALITES = [
+  "Médecine générale",
+  "Cardiologie",
+  "Dermatologie",
+  "Pédiatrie",
+  "Gynécologie",
+  "Ophtalmologie",
+  "Dentisterie",
+  "Orthopédie",
+  "Neurologie",
+  "Radiologie",
+];
+
+const EMPTY_FORM = {
+  prenom: "",
+  nom: "",
+  email: "",
+  telephone: "",
+  password: "",
+  confirmPassword: "",
+  dateNaissance: "",
+  specialite: "",
+  cabinetNom: "",
+  cabinetAdresse: "",
+  cabinetVille: "",
+};
+
+function Input({ label, error, ...props }) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-slate-800">{label}</label>
+      <input
+        {...props}
+        className={`w-full rounded-md border bg-white px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 ${
+          error ? "border-red-400" : "border-slate-200"
+        }`}
+      />
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+    </div>
+  );
+}
 
 export function InscriptionPage() {
   const navigate = useNavigate();
-  const { language, toggleLanguage } = useLanguage();
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    cin: "",
-    password: "",
-    confirmPassword: "",
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [step, setStep] = useState(1);
+  const [role, setRole] = useState(null);
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const t = translations[language];
-  const isRTL = language === "ar";
+  const [cabinetQuery, setCabinetQuery] = useState("");
+  const [cabinetResults, setCabinetResults] = useState([]);
+  const [cabinetLoading, setCabinetLoading] = useState(false);
+  const [cabinetNotFound, setCabinetNotFound] = useState(false);
+  const [selectedCabinet, setSelectedCabinet] = useState(null);
 
-  const validateForm = () => {
-    const newErrors = {};
+  useEffect(() => {
+    if (role !== "secretaire") {
+      setCabinetQuery("");
+      setCabinetResults([]);
+      setCabinetNotFound(false);
+      setSelectedCabinet(null);
+    }
+  }, [role]);
 
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = "Prénom requis";
-    }
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = "Nom requis";
-    }
-    if (!formData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      newErrors.email = "Email invalide";
-    }
-    if (!formData.phone.trim()) {
-      newErrors.phone = "Téléphone requis";
-    }
-    if (!formData.cin.trim()) {
-      newErrors.cin = "CIN requis";
-    }
-    if (formData.password.length < 8) {
-      newErrors.password = "Minimum 8 caractères";
-    }
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Les mots de passe ne correspondent pas";
+  useEffect(() => {
+    if (role !== "secretaire") return undefined;
+
+    const query = cabinetQuery.trim();
+
+    if (query.length < 2) {
+      setCabinetResults([]);
+      setCabinetNotFound(false);
+      return undefined;
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    let active = true;
+    setCabinetLoading(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const results = await authService.searchCabinets(query);
+        if (!active) return;
+        setCabinetResults(results);
+        setCabinetNotFound(results.length === 0);
+      } catch (searchError) {
+        if (!active) return;
+        console.error("Cabinet search error:", searchError);
+        setCabinetResults([]);
+        setCabinetNotFound(true);
+      } finally {
+        if (active) {
+          setCabinetLoading(false);
+        }
+      }
+    }, 400);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [cabinetQuery, role]);
+
+  const handleRoleSelect = (selectedRole) => {
+    setRole(selectedRole);
+    setStep(2);
+    setErrors({});
+    setError("");
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    // Clear error for this field when user starts typing
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
     if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
+  };
+
+  const validateForm = () => {
+    const nextErrors = {};
+
+    if (!formData.prenom.trim()) nextErrors.prenom = "Prénom requis";
+    if (!formData.nom.trim()) nextErrors.nom = "Nom requis";
+    if (!formData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) nextErrors.email = "Email invalide";
+    if (formData.telephone && formData.telephone.trim().length < 8) nextErrors.telephone = "Téléphone invalide";
+    if (formData.password.length < 8) nextErrors.password = "Le mot de passe doit contenir au moins 8 caractères";
+    if (formData.password !== formData.confirmPassword) nextErrors.confirmPassword = "Les mots de passe ne correspondent pas";
+
+    if (role === "patient") {
+      if (!formData.dateNaissance) nextErrors.dateNaissance = "Date de naissance requise";
+      if (!formData.telephone.trim()) nextErrors.telephone = "Téléphone requis";
+    }
+
+    if (role === "medecin") {
+      if (!formData.telephone.trim()) nextErrors.telephone = "Téléphone requis";
+      if (!formData.specialite) nextErrors.specialite = "Spécialité requise";
+      if (!formData.cabinetNom.trim()) nextErrors.cabinetNom = "Nom du cabinet requis";
+      if (!formData.cabinetAdresse.trim()) nextErrors.cabinetAdresse = "Adresse du cabinet requise";
+      if (!formData.cabinetVille.trim()) nextErrors.cabinetVille = "Ville du cabinet requise";
+    }
+
+    if (role === "secretaire") {
+      if (!formData.telephone.trim()) nextErrors.telephone = "Téléphone requis";
+      if (!selectedCabinet?.id) nextErrors.cabinet = "Veuillez sélectionner un cabinet";
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
@@ -78,16 +181,25 @@ export function InscriptionPage() {
 
     try {
       await authService.register({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        role,
+        prenom: formData.prenom,
+        nom: formData.nom,
         email: formData.email,
-        phone: formData.phone,
-        cin: formData.cin,
+        telephone: formData.telephone,
         password: formData.password,
         confirmPassword: formData.confirmPassword,
+        dateNaissance: role === "patient" ? formData.dateNaissance : undefined,
+        specialite: role === "medecin" ? formData.specialite : undefined,
+        cabinetNom: role === "medecin" ? formData.cabinetNom : undefined,
+        cabinetAdresse: role === "medecin" ? formData.cabinetAdresse : undefined,
+        cabinetVille: role === "medecin" ? formData.cabinetVille : undefined,
+        cabinet_id: role === "secretaire" ? selectedCabinet?.id : undefined,
       });
 
-      navigate("/patient/dashboard");
+      navigate("/login", {
+        replace: true,
+        state: { message: "Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter." },
+      });
     } catch (err) {
       setError(err.message || "Une erreur est survenue lors de l'inscription");
       console.error("Registration error:", err);
@@ -96,183 +208,320 @@ export function InscriptionPage() {
     }
   };
 
-  return (
-    <div
-      className="min-h-screen flex items-center justify-center p-4 py-8 bg-gradient-to-br from-slate-100 to-blue-50"
-      dir={isRTL ? "rtl" : "ltr"}
-    >
-      {/* Language Toggle Button */}
-      <button
-        onClick={toggleLanguage}
-        className="absolute top-6 right-6 px-4 py-2 rounded text-sm font-medium transition-all hover:opacity-90"
-        style={{ backgroundColor: "#007BFF", color: "#FFFFFF" }}
-      >
-        {language === "fr" ? "العربية" : "Français"}
-      </button>
+  const handleBack = () => {
+    setStep(1);
+    setRole(null);
+    setErrors({});
+    setCabinetQuery("");
+    setCabinetResults([]);
+    setCabinetNotFound(false);
+    setSelectedCabinet(null);
+    setFormData(EMPTY_FORM);
+  };
 
-      {/* Registration Card */}
-      <div className="w-full max-w-md rounded-lg shadow-lg p-8 bg-white border-t-4 border-blue-600">
-        {/* Logo */}
-        <div className="flex justify-center mb-6 relative">
-          <img
-            src="/MediCabinet-Logo.png"
-            alt="MediCabinet Logo"
-            width="60"
-            height="60"
-            className="object-contain"
-          />
+  return (
+    <div className="min-h-screen bg-[#F5F6FA] px-4 py-8">
+      <div className="mx-auto w-full max-w-3xl">
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-cyan-200 hover:text-cyan-700"
+          >
+            <ArrowLeft size={16} />
+            Retour
+          </Link>
+          <BrandLogo showText />
         </div>
 
-        {/* Title and Subtitle */}
-        <h1 className="text-2xl font-bold text-center mb-2 text-gray-800">
-          {t.createAccountTitle}
-        </h1>
-        <p className="text-center text-sm mb-8 text-gray-600">
-          {t.createAccountSubtitle}
-        </p>
-
-        {/* Error Message */}
-        {error && (
-          <div
-            className="mb-4 p-3 rounded text-sm text-white"
-            style={{ backgroundColor: "#DC3545" }}
-          >
-            {error}
-          </div>
-        )}
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-
-          {/* Row 1: Nom + Prénom */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="lastName" className="block text-sm font-semibold mb-1 text-gray-700">
-                {t.lastName}
-              </label>
-              <input
-                id="lastName" name="lastName" type="text"
-                placeholder={t.lastNamePlaceholder}
-                value={formData.lastName} onChange={handleChange}
-                className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-                style={{ borderColor: errors.lastName ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
-              />
-              {errors.lastName && <p className="text-xs mt-1 text-red-600">{errors.lastName}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="firstName" className="block text-sm font-semibold mb-1 text-gray-700">
-                {t.firstName}
-              </label>
-              <input
-                id="firstName" name="firstName" type="text"
-                placeholder={t.firstNamePlaceholder}
-                value={formData.firstName} onChange={handleChange}
-                className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-                style={{ borderColor: errors.firstName ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
-              />
-              {errors.firstName && <p className="text-xs mt-1 text-red-600">{errors.firstName}</p>}
-            </div>
+        <div className="rounded-2xl bg-white p-6 shadow-xl shadow-slate-200/70 ring-1 ring-slate-200 sm:p-8">
+          <div className="mb-8 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-600">Inscription</p>
+            <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl">
+              Créez votre compte MediCabinet
+            </h1>
+            <p className="mt-3 text-sm text-slate-500">
+              Choisissez votre rôle puis complétez les informations requises.
+            </p>
           </div>
 
-          {/* Row 2: Téléphone + Email */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="phone" className="block text-sm font-semibold mb-1 text-gray-700">
-                {t.phone}
-              </label>
-              <input
-                id="phone" name="phone" type="tel"
-                placeholder={t.phonePlaceholder}
-                value={formData.phone} onChange={handleChange}
-                className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-                style={{ borderColor: errors.phone ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
-              />
-              {errors.phone && <p className="text-xs mt-1 text-red-600">{errors.phone}</p>}
+          {error && (
+            <div className="mb-6 rounded-md bg-red-500 p-3 text-sm text-white">
+              {error}
             </div>
+          )}
 
+          {step === 1 ? (
             <div>
-              <label htmlFor="email" className="block text-sm font-semibold mb-1 text-gray-700">
-                {t.email}
-              </label>
-              <input
-                id="email" name="email" type="email"
+              <h2 className="mb-4 text-lg font-semibold text-slate-800">Sélectionnez votre rôle</h2>
+              <div className="grid gap-4 md:grid-cols-3">
+                {ROLE_CARDS.map((item) => {
+                  const Icon = item.icon;
+                  const active = role === item.value;
+
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => handleRoleSelect(item.value)}
+                      className={`rounded-2xl border p-5 text-left transition-all hover:-translate-y-0.5 hover:shadow-md ${
+                        active
+                          ? "border-cyan-600 bg-cyan-50 shadow-md shadow-cyan-100"
+                          : "border-slate-200 bg-white"
+                      }`}
+                    >
+                      <div className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl ${active ? "bg-cyan-600 text-white" : "bg-slate-100 text-slate-600"}`}>
+                        <Icon size={22} />
+                      </div>
+                      <h3 className="mt-4 text-lg font-semibold text-slate-800">{item.label}</h3>
+                      <p className="mt-2 text-sm text-slate-500">
+                        {item.value === "patient" && "Accès patient sans cabinet à l'inscription."}
+                        {item.value === "medecin" && "Créez votre cabinet lors de l'inscription."}
+                        {item.value === "secretaire" && "Choisissez un cabinet existant via recherche."}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-600">Rôle sélectionné</p>
+                  <h2 className="mt-1 text-xl font-semibold text-slate-800">
+                    {ROLE_CARDS.find((item) => item.value === role)?.label}
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-cyan-200 hover:text-cyan-700"
+                >
+                  Changer de rôle
+                </button>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  label="Prénom"
+                  name="prenom"
+                  type="text"
+                  placeholder="Prénom"
+                  value={formData.prenom}
+                  onChange={handleChange}
+                  error={errors.prenom}
+                />
+                <Input
+                  label="Nom"
+                  name="nom"
+                  type="text"
+                  placeholder="Nom"
+                  value={formData.nom}
+                  onChange={handleChange}
+                  error={errors.nom}
+                />
+              </div>
+
+              <Input
+                label="Email"
+                name="email"
+                type="email"
                 placeholder="votreemail@exemple.ma"
-                value={formData.email} onChange={handleChange}
-                className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-                style={{ borderColor: errors.email ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
+                value={formData.email}
+                onChange={handleChange}
+                error={errors.email}
               />
-              {errors.email && <p className="text-xs mt-1 text-red-600">{errors.email}</p>}
-            </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  label="Mot de passe"
+                  name="password"
+                  type="password"
+                  placeholder="Minimum 8 caractères"
+                  value={formData.password}
+                  onChange={handleChange}
+                  error={errors.password}
+                />
+                <Input
+                  label="Confirmer le mot de passe"
+                  name="confirmPassword"
+                  type="password"
+                  placeholder="Confirmez le mot de passe"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  error={errors.confirmPassword}
+                />
+              </div>
+
+              <Input
+                label="Téléphone"
+                name="telephone"
+                type="tel"
+                placeholder="06 00 00 00 00"
+                value={formData.telephone}
+                onChange={handleChange}
+                error={errors.telephone}
+              />
+
+              {role === "patient" && (
+                <Input
+                  label="Date de naissance"
+                  name="dateNaissance"
+                  type="date"
+                  value={formData.dateNaissance}
+                  onChange={handleChange}
+                  error={errors.dateNaissance}
+                />
+              )}
+
+              {role === "medecin" && (
+                <>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                    <h3 className="text-base font-semibold text-slate-800">Votre Cabinet</h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Le cabinet sera créé automatiquement et lié à votre compte.
+                    </p>
+                    <div className="mt-4 grid gap-4">
+                      <Input
+                        label="Nom du cabinet"
+                        name="cabinetNom"
+                        type="text"
+                        placeholder="Cabinet Médical Central"
+                        value={formData.cabinetNom}
+                        onChange={handleChange}
+                        error={errors.cabinetNom}
+                      />
+                      <Input
+                        label="Adresse du cabinet"
+                        name="cabinetAdresse"
+                        type="text"
+                        placeholder="123 Rue Mohammed V"
+                        value={formData.cabinetAdresse}
+                        onChange={handleChange}
+                        error={errors.cabinetAdresse}
+                      />
+                      <Input
+                        label="Ville"
+                        name="cabinetVille"
+                        type="text"
+                        placeholder="Casablanca"
+                        value={formData.cabinetVille}
+                        onChange={handleChange}
+                        error={errors.cabinetVille}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-800">Spécialité</label>
+                    <select
+                      name="specialite"
+                      value={formData.specialite}
+                      onChange={handleChange}
+                      className={`w-full rounded-md border bg-white px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 ${
+                        errors.specialite ? "border-red-400" : "border-slate-200"
+                      }`}
+                    >
+                      <option value="">Choisir une spécialité</option>
+                      {SPECIALITES.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.specialite && <p className="mt-1 text-xs text-red-600">{errors.specialite}</p>}
+                  </div>
+                </>
+              )}
+
+              {role === "secretaire" && (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                  <h3 className="text-base font-semibold text-slate-800">Cabinet existant</h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Recherchez et sélectionnez un cabinet déjà enregistré.
+                  </p>
+
+                  <div className="relative mt-4">
+                    <div className="relative">
+                      <Search size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={cabinetQuery}
+                        onChange={(e) => {
+                          setCabinetQuery(e.target.value);
+                          setSelectedCabinet(null);
+                          setErrors((prev) => ({ ...prev, cabinet: "" }));
+                        }}
+                        placeholder="Rechercher un cabinet, un docteur, une spécialité..."
+                        className="w-full rounded-md border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                      />
+                    </div>
+
+                    {cabinetLoading && (
+                      <p className="mt-2 text-xs text-slate-500">Recherche en cours...</p>
+                    )}
+
+                    {selectedCabinet && (
+                      <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white">
+                        <CheckCircle2 size={14} />
+                        {selectedCabinet.label}
+                      </div>
+                    )}
+
+                    {!selectedCabinet && cabinetNotFound && cabinetQuery.trim().length >= 2 && (
+                      <p className="mt-2 text-sm text-slate-500">Aucun cabinet trouvé pour cette recherche.</p>
+                    )}
+
+                    {cabinetResults.length > 0 && !selectedCabinet && (
+                      <div className="absolute z-20 mt-2 max-h-64 w-full overflow-auto rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70">
+                        {cabinetResults.map((cabinet) => (
+                          <button
+                            key={cabinet.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCabinet({
+                                id: cabinet.id,
+                                label: `${cabinet.doctor_nom} — ${cabinet.nom} — ${cabinet.specialite}${cabinet.ville ? ` — ${cabinet.ville}` : ""}`,
+                              });
+                              setCabinetQuery(`${cabinet.doctor_nom} — ${cabinet.nom}`);
+                              setCabinetResults([]);
+                              setCabinetNotFound(false);
+                            }}
+                            className="w-full border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-cyan-50"
+                          >
+                            <div className="font-semibold text-slate-800">
+                              {cabinet.doctor_nom} — {cabinet.nom}
+                            </div>
+                            <div className="mt-0.5 text-xs text-slate-500">
+                              {cabinet.specialite}
+                              {cabinet.ville ? ` • ${cabinet.ville}` : ""}
+                              {cabinet.adresse ? ` • ${cabinet.adresse}` : ""}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {errors.cabinet && <p className="mt-2 text-xs text-red-600">{errors.cabinet}</p>}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="mt-6 w-full rounded-full bg-cyan-600 py-3 text-sm font-semibold text-white transition-all hover:bg-cyan-700 disabled:opacity-70"
+              >
+                {isLoading ? "Création en cours..." : "Créer mon compte"}
+              </button>
+            </form>
+          )}
+
+          <div className="mt-6 text-center text-sm text-slate-700">
+            Déjà inscrit ?
+            <Link to="/login" className="ml-1 font-semibold text-cyan-600 hover:underline">
+              Se connecter
+            </Link>
           </div>
-
-          {/* Row 3: CIN */}
-          <div>
-            <label htmlFor="cin" className="block text-sm font-semibold mb-1 text-gray-700">
-              {t.cin}
-            </label>
-            <input
-              id="cin" name="cin" type="text"
-              placeholder={t.cinPlaceholder}
-              value={formData.cin} onChange={handleChange}
-              className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-              style={{ borderColor: errors.cin ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
-            />
-            {errors.cin && <p className="text-xs mt-1 text-red-600">{errors.cin}</p>}
-          </div>
-
-          {/* Row 4: Mot de passe */}
-          <div>
-            <label htmlFor="password" className="block text-sm font-semibold mb-1 text-gray-700">
-              {t.password}
-            </label>
-            <input
-              id="password" name="password" type="password"
-              placeholder={t.passwordPlaceholder}
-              value={formData.password} onChange={handleChange}
-              className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-              style={{ borderColor: errors.password ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
-            />
-            {errors.password && <p className="text-xs mt-1 text-red-600">{errors.password}</p>}
-          </div>
-
-          {/* Row 5: Confirmer mot de passe */}
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-semibold mb-1 text-gray-700">
-              {t.confirmPassword}
-            </label>
-            <input
-              id="confirmPassword" name="confirmPassword" type="password"
-              placeholder={t.confirmPasswordPlaceholder}
-              value={formData.confirmPassword} onChange={handleChange}
-              className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-l-4 focus:border-l-blue-500 transition-colors"
-              style={{ borderColor: errors.confirmPassword ? "#DC3545" : "#E0E0E0", backgroundColor: "#FFFFFF" }}
-            />
-            {errors.confirmPassword && <p className="text-xs mt-1 text-red-600">{errors.confirmPassword}</p>}
-          </div>
-
-          {/* Submit */}
-          <button
-            type="submit" disabled={isLoading}
-            className="w-full py-2.5 rounded text-white font-semibold transition-all hover:opacity-90 disabled:opacity-70 mt-6 tracking-wide uppercase text-sm"
-            style={{ backgroundColor: "#007BFF" }}
-          >
-            {isLoading ? "En cours..." : t.register}
-          </button>
-
-        </form>
-
-        {/* Login Link */}
-        <div className="mt-6 text-center text-sm text-gray-700">
-          {t.haveAccount}
-          <button
-            type="button"
-            className="font-semibold ml-1 hover:underline"
-            style={{ color: "#007BFF" }}
-            onClick={() => navigate("/login")}
-          >
-            {t.signIn}
-          </button>
         </div>
       </div>
     </div>
