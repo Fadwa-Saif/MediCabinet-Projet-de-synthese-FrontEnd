@@ -57,6 +57,29 @@ const formatDateShort = (d) => {
   });
 };
 
+// ─── Toast Component ─────────────────────────────────────────────────────────────
+
+function Toast({ message, type = "success", onClose }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 3500);
+    return () => clearTimeout(t);
+  }, [onClose]);
+
+  return (
+    <div
+      className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl text-sm font-medium transition-all animate-fade-in
+        ${type === "success" ? "bg-green-600 text-white" : "bg-red-500 text-white"}`}
+    >
+      {type === "success" ? (
+        <CheckCircle size={18} />
+      ) : (
+        <AlertCircle size={18} />
+      )}
+      {message}
+    </div>
+  );
+}
+
 // ─── Info Card ────────────────────────────────────────────────────────────────
 
 const InfoCard = ({
@@ -1184,7 +1207,10 @@ export function MedicalRecord() {
       setExportProgress("");
     } catch (err) {
       console.error("PDF Export Error:", err);
-      setToast({ message: `Erreur lors de l'export du PDF: ${err.message}`, type: "error" });
+      setToast({
+        message: `Erreur lors de l'export du PDF: ${err.message}`,
+        type: "error",
+      });
       setPdfExporting(false);
       setExportProgress("");
     }
@@ -1201,6 +1227,15 @@ export function MedicalRecord() {
 
   return (
     <Navbar userRole={userRole} pageTitle="Dossier Médical">
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       {/* Loading Overlay for PDF Export */}
       {pdfExporting && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
