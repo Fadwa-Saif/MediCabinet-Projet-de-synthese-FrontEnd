@@ -48,6 +48,22 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/inscription" element={<InscriptionPage />} />
+          <Route
+            path="/doctor/dashboard"
+            element={
+              <ProtectedRoute requiredRole="doctor">
+                <DoctorDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/secretary/dashboard"
+            element={
+              <ProtectedRoute requiredRole="secretary">
+                <SecretaireDashboard />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Patient routes - protected, role: patient */}
           <Route

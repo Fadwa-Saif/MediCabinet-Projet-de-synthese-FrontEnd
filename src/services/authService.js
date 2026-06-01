@@ -1,5 +1,11 @@
 import api from "./api";
 
+function normalizeRole(role) {
+  if (role === "doctor") return "medecin";
+  if (role === "secretary") return "secretaire";
+  return role || "patient";
+}
+
 function toUiUser(user, role, token, profile = null) {
   return {
     id: user?.id,
@@ -16,13 +22,16 @@ function toUiUser(user, role, token, profile = null) {
 
 const authService = {
   /**
-   * Register a new patient
+   * Register a new account by role
    * @param {Object} userData - Registration data
    * @returns {Promise<Object>} - User data and token
    */
   register: async (userData) => {
     try {
-      const response = await api.post("/auth/register", {
+      const role = normalizeRole(userData.role);
+
+      const payload = {
+        role,
         nom: userData.nom || userData.lastName,
         prenom: userData.prenom || userData.firstName,
         email: userData.email,
@@ -30,20 +39,38 @@ const authService = {
         password_confirmation:
           userData.passwordConfirmation || userData.confirmPassword,
         telephone: userData.telephone || userData.phone,
-        date_naissance: userData.dateNaissance,
-        cin: userData.cin,
-        adresse: userData.adresse,
-        ville: userData.ville,
-      });
+      };
 
-      // Store token and user data
-      if (response.data.token) {
-        const uiUser = toUiUser(response.data.user, "patient", response.data.token);
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data.user));
-        localStorage.setItem("role", "patient");
-        localStorage.setItem("medicabinet_user", JSON.stringify(uiUser));
+      if (role === "patient") {
+        Object.assign(payload, {
+          date_naissance: userData.dateNaissance,
+          cin: userData.cin,
+          adresse: userData.adresse,
+          ville: userData.ville,
+        });
       }
+
+      if (role === "medecin") {
+        Object.assign(payload, {
+          specialite: userData.specialite,
+          cabinet: {
+            nom: userData.cabinetNom,
+            adresse: userData.cabinetAdresse,
+            ville: userData.cabinetVille,
+            specialite: userData.specialite,
+          },
+        });
+      }
+
+      if (role === "secretaire") {
+        Object.assign(payload, {
+          cabinet_id: userData.cabinet_id || userData.cabinetId,
+        });
+      }
+
+      const response = await api.post("/auth/register", {
+        ...payload,
+      });
 
       return response.data;
     } catch (error) {
@@ -54,11 +81,20 @@ const authService = {
   /**
    * Login user
    */
-  login: async (email, password) => {
+  login: async (email, password, role = "patient") => {
     try {
-      const response = await api.post("/auth/login", { email, password });
+      const normalizedRole = normalizeRole(role);
+      const response = await api.post("/auth/login", {
+        email,
+        password,
+        role: normalizedRole,
+      });
 
       if (response.data.token) {
+        if (response.data.role !== normalizedRole) {
+          throw new Error("Rôle incorrect pour ce compte");
+        }
+
         const uiUser = toUiUser(
           response.data.user,
           response.data.role,
@@ -149,6 +185,12 @@ const authService = {
    */
   getRole: () => {
     return localStorage.getItem("role");
+  },
+
+  searchCabinets: async (query) => {
+    const q = encodeURIComponent(query || "");
+    const response = await api.get(`/cabinets/search?q=${q}`);
+    return response.data.data || response.data || [];
   },
 };
 
