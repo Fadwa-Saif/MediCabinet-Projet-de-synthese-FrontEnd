@@ -1,19 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowRight,
   Building2,
   Calendar,
   CalendarCheck,
   CalendarPlus,
-  CalendarRange,
   CheckCircle2,
   ClipboardList,
   FileText,
   FlaskConical,
   FolderHeart,
   HeartPulse,
-  LayoutGrid,
   Menu,
   Stethoscope,
   UserCheck,
@@ -48,17 +45,6 @@ function PrimaryButton({ to, children, className = "", ...props }) {
       to={to}
       className={`inline-flex items-center justify-center gap-2 rounded-full bg-sky-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-600/20 transition-all hover:bg-sky-700 hover:shadow-sky-700/25 ${className}`}
       {...props}
-    >
-      {children}
-    </Link>
-  );
-}
-
-function SecondaryButton({ to, children, className = "" }) {
-  return (
-    <Link
-      to={to}
-      className={`inline-flex items-center justify-center gap-2 rounded-full border border-sky-200 bg-white px-5 py-3 text-sm font-semibold text-sky-700 transition-all hover:border-sky-300 hover:bg-sky-50 ${className}`}
     >
       {children}
     </Link>
