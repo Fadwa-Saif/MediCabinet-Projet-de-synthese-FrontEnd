@@ -1,22 +1,24 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
-  BriefcaseMedical,
-  CalendarDays,
+  Building2,
+  Calendar,
+  CalendarCheck,
+  CalendarPlus,
   CalendarRange,
   CheckCircle2,
-  Clock3,
-  Eye,
+  ClipboardList,
+  FileText,
+  FlaskConical,
+  FolderHeart,
   HeartPulse,
   LayoutGrid,
-  MapPin,
   Menu,
-  Smile,
   Stethoscope,
+  UserCheck,
   Users,
   X,
-  Bone,
 } from "lucide-react";
 import { BrandLogo } from "../components/BrandLogo";
 
@@ -74,62 +76,14 @@ function AnchorButton({ href, children, className = "" }) {
   );
 }
 
-function QuickCard({ icon: Icon, title, description, action, filled = false }) {
+function ServiceCard({ icon: Icon, title, description }) {
   return (
-    <article
-      className={`rounded-2xl p-6 shadow-sm ring-1 transition-all hover:-translate-y-0.5 hover:shadow-md ${
-        filled ? "bg-sky-600 text-white ring-sky-600" : "bg-white ring-slate-200"
-      }`}
-    >
-      <div
-        className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl ${
-          filled ? "bg-white/15 text-white" : "bg-sky-50 text-sky-700"
-        }`}
-      >
-        <Icon size={22} />
+    <article className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-all duration-200 hover:shadow-md hover:border-cyan-200">
+      <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600">
+        <Icon size={24} />
       </div>
-      <h3 className={`text-lg font-semibold ${filled ? "text-white" : "text-slate-800"}`}>
-        {title}
-      </h3>
-      <p className={`mt-2 text-sm leading-6 ${filled ? "text-sky-50/90" : "text-slate-500"}`}>
-        {description}
-      </p>
-      <Link
-        to="/login"
-        className={`mt-5 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-          filled
-            ? "bg-white text-sky-700 hover:bg-sky-50"
-            : "bg-sky-600 text-white hover:bg-sky-700"
-        }`}
-      >
-        {action}
-        <ArrowRight size={16} />
-      </Link>
-    </article>
-  );
-}
-
-function SpecialtyPill({ icon: Icon, label, className = "" }) {
-  return (
-    <div
-      className={`absolute flex items-center gap-2 rounded-full border border-white/70 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-lg ${className}`}
-    >
-      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-sky-600 text-white">
-        <Icon size={14} />
-      </span>
-      {label}
-    </div>
-  );
-}
-
-function TeamCard({ initials, name, specialty }) {
-  return (
-    <article className="rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-slate-200 transition-all hover:-translate-y-0.5 hover:shadow-md">
-      <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-sky-600 text-2xl font-bold text-white shadow-lg shadow-sky-600/20">
-        {initials}
-      </div>
-      <h3 className="mt-4 text-lg font-semibold text-slate-800">{name}</h3>
-      <p className="mt-1 text-sm text-slate-500">{specialty}</p>
+      <h3 className="text-base font-semibold text-slate-800 mb-2">{title}</h3>
+      <p className="text-sm leading-7 text-slate-500">{description}</p>
     </article>
   );
 }
@@ -213,11 +167,85 @@ function PricingCard({
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [billing, setBilling] = useState("monthly");
+  const [stats, setStats] = useState({
+    cabinets: 50,
+    patients: 1200,
+    appointments: 8500,
+  });
+  const [displayStats, setDisplayStats] = useState({
+    cabinets: 0,
+    patients: 0,
+    appointments: 0,
+  });
+  const displayStatsRef = useRef(displayStats);
+
+  useEffect(() => {
+    displayStatsRef.current = displayStats;
+  }, [displayStats]);
+
+  useEffect(() => {
+    let active = true;
+
+    fetch("/api/stats")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Stats fetch failed");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (!active) return;
+
+        setStats({
+          cabinets: data.cabinets ?? 50,
+          patients: data.patients ?? 1200,
+          appointments: data.appointments ?? 8500,
+        });
+      })
+      .catch(() => {
+        // Silence failures and keep fallback values
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const duration = 1500;
+    const steps = 45;
+    let step = 0;
+    const start = displayStatsRef.current;
+    const diff = {
+      cabinets: stats.cabinets - start.cabinets,
+      patients: stats.patients - start.patients,
+      appointments: stats.appointments - start.appointments,
+    };
+
+    const intervalId = window.setInterval(() => {
+      step += 1;
+      if (step >= steps) {
+        setDisplayStats(stats);
+        window.clearInterval(intervalId);
+        return;
+      }
+
+      setDisplayStats({
+        cabinets: Math.round(start.cabinets + (diff.cabinets * step) / steps),
+        patients: Math.round(start.patients + (diff.patients * step) / steps),
+        appointments: Math.round(start.appointments + (diff.appointments * step) / steps),
+      });
+    }, duration / steps);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [stats]);
 
   const navItems = [
     { label: "About", href: "#about" },
     { label: "Services", href: "#services" },
-    { label: "Doctors", href: "#doctors" },
+    { label: "Confiance", href: "#trust" },
     { label: "Pricing", href: "#pricing" },
     { label: "Contact", href: "#contact" },
   ];
@@ -289,37 +317,41 @@ export default function LandingPage() {
       </nav>
 
       <main>
-        <section id="about" className="relative overflow-hidden">
-          <div className="absolute left-[-12rem] top-10 h-96 w-96 rounded-full bg-sky-100/70 blur-3xl" />
-          <div className="absolute right-[-8rem] top-20 h-[28rem] w-[28rem] rounded-full bg-cyan-100/60 blur-3xl" />
-          <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-            <div className="mx-auto grid max-w-5xl gap-10 rounded-[2rem] bg-white p-6 shadow-xl shadow-slate-200/70 ring-1 ring-slate-200 sm:p-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12 lg:p-10">
-              <div className="relative z-10 flex flex-col justify-center">
-                <p className="text-sm font-semibold uppercase tracking-[0.35em] text-sky-600">MEDICAL</p>
-                <h1 className="mt-4 max-w-xl text-4xl font-black tracking-tight text-slate-800 sm:text-5xl">
-                  Votre santé, notre priorité
-                </h1>
-                <p className="mt-5 max-w-xl text-base leading-8 text-slate-500 sm:text-lg">
-                  Gérez vos rendez-vous, consultations et dossiers médicaux en toute simplicité.
-                </p>
-                <div className="mt-8 flex flex-wrap items-center gap-4">
-                  <PrimaryButton to="/inscription">S'inscrire gratuitement</PrimaryButton>
-                  <AnchorButton href="#pricing">Découvrir les offres</AnchorButton>
-                </div>
-              </div>
+        <section id="about" className="relative overflow-hidden bg-gradient-to-b from-cyan-50 to-white py-24 sm:py-32">
+          <div className="pointer-events-none absolute -top-12 right-0 h-72 w-72 rounded-full bg-cyan-200/40 blur-3xl opacity-30" />
+          <div className="mx-auto flex min-h-[90vh] max-w-7xl flex-col items-center justify-center px-4 text-center sm:px-6 lg:px-8">
+            <span className="inline-block rounded-full bg-cyan-50 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-cyan-600 mb-4">
+              MEDICAL
+            </span>
+            <h1 className="text-5xl font-bold leading-tight tracking-tight text-slate-800 sm:text-6xl lg:text-7xl">
+              Votre santé,
+              <br />
+              <span className="text-cyan-600">notre priorité</span>
+            </h1>
+            <p className="mx-auto mt-4 max-w-xl text-lg text-slate-500">
+              Gérez vos rendez-vous, consultations et dossiers médicaux en toute simplicité — pour patients et cabinets médicaux.
+            </p>
+            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <PrimaryButton to="/inscription" className="px-8 py-3">
+                S'inscrire gratuitement
+              </PrimaryButton>
+              <AnchorButton href="#pricing" className="px-8 py-3">
+                Découvrir les offres
+              </AnchorButton>
+            </div>
 
-              <div className="relative flex items-center justify-center">
-                <div className="relative flex h-[20rem] w-full max-w-[28rem] items-center justify-center overflow-hidden rounded-[2rem] bg-cyan-50 p-6 shadow-inner ring-1 ring-slate-200 sm:h-[24rem]">
-                  <div className="absolute inset-8 rounded-full bg-cyan-100/80 blur-2xl" />
-                  <div className="relative flex h-56 w-56 items-center justify-center rounded-full bg-cyan-600 text-white shadow-2xl shadow-cyan-600/20 sm:h-64 sm:w-64">
-                    <Stethoscope size={80} />
-                    <div className="absolute -left-4 top-10 rounded-full bg-white p-3 text-cyan-600 shadow-lg ring-1 ring-cyan-100">
-                      <HeartPulse size={34} />
-                    </div>
-                    <div className="absolute -right-4 bottom-10 rounded-full bg-white p-3 text-cyan-600 shadow-lg ring-1 ring-cyan-100">
-                      <CalendarDays size={34} />
-                    </div>
-                  </div>
+            <div className="relative mt-12 flex items-center justify-center">
+              <div className="relative h-48 w-48 rounded-full bg-cyan-50 mx-auto flex items-center justify-center shadow-xl shadow-cyan-200/40">
+                <Stethoscope size={64} className="text-cyan-600" />
+
+                <div className="absolute -left-6 top-6 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200">
+                  <HeartPulse size={24} className="text-cyan-600" />
+                </div>
+                <div className="absolute -right-6 top-8 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200">
+                  <Calendar size={24} className="text-cyan-600" />
+                </div>
+                <div className="absolute left-1/2 top-[92%] -translate-x-1/2 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200">
+                  <UserCheck size={24} className="text-cyan-600" />
                 </div>
               </div>
             </div>
@@ -327,153 +359,129 @@ export default function LandingPage() {
         </section>
 
         <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-            <QuickCard
-              icon={Clock3}
-              title="Opening Hours"
-              description="Mon–Fri 9:00am–12:00pm"
-              action="View Hours"
-            />
-            <QuickCard
-              icon={CalendarDays}
-              title="Book Appointment"
-              description="Schedule your next consultation in seconds."
-              action="Request"
-              filled
-            />
-            <QuickCard
-              icon={Users}
-              title="Find Doctors"
-              description="Browse specialists and care teams that fit your needs."
-              action="Doctors"
-            />
-            <QuickCard
-              icon={MapPin}
-              title="Find Locations"
-              description="Locate the nearest clinic or cabinet quickly."
-              action="Locations"
-            />
+          <div className="flex flex-col gap-6 justify-center max-w-2xl mx-auto sm:flex-row">
+            <article className="flex-1 rounded-2xl bg-cyan-600 p-6 text-white shadow-sm shadow-cyan-200/30">
+              <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white">
+                <CalendarPlus size={32} />
+              </div>
+              <h3 className="text-lg font-semibold">Prendre un RDV</h3>
+              <p className="mt-3 text-sm leading-7 text-cyan-100/90">
+                Trouvez le bon médecin et réservez en quelques clics.
+              </p>
+              <Link
+                to="/inscription"
+                className="mt-6 inline-flex rounded-full bg-white px-4 py-1.5 text-sm font-medium text-cyan-600 transition hover:bg-cyan-50"
+              >
+                Réserver
+              </Link>
+            </article>
+
+            <article className="flex-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600">
+                <Stethoscope size={32} />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-800">Trouver un Médecin</h3>
+              <p className="mt-3 text-sm leading-7 text-slate-500">
+                Parcourez nos cabinets par spécialité et choisissez votre médecin.
+              </p>
+              <Link
+                to="/inscription"
+                className="mt-6 inline-flex rounded-full bg-cyan-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-cyan-700"
+              >
+                Rechercher
+              </Link>
+            </article>
           </div>
         </section>
 
         <section id="services" className="bg-white py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <SectionLabel>SERVICE</SectionLabel>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl">
-              Our Medical Services
-            </h2>
+            <div className="text-center mb-12">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-600">
+                SERVICES
+              </p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl">
+                Tout ce dont vous avez besoin, au même endroit
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-500">
+                MediCabinet simplifie la gestion médicale pour les patients comme pour les professionnels de santé.
+              </p>
+            </div>
 
-            <div className="mt-12 grid items-center gap-12 lg:grid-cols-2">
-              <div className="relative mx-auto flex min-h-[34rem] w-full max-w-xl items-center justify-center">
-                <div className="relative flex h-96 w-96 items-center justify-center rounded-full bg-sky-50 shadow-inner ring-1 ring-sky-100">
-                  <div className="flex h-52 w-52 items-center justify-center rounded-full bg-sky-600 text-white shadow-2xl shadow-sky-600/20">
-                    <Stethoscope size={74} />
-                  </div>
-                  <SpecialtyPill icon={Eye} label="Eye Care" className="left-4 top-24" />
-                  <SpecialtyPill icon={HeartPulse} label="Cardiology" className="right-6 top-16" />
-                  <SpecialtyPill icon={BriefcaseMedical} label="Medicine" className="left-10 bottom-20" />
-                  <SpecialtyPill icon={Smile} label="Dental" className="right-10 bottom-16" />
-                  <SpecialtyPill icon={Bone} label="Orthopedics" className="left-28 bottom-4" />
-                </div>
-              </div>
-
-              <article className="rounded-[2rem] bg-[#F9FBFD] p-8 shadow-sm ring-1 ring-slate-200 sm:p-10">
-                <div className="inline-flex rounded-full bg-sky-100 px-4 py-2 text-sm font-semibold text-sky-700">
-                  Dental Care Service
-                </div>
-                <h3 className="mt-5 text-3xl font-bold tracking-tight text-slate-800">
-                  Care designed for everyday health and specialty needs.
-                </h3>
-                <p className="mt-4 max-w-xl text-base leading-8 text-slate-500">
-                  From routine checkups to specialist follow-up, MediCabinet centralizes records, consultations, and treatment plans in a single secure workspace.
-                </p>
-                <div className="mt-8">
-                  <SecondaryButton to="/login">Learn more</SecondaryButton>
-                </div>
-              </article>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <ServiceCard
+                icon={CalendarCheck}
+                title="Prise de RDV en ligne"
+                description="Réservez une consultation avec votre médecin en quelques secondes, depuis n'importe quel appareil."
+              />
+              <ServiceCard
+                icon={FolderHeart}
+                title="Dossier Médical Numérique"
+                description="Consultez vos antécédents, analyses et prescriptions à tout moment, en toute sécurité."
+              />
+              <ServiceCard
+                icon={FlaskConical}
+                title="Gestion des Analyses"
+                description="Uploadez et partagez vos résultats d'analyses directement avec votre médecin."
+              />
+              <ServiceCard
+                icon={ClipboardList}
+                title="Rapports de Consultation"
+                description="Les médecins rédigent et partagent des rapports détaillés après chaque consultation."
+              />
+              <ServiceCard
+                icon={FileText}
+                title="Ordonnances & Attestations"
+                description="Générez des ordonnances numériques et des attestations médicales en PDF en un clic."
+              />
+              <ServiceCard
+                icon={Building2}
+                title="Gestion du Cabinet"
+                description="Médecins et secrétaires gèrent rendez-vous, patients et documents depuis un seul tableau de bord."
+              />
             </div>
           </div>
         </section>
 
-        <section className="bg-slate-50 py-20">
+        <section id="trust" className="bg-cyan-600 py-20 text-white">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <SectionLabel>FEATURES</SectionLabel>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl">
-              Our Speciality
-            </h2>
+            <div className="text-center mb-12">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-100/80">
+                CONFIANCE
+              </p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                Ils nous font confiance
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-cyan-100/80">
+                Des chiffres qui parlent d'eux-mêmes.
+              </p>
+            </div>
 
-            <div className="mt-12 grid gap-6 lg:grid-cols-2">
-              <article className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-sky-600 to-cyan-600 p-8 text-white shadow-xl shadow-sky-600/20">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
-                  <LayoutGrid size={24} />
-                </div>
-                <h3 className="mt-8 text-2xl font-bold">Online Appointment</h3>
-                <p className="mt-3 max-w-lg text-sm leading-7 text-sky-50/90">
-                  Offer patients a fast and clear booking experience with secure access to your healthcare services.
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+              <article className="rounded-3xl border border-cyan-500/30 bg-white/10 p-8 text-center">
+                <Building2 className="mx-auto text-cyan-100" size={32} />
+                <p className="mt-6 text-5xl font-bold text-white">
+                  {displayStats.cabinets.toLocaleString("fr-FR")}
                 </p>
-                <Link
-                  to="/login"
-                  className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-white underline-offset-4 transition-colors hover:text-sky-100 hover:underline"
-                >
-                  Learn more
-                  <ArrowRight size={16} />
-                </Link>
+                <p className="mt-3 text-lg font-semibold text-cyan-100">Cabinets Médicaux</p>
+                <p className="mt-2 text-sm text-cyan-100/80">nous rejoignent chaque mois</p>
               </article>
-
-              <article className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-slate-200">
-                <div className="flex items-start justify-between gap-6">
-                  <div>
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
-                      <CalendarRange size={24} />
-                    </div>
-                    <h3 className="mt-6 text-2xl font-bold text-slate-800">Appointment Schedules</h3>
-                    <p className="mt-3 max-w-lg text-sm leading-7 text-slate-500">
-                      Organize schedules, track availability, and keep your care workflow transparent for staff and patients.
-                    </p>
-                  </div>
-                  <div className="hidden rounded-[2rem] bg-slate-50 p-5 text-sky-600 sm:block">
-                    <div className="grid gap-2">
-                      <div className="grid grid-cols-4 gap-2">
-                        {Array.from({ length: 4 }).map((_, index) => (
-                          <span key={index} className="h-3 rounded-full bg-sky-200" />
-                        ))}
-                      </div>
-                      <div className="grid grid-cols-4 gap-2">
-                        {Array.from({ length: 4 }).map((_, index) => (
-                          <span key={index} className="h-3 rounded-full bg-sky-300" />
-                        ))}
-                      </div>
-                      <div className="grid grid-cols-4 gap-2">
-                        {Array.from({ length: 4 }).map((_, index) => (
-                          <span key={index} className="h-3 rounded-full bg-sky-400" />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-8">
-                  <SecondaryButton to="/login">Schedules</SecondaryButton>
-                </div>
+              <article className="rounded-3xl border border-cyan-500/30 bg-white/10 p-8 text-center">
+                <Users className="mx-auto text-cyan-100" size={32} />
+                <p className="mt-6 text-5xl font-bold text-white">
+                  {displayStats.patients.toLocaleString("fr-FR")}
+                </p>
+                <p className="mt-3 text-lg font-semibold text-cyan-100">Patients Actifs</p>
+                <p className="mt-2 text-sm text-cyan-100/80">gèrent leur santé en ligne</p>
               </article>
-            </div>
-          </div>
-        </section>
-
-        <section id="doctors" className="bg-white py-20">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <SectionLabel>TEAM</SectionLabel>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl">
-              Our Doctors
-            </h2>
-
-            <div className="mt-12 grid gap-6 md:grid-cols-3">
-              <TeamCard initials="MB" name="Mamman Bo" specialty="Dermatologist" />
-              <TeamCard initials="RS" name="Reda Siana" specialty="Cardiologist" />
-              <TeamCard initials="YH" name="Yaroslav Hawa" specialty="General Practitioner" />
-            </div>
-
-            <div className="mt-10 flex justify-center">
-              <SecondaryButton to="/login">See All</SecondaryButton>
+              <article className="rounded-3xl border border-cyan-500/30 bg-white/10 p-8 text-center">
+                <CalendarCheck className="mx-auto text-cyan-100" size={32} />
+                <p className="mt-6 text-5xl font-bold text-white">
+                  {displayStats.appointments.toLocaleString("fr-FR")}
+                </p>
+                <p className="mt-3 text-lg font-semibold text-cyan-100">RDV Planifiés</p>
+                <p className="mt-2 text-sm text-cyan-100/80">depuis le lancement de la plateforme</p>
+              </article>
             </div>
           </div>
         </section>
