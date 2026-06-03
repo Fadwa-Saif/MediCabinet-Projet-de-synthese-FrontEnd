@@ -322,21 +322,39 @@ export default function LandingPage() {
           className="relative overflow-hidden bg-gradient-to-b from-cyan-50 to-white py-0 -mt-[60px]"
         >
           <div className="pointer-events-none absolute -top-12 right-0 h-72 w-72 rounded-full bg-cyan-200/40 blur-3xl opacity-30" />
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 gap-8 min-h-screen">
+          <div className="mx-auto flex flex-col lg:flex-row max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 gap-8 min-h-screen py-16 sm:py-20 lg:py-0">
             {/* Left Content */}
-            <div className="flex-1 flex flex-col justify-center text-left">
+            <div className="w-full lg:flex-1 flex flex-col justify-center text-left order-1 lg:order-1">
               <span className="inline-block rounded-full bg-cyan-50 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-cyan-600 mb-4 w-fit animate-fadeInUp">
                 MEDICAL
               </span>
-              <h1 className="text-4xl font-bold leading-tight tracking-tight text-slate-800 sm:text-5xl lg:text-6xl animate-fadeInUpDelay">
+              <h1 className="text-3xl sm:text-4xl font-bold leading-tight tracking-tight text-slate-800 sm:text-5xl lg:text-6xl animate-fadeInUpDelay">
                 Votre santé,
                 <br />
                 <span className="text-cyan-600">notre priorité</span>
               </h1>
-              <p className="mt-4 text-lg text-slate-500 animate-fadeInUpDelay2">
+              <p className="mt-4 text-base sm:text-lg text-slate-500 animate-fadeInUpDelay2">
                 Gérez vos rendez-vous, consultations et dossiers médicaux en
                 toute simplicité — pour patients et cabinets médicaux.
               </p>
+
+              {/* Icons - Now inside Left Content */}
+              <div className="flex items-center justify-center lg:hidden my-8">
+                <div className="relative h-48 sm:h-56 w-48 sm:w-56 rounded-full bg-cyan-50 flex items-center justify-center shadow-xl shadow-cyan-200/40 animate-scaleIn">
+                  <Stethoscope size={48} className="text-cyan-600" />
+
+                  <div className="absolute -left-6 sm:-left-8 top-4 sm:top-6 flex h-12 sm:h-16 w-12 sm:w-16 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200 animate-scaleInDelay">
+                    <HeartPulse size={16} className="text-cyan-600" />
+                  </div>
+                  <div className="absolute -right-6 sm:-right-8 top-5 sm:top-8 flex h-12 sm:h-16 w-12 sm:w-16 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200 animate-scaleInDelay2">
+                    <Calendar size={16} className="text-cyan-600" />
+                  </div>
+                  <div className="absolute left-1/2 top-[92%] -translate-x-1/2 flex h-12 sm:h-16 w-12 sm:w-16 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200 animate-scaleInDelay3">
+                    <UserCheck size={16} className="text-cyan-600" />
+                  </div>
+                </div>
+              </div>
+
               <div className="mt-8 flex flex-col gap-4 sm:flex-row animate-fadeInUpDelay2">
                 <PrimaryButton to="/inscription" className="px-8 py-3">
                   S'inscrire gratuitement
@@ -347,19 +365,31 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right Icons */}
-            <div className="flex-1 flex items-center justify-center">
-              <div className="relative h-64 w-64 rounded-full bg-cyan-50 flex items-center justify-center shadow-xl shadow-cyan-200/40 animate-scaleIn">
-                <Stethoscope size={80} className="text-cyan-600" />
+            {/* Right Icons - Desktop only */}
+            <div className="hidden lg:flex flex-1 items-center justify-center order-2 lg:order-2">
+              <div className="relative h-48 sm:h-56 lg:h-64 w-48 sm:w-56 lg:w-64 rounded-full bg-cyan-50 flex items-center justify-center shadow-xl shadow-cyan-200/40 animate-scaleIn">
+                <Stethoscope
+                  size={60}
+                  className="text-cyan-600 sm:block hidden lg:block"
+                />
 
-                <div className="absolute -left-8 top-6 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200 animate-scaleInDelay">
-                  <HeartPulse size={28} className="text-cyan-600" />
+                <div className="absolute -left-6 sm:-left-8 top-4 sm:top-6 flex h-12 sm:h-16 w-12 sm:w-16 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200 animate-scaleInDelay">
+                  <HeartPulse
+                    size={20}
+                    className="text-cyan-600 sm:block hidden lg:block"
+                  />
                 </div>
-                <div className="absolute -right-8 top-8 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200 animate-scaleInDelay2">
-                  <Calendar size={28} className="text-cyan-600" />
+                <div className="absolute -right-6 sm:-right-8 top-5 sm:top-8 flex h-12 sm:h-16 w-12 sm:w-16 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200 animate-scaleInDelay2">
+                  <Calendar
+                    size={20}
+                    className="text-cyan-600 sm:block hidden lg:block"
+                  />
                 </div>
-                <div className="absolute left-1/2 top-[92%] -translate-x-1/2 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200 animate-scaleInDelay3">
-                  <UserCheck size={28} className="text-cyan-600" />
+                <div className="absolute left-1/2 top-[92%] -translate-x-1/2 flex h-12 sm:h-16 w-12 sm:w-16 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200 animate-scaleInDelay3">
+                  <UserCheck
+                    size={20}
+                    className="text-cyan-600 sm:block hidden lg:block"
+                  />
                 </div>
               </div>
             </div>
