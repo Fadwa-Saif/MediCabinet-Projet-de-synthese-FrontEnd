@@ -99,7 +99,9 @@ function PricingCard({
   return (
     <article
       className={`relative rounded-2xl p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
-        highlighted ? "border-2 border-cyan-600 bg-white shadow-md" : "border border-slate-200 bg-white"
+        highlighted
+          ? "border-2 border-cyan-600 bg-white shadow-md"
+          : "border border-slate-200 bg-white"
       }`}
     >
       {badge && (
@@ -118,13 +120,19 @@ function PricingCard({
       <div className="mt-6 border-t border-slate-200 pt-6">
         {billing === "annual" && annualMonthlyEquivalent ? (
           <div className="mb-2 flex items-end gap-3">
-            <span className="text-sm text-slate-400 line-through">{annualMonthlyEquivalent}</span>
-            <span className="text-3xl font-bold text-slate-800">{priceAnnual}</span>
+            <span className="text-sm text-slate-400 line-through">
+              {annualMonthlyEquivalent}
+            </span>
+            <span className="text-3xl font-bold text-slate-800">
+              {priceAnnual}
+            </span>
             <span className="pb-1 text-sm text-slate-400">/an</span>
           </div>
         ) : (
           <div className="mb-2 flex items-end gap-1">
-            <span className="text-3xl font-bold text-slate-800">{priceMonthly}</span>
+            <span className="text-3xl font-bold text-slate-800">
+              {priceMonthly}
+            </span>
             <span className="pb-1 text-sm text-slate-400">/mois</span>
           </div>
         )}
@@ -219,7 +227,9 @@ export default function LandingPage() {
       setDisplayStats({
         cabinets: Math.round(start.cabinets + (diff.cabinets * step) / steps),
         patients: Math.round(start.patients + (diff.patients * step) / steps),
-        appointments: Math.round(start.appointments + (diff.appointments * step) / steps),
+        appointments: Math.round(
+          start.appointments + (diff.appointments * step) / steps,
+        ),
       });
     }, duration / steps);
 
@@ -293,7 +303,11 @@ export default function LandingPage() {
                 >
                   Se connecter
                 </Link>
-                <PrimaryButton to="/inscription" className="w-full py-3.5" onClick={closeMenu}>
+                <PrimaryButton
+                  to="/inscription"
+                  className="w-full py-3.5"
+                  onClick={closeMenu}
+                >
                   S'inscrire
                 </PrimaryButton>
               </div>
@@ -303,41 +317,49 @@ export default function LandingPage() {
       </nav>
 
       <main>
-        <section id="about" className="relative overflow-hidden bg-gradient-to-b from-cyan-50 to-white py-24 sm:py-32">
+        <section
+          id="about"
+          className="relative overflow-hidden bg-gradient-to-b from-cyan-50 to-white py-0 -mt-[60px]"
+        >
           <div className="pointer-events-none absolute -top-12 right-0 h-72 w-72 rounded-full bg-cyan-200/40 blur-3xl opacity-30" />
-          <div className="mx-auto flex min-h-[90vh] max-w-7xl flex-col items-center justify-center px-4 text-center sm:px-6 lg:px-8">
-            <span className="inline-block rounded-full bg-cyan-50 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-cyan-600 mb-4">
-              MEDICAL
-            </span>
-            <h1 className="text-5xl font-bold leading-tight tracking-tight text-slate-800 sm:text-6xl lg:text-7xl">
-              Votre santé,
-              <br />
-              <span className="text-cyan-600">notre priorité</span>
-            </h1>
-            <p className="mx-auto mt-4 max-w-xl text-lg text-slate-500">
-              Gérez vos rendez-vous, consultations et dossiers médicaux en toute simplicité — pour patients et cabinets médicaux.
-            </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <PrimaryButton to="/inscription" className="px-8 py-3">
-                S'inscrire gratuitement
-              </PrimaryButton>
-              <AnchorButton href="#pricing" className="px-8 py-3">
-                Découvrir les offres
-              </AnchorButton>
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 gap-8 min-h-screen">
+            {/* Left Content */}
+            <div className="flex-1 flex flex-col justify-center text-left">
+              <span className="inline-block rounded-full bg-cyan-50 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-cyan-600 mb-4 w-fit animate-fadeInUp">
+                MEDICAL
+              </span>
+              <h1 className="text-4xl font-bold leading-tight tracking-tight text-slate-800 sm:text-5xl lg:text-6xl animate-fadeInUpDelay">
+                Votre santé,
+                <br />
+                <span className="text-cyan-600">notre priorité</span>
+              </h1>
+              <p className="mt-4 text-lg text-slate-500 animate-fadeInUpDelay2">
+                Gérez vos rendez-vous, consultations et dossiers médicaux en
+                toute simplicité — pour patients et cabinets médicaux.
+              </p>
+              <div className="mt-8 flex flex-col gap-4 sm:flex-row animate-fadeInUpDelay2">
+                <PrimaryButton to="/inscription" className="px-8 py-3">
+                  S'inscrire gratuitement
+                </PrimaryButton>
+                <AnchorButton href="#pricing" className="px-8 py-3">
+                  Découvrir les offres
+                </AnchorButton>
+              </div>
             </div>
 
-            <div className="relative mt-12 flex items-center justify-center">
-              <div className="relative h-48 w-48 rounded-full bg-cyan-50 mx-auto flex items-center justify-center shadow-xl shadow-cyan-200/40">
-                <Stethoscope size={64} className="text-cyan-600" />
+            {/* Right Icons */}
+            <div className="flex-1 flex items-center justify-center">
+              <div className="relative h-64 w-64 rounded-full bg-cyan-50 flex items-center justify-center shadow-xl shadow-cyan-200/40 animate-scaleIn">
+                <Stethoscope size={80} className="text-cyan-600" />
 
-                <div className="absolute -left-6 top-6 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200">
-                  <HeartPulse size={24} className="text-cyan-600" />
+                <div className="absolute -left-8 top-6 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200 animate-scaleInDelay">
+                  <HeartPulse size={28} className="text-cyan-600" />
                 </div>
-                <div className="absolute -right-6 top-8 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200">
-                  <Calendar size={24} className="text-cyan-600" />
+                <div className="absolute -right-8 top-8 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200 animate-scaleInDelay2">
+                  <Calendar size={28} className="text-cyan-600" />
                 </div>
-                <div className="absolute left-1/2 top-[92%] -translate-x-1/2 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200">
-                  <UserCheck size={24} className="text-cyan-600" />
+                <div className="absolute left-1/2 top-[92%] -translate-x-1/2 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200 animate-scaleInDelay3">
+                  <UserCheck size={28} className="text-cyan-600" />
                 </div>
               </div>
             </div>
@@ -346,7 +368,7 @@ export default function LandingPage() {
 
         <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-6 justify-center max-w-2xl mx-auto sm:flex-row">
-            <article className="flex-1 rounded-2xl bg-cyan-600 p-6 text-white shadow-sm shadow-cyan-200/30">
+            <article className="flex-1 rounded-2xl bg-cyan-600 p-6 text-white shadow-sm shadow-cyan-200/30 animate-slideInLeft">
               <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white">
                 <CalendarPlus size={32} />
               </div>
@@ -362,13 +384,16 @@ export default function LandingPage() {
               </Link>
             </article>
 
-            <article className="flex-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <article className="flex-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm animate-slideInRight">
               <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600">
                 <Stethoscope size={32} />
               </div>
-              <h3 className="text-lg font-semibold text-slate-800">Trouver un Médecin</h3>
+              <h3 className="text-lg font-semibold text-slate-800">
+                Trouver un Médecin
+              </h3>
               <p className="mt-3 text-sm leading-7 text-slate-500">
-                Parcourez nos cabinets par spécialité et choisissez votre médecin.
+                Parcourez nos cabinets par spécialité et choisissez votre
+                médecin.
               </p>
               <Link
                 to="/inscription"
@@ -383,48 +408,61 @@ export default function LandingPage() {
         <section id="services" className="bg-white py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-600">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-600 animate-fadeInUp">
                 SERVICES
               </p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl">
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl animate-fadeInUpDelay">
                 Tout ce dont vous avez besoin, au même endroit
               </h2>
-              <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-500">
-                MediCabinet simplifie la gestion médicale pour les patients comme pour les professionnels de santé.
+              <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-500 animate-fadeInUpDelay2">
+                MediCabinet simplifie la gestion médicale pour les patients
+                comme pour les professionnels de santé.
               </p>
             </div>
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              <ServiceCard
-                icon={CalendarCheck}
-                title="Prise de RDV en ligne"
-                description="Réservez une consultation avec votre médecin en quelques secondes, depuis n'importe quel appareil."
-              />
-              <ServiceCard
-                icon={FolderHeart}
-                title="Dossier Médical Numérique"
-                description="Consultez vos antécédents, analyses et prescriptions à tout moment, en toute sécurité."
-              />
-              <ServiceCard
-                icon={FlaskConical}
-                title="Gestion des Analyses"
-                description="Uploadez et partagez vos résultats d'analyses directement avec votre médecin."
-              />
-              <ServiceCard
-                icon={ClipboardList}
-                title="Rapports de Consultation"
-                description="Les médecins rédigent et partagent des rapports détaillés après chaque consultation."
-              />
-              <ServiceCard
-                icon={FileText}
-                title="Ordonnances & Attestations"
-                description="Générez des ordonnances numériques et des attestations médicales en PDF en un clic."
-              />
-              <ServiceCard
-                icon={Building2}
-                title="Gestion du Cabinet"
-                description="Médecins et secrétaires gèrent rendez-vous, patients et documents depuis un seul tableau de bord."
-              />
+              <div className="animate-scaleIn">
+                <ServiceCard
+                  icon={CalendarCheck}
+                  title="Prise de RDV en ligne"
+                  description="Réservez une consultation avec votre médecin en quelques secondes, depuis n'importe quel appareil."
+                />
+              </div>
+              <div className="animate-scaleInDelay">
+                <ServiceCard
+                  icon={FolderHeart}
+                  title="Dossier Médical Numérique"
+                  description="Consultez vos antécédents, analyses et prescriptions à tout moment, en toute sécurité."
+                />
+              </div>
+              <div className="animate-scaleInDelay2">
+                <ServiceCard
+                  icon={FlaskConical}
+                  title="Gestion des Analyses"
+                  description="Uploadez et partagez vos résultats d'analyses directement avec votre médecin."
+                />
+              </div>
+              <div className="animate-scaleInDelay3">
+                <ServiceCard
+                  icon={ClipboardList}
+                  title="Rapports de Consultation"
+                  description="Les médecins rédigent et partagent des rapports détaillés après chaque consultation."
+                />
+              </div>
+              <div className="animate-scaleIn">
+                <ServiceCard
+                  icon={FileText}
+                  title="Ordonnances & Attestations"
+                  description="Générez des ordonnances numériques et des attestations médicales en PDF en un clic."
+                />
+              </div>
+              <div className="animate-scaleInDelay">
+                <ServiceCard
+                  icon={Building2}
+                  title="Gestion du Cabinet"
+                  description="Médecins et secrétaires gèrent rendez-vous, patients et documents depuis un seul tableau de bord."
+                />
+              </div>
             </div>
           </div>
         </section>
@@ -432,41 +470,53 @@ export default function LandingPage() {
         <section id="trust" className="bg-cyan-600 py-20 text-white">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-100/80">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-100/80 animate-fadeInUp">
                 CONFIANCE
               </p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl animate-fadeInUpDelay">
                 Ils nous font confiance
               </h2>
-              <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-cyan-100/80">
+              <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-cyan-100/80 animate-fadeInUpDelay2">
                 Des chiffres qui parlent d'eux-mêmes.
               </p>
             </div>
 
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
-              <article className="rounded-3xl border border-cyan-500/30 bg-white/10 p-8 text-center">
+              <article className="rounded-3xl border border-cyan-500/30 bg-white/10 p-8 text-center animate-scaleIn">
                 <Building2 className="mx-auto text-cyan-100" size={32} />
                 <p className="mt-6 text-5xl font-bold text-white">
                   {displayStats.cabinets.toLocaleString("fr-FR")}
                 </p>
-                <p className="mt-3 text-lg font-semibold text-cyan-100">Cabinets Médicaux</p>
-                <p className="mt-2 text-sm text-cyan-100/80">nous rejoignent chaque mois</p>
+                <p className="mt-3 text-lg font-semibold text-cyan-100">
+                  Cabinets Médicaux
+                </p>
+                <p className="mt-2 text-sm text-cyan-100/80">
+                  nous rejoignent chaque mois
+                </p>
               </article>
-              <article className="rounded-3xl border border-cyan-500/30 bg-white/10 p-8 text-center">
+              <article className="rounded-3xl border border-cyan-500/30 bg-white/10 p-8 text-center animate-scaleInDelay">
                 <Users className="mx-auto text-cyan-100" size={32} />
                 <p className="mt-6 text-5xl font-bold text-white">
                   {displayStats.patients.toLocaleString("fr-FR")}
                 </p>
-                <p className="mt-3 text-lg font-semibold text-cyan-100">Patients Actifs</p>
-                <p className="mt-2 text-sm text-cyan-100/80">gèrent leur santé en ligne</p>
+                <p className="mt-3 text-lg font-semibold text-cyan-100">
+                  Patients Actifs
+                </p>
+                <p className="mt-2 text-sm text-cyan-100/80">
+                  gèrent leur santé en ligne
+                </p>
               </article>
-              <article className="rounded-3xl border border-cyan-500/30 bg-white/10 p-8 text-center">
+              <article className="rounded-3xl border border-cyan-500/30 bg-white/10 p-8 text-center animate-scaleInDelay2">
                 <CalendarCheck className="mx-auto text-cyan-100" size={32} />
                 <p className="mt-6 text-5xl font-bold text-white">
                   {displayStats.appointments.toLocaleString("fr-FR")}
                 </p>
-                <p className="mt-3 text-lg font-semibold text-cyan-100">RDV Planifiés</p>
-                <p className="mt-2 text-sm text-cyan-100/80">depuis le lancement de la plateforme</p>
+                <p className="mt-3 text-lg font-semibold text-cyan-100">
+                  RDV Planifiés
+                </p>
+                <p className="mt-2 text-sm text-cyan-100/80">
+                  depuis le lancement de la plateforme
+                </p>
               </article>
             </div>
           </div>
@@ -474,8 +524,8 @@ export default function LandingPage() {
 
         <section id="pricing" className="bg-slate-50 py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <SectionLabel>PRICING</SectionLabel>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl">
+            <SectionLabel className="animate-fadeInUp">PRICING</SectionLabel>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl animate-fadeInUpDelay">
               Choisissez l'offre qui vous convient
             </h2>
 
@@ -485,7 +535,9 @@ export default function LandingPage() {
                   type="button"
                   onClick={() => setBilling("monthly")}
                   className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                    billing === "monthly" ? "bg-cyan-600 text-white" : "text-slate-600"
+                    billing === "monthly"
+                      ? "bg-cyan-600 text-white"
+                      : "text-slate-600"
                   }`}
                 >
                   Mensuel
@@ -494,7 +546,9 @@ export default function LandingPage() {
                   type="button"
                   onClick={() => setBilling("annual")}
                   className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                    billing === "annual" ? "bg-cyan-600 text-white" : "text-slate-600"
+                    billing === "annual"
+                      ? "bg-cyan-600 text-white"
+                      : "text-slate-600"
                   }`}
                 >
                   Annuel
@@ -504,8 +558,12 @@ export default function LandingPage() {
 
             <div className="mt-12 grid gap-10 lg:grid-cols-2">
               <div>
-                <h3 className="text-lg font-semibold text-slate-800">Pour les Patients</h3>
-                <p className="mt-1 text-sm text-slate-500">Accédez à vos soins en toute simplicité</p>
+                <h3 className="text-lg font-semibold text-slate-800">
+                  Pour les Patients
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Accédez à vos soins en toute simplicité
+                </p>
 
                 <div className="mt-6 grid gap-6 sm:grid-cols-2">
                   <PricingCard
@@ -546,8 +604,12 @@ export default function LandingPage() {
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold text-slate-800">Pour les Cabinets</h3>
-                <p className="mt-1 text-sm text-slate-500">Gérez votre cabinet efficacement</p>
+                <h3 className="text-lg font-semibold text-slate-800">
+                  Pour les Cabinets
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Gérez votre cabinet efficacement
+                </p>
 
                 <div className="mt-6 grid gap-6 sm:grid-cols-2">
                   <PricingCard
@@ -596,37 +658,55 @@ export default function LandingPage() {
 
       <footer id="contact" className="border-t border-slate-200 bg-slate-50">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-3 lg:px-8">
-          <div>
+          <div className="animate-fadeInUp">
             <Link to="/">
               <BrandLogo />
             </Link>
             <p className="mt-4 max-w-md text-sm leading-7 text-slate-500">
-              A modern healthcare management platform for appointments, patient records, and care coordination.
+              A modern healthcare management platform for appointments, patient
+              records, and care coordination.
             </p>
           </div>
 
-          <div>
-            <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Links</h3>
+          <div className="animate-fadeInUpDelay">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">
+              Links
+            </h3>
             <div className="mt-4 flex flex-col gap-3">
-              <a href="#services" className="text-sm text-slate-600 transition-colors hover:text-sky-700">
+              <a
+                href="#services"
+                className="text-sm text-slate-600 transition-colors hover:text-sky-700"
+              >
                 Services
               </a>
-              <a href="#doctors" className="text-sm text-slate-600 transition-colors hover:text-sky-700">
+              <a
+                href="#doctors"
+                className="text-sm text-slate-600 transition-colors hover:text-sky-700"
+              >
                 Doctors
               </a>
-              <a href="#contact" className="text-sm text-slate-600 transition-colors hover:text-sky-700">
+              <a
+                href="#contact"
+                className="text-sm text-slate-600 transition-colors hover:text-sky-700"
+              >
                 Contact
               </a>
-              <Link to="/login" className="text-sm text-slate-600 transition-colors hover:text-sky-700">
+              <Link
+                to="/login"
+                className="text-sm text-slate-600 transition-colors hover:text-sky-700"
+              >
                 Privacy
               </Link>
             </div>
           </div>
 
-          <div>
-            <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Get Started</h3>
+          <div className="animate-fadeInUpDelay2">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">
+              Get Started
+            </h3>
             <p className="mt-4 text-sm leading-7 text-slate-500">
-              Access your account to book appointments, manage records, and communicate with your care team.
+              Access your account to book appointments, manage records, and
+              communicate with your care team.
             </p>
             <div className="mt-6">
               <PrimaryButton to="/login" className="px-6 py-3">
