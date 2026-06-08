@@ -17,6 +17,7 @@ import {
   Users,
   FileText,
   ClipboardCheck,
+  ClipboardList,
   PanelLeft,
   PanelLeftClose,
   UserCircle,
@@ -275,6 +276,12 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
           labelAr: "المرضى",
           path: "/medecin/patients",
           icon: Users,
+        },
+        {
+          label: "Secrétaires",
+          labelAr: "السكرتير",
+          path: "/medecin/secretaires",
+          icon: ClipboardList,
         },
         {
           label: "Rapports",
