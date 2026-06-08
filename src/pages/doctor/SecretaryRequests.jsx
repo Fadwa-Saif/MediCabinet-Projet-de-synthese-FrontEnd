@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
 
@@ -10,7 +10,7 @@ export function SecretaryRequests() {
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -22,11 +22,11 @@ export function SecretaryRequests() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter]);
 
   useEffect(() => {
     fetchRequests();
-  }, [statusFilter]);
+  }, [fetchRequests]);
 
   const handleDecision = async (secretaryId, statut) => {
     setActionLoading(true);
