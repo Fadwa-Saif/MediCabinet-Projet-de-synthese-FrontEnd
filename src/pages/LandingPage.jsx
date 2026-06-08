@@ -4,7 +4,6 @@ import {
   Building2,
   Calendar,
   CalendarCheck,
-  CalendarPlus,
   CheckCircle2,
   ClipboardList,
   FileText,
@@ -239,10 +238,12 @@ export default function LandingPage() {
   }, [stats]);
 
   const navItems = [
-    { label: "About", href: "#about" },
+    { label: "À propos", href: "#about" },
     { label: "Services", href: "#services" },
+    { label: "Objectifs", href: "#objectives" },
+    { label: "Pourquoi ?", href: "#why" },
     { label: "Confiance", href: "#trust" },
-    { label: "Pricing", href: "#pricing" },
+    { label: "Offres", href: "#pricing" },
     { label: "Contact", href: "#contact" },
   ];
 
@@ -329,13 +330,14 @@ export default function LandingPage() {
                 MEDICAL
               </span>
               <h1 className="text-3xl sm:text-4xl font-bold leading-tight tracking-tight text-slate-800 sm:text-5xl lg:text-6xl animate-fadeInUpDelay">
-                Votre santé,
+                Une plateforme pensée pour
                 <br />
-                <span className="text-cyan-600">notre priorité</span>
+                <span className="text-cyan-600">les cabinets et les patients</span>
               </h1>
               <p className="mt-4 text-base sm:text-lg text-slate-500 animate-fadeInUpDelay2">
-                Gérez vos rendez-vous, consultations et dossiers médicaux en
-                toute simplicité — pour patients et cabinets médicaux.
+                MediCabinet connecte votre cabinet à vos patients,
+                fluidifie la prise de rendez-vous et transforme la gestion
+                médicale en une expérience sereine et moderne.
               </p>
 
               {/* Icons - Now inside Left Content */}
@@ -357,10 +359,10 @@ export default function LandingPage() {
 
               <div className="mt-8 flex flex-col gap-4 sm:flex-row animate-fadeInUpDelay2">
                 <PrimaryButton to="/inscription" className="px-8 py-3">
-                  S'inscrire gratuitement
+                  Je découvre MediCabinet
                 </PrimaryButton>
                 <AnchorButton href="#pricing" className="px-8 py-3">
-                  Découvrir les offres
+                  Voir les offres
                 </AnchorButton>
               </div>
             </div>
@@ -397,39 +399,62 @@ export default function LandingPage() {
         </section>
 
         <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-6 justify-center max-w-2xl mx-auto sm:flex-row">
-            <article className="flex-1 rounded-2xl bg-cyan-600 p-6 text-white shadow-sm shadow-cyan-200/30 animate-slideInLeft">
-              <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white">
-                <CalendarPlus size={32} />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <article className="group overflow-hidden rounded-[2rem] bg-gradient-to-br from-cyan-600 via-sky-600 to-cyan-500 p-8 text-white shadow-2xl shadow-cyan-500/20 transition-all hover:-translate-y-1 hover:bg-cyan-700">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-100/80">
+                    Patient
+                  </p>
+                  <h3 className="mt-4 text-3xl font-bold">Une expérience patient simplifiée</h3>
+                </div>
+                <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-white/10 text-white shadow-lg shadow-white/10">
+                  <UserCheck size={28} />
+                </div>
               </div>
-              <h3 className="text-lg font-semibold">Prendre un RDV</h3>
-              <p className="mt-3 text-sm leading-7 text-cyan-100/90">
-                Trouvez le bon médecin et réservez en quelques clics.
+              <p className="mt-6 max-w-xl text-sm leading-7 text-cyan-100/90">
+                Prenez rendez-vous, consultez votre dossier médical et suivez vos analyses depuis un espace clair,
+                accessible et sécurisé.
               </p>
+              <ul className="mt-8 space-y-3 text-sm text-cyan-100/90">
+                <li>• Réservations rapides en ligne</li>
+                <li>• Historique de santé centralisé</li>
+                <li>• Notifications intelligentes</li>
+              </ul>
               <Link
                 to="/inscription"
-                className="mt-6 inline-flex rounded-full bg-white px-4 py-1.5 text-sm font-medium text-cyan-600 transition hover:bg-cyan-50"
+                className="mt-8 inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-50"
               >
-                Réserver
+                Je deviens patient
               </Link>
             </article>
 
-            <article className="flex-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm animate-slideInRight">
-              <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600">
-                <Stethoscope size={32} />
+            <article className="group overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl shadow-slate-200/60 transition-all hover:-translate-y-1 hover:shadow-cyan-300/30">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-600">
+                    Cabinet
+                  </p>
+                  <h3 className="mt-4 text-3xl font-bold text-slate-900">Boostez votre cabinet</h3>
+                </div>
+                <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-cyan-50 text-cyan-700 shadow-lg shadow-cyan-200/40">
+                  <Stethoscope size={28} />
+                </div>
               </div>
-              <h3 className="text-lg font-semibold text-slate-800">
-                Trouver un Médecin
-              </h3>
-              <p className="mt-3 text-sm leading-7 text-slate-500">
-                Parcourez nos cabinets par spécialité et choisissez votre
-                médecin.
+              <p className="mt-6 max-w-xl text-sm leading-7 text-slate-500">
+                Simplifiez la gestion des créneaux, des patients et des documents au quotidien,
+                avec un tableau de bord pensé pour les besoins des médecins et secrétaires.
               </p>
+              <ul className="mt-8 space-y-3 text-sm text-slate-600">
+                <li>• Gestion multi-utilisateurs (médecins / secrétaires)</li>
+                <li>• Agenda partagé et rappels automatiques</li>
+                <li>• Rapports et dossiers patients numériques</li>
+              </ul>
               <Link
                 to="/inscription"
-                className="mt-6 inline-flex rounded-full bg-cyan-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-cyan-700"
+                className="mt-8 inline-flex items-center justify-center rounded-full bg-cyan-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
               >
-                Rechercher
+                Créer mon cabinet
               </Link>
             </article>
           </div>
@@ -442,11 +467,11 @@ export default function LandingPage() {
                 SERVICES
               </p>
               <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl animate-fadeInUpDelay">
-                Tout ce dont vous avez besoin, au même endroit
+                Des services conçus pour les patients et les cabinets
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-500 animate-fadeInUpDelay2">
-                MediCabinet simplifie la gestion médicale pour les patients
-                comme pour les professionnels de santé.
+                Un écosystème digital qui relie votre cabinet, votre secrétariat et vos patients.
+                Simplifiez les rendez-vous, améliorez le suivi et centralisez vos données médicales.
               </p>
             </div>
 
@@ -493,6 +518,130 @@ export default function LandingPage() {
                   description="Médecins et secrétaires gèrent rendez-vous, patients et documents depuis un seul tableau de bord."
                 />
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="objectives" className="bg-slate-50 py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-600 animate-fadeInUp">
+                OBJECTIF
+              </p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl animate-fadeInUpDelay">
+                Une vision claire pour transformer les soins
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-500 animate-fadeInUpDelay2">
+                MediCabinet a pour ambition de rendre l’accès aux soins plus fluide,
+                la gestion des cabinets plus efficace et la relation patient-médecin
+                plus confiante.
+              </p>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-3">
+              <article className="rounded-[2rem] border border-cyan-100 bg-white p-8 shadow-lg shadow-cyan-100/40 transition-all hover:shadow-cyan-200/40 animate-scaleIn">
+                <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-cyan-600 text-white shadow-xl shadow-cyan-200/40">
+                  <HeartPulse size={32} />
+                </div>
+                <h3 className="text-2xl font-semibold text-slate-900">Patients sereins</h3>
+                <p className="mt-4 text-sm leading-7 text-slate-500">
+                  Un parcours digital qui rassure, informe et simplifie chaque étape
+                  de la prise en charge médicale.
+                </p>
+                <ul className="mt-6 space-y-3 text-sm text-slate-600">
+                  <li>• Interface intuitive pour la prise de rendez-vous</li>
+                  <li>• Dossiers et résultats accessibles en un clic</li>
+                </ul>
+              </article>
+
+              <article className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/40 transition-all hover:shadow-slate-300/40 animate-scaleInDelay">
+                <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-cyan-50 text-cyan-700 shadow-xl shadow-cyan-100/30">
+                  <Building2 size={32} />
+                </div>
+                <h3 className="text-2xl font-semibold text-slate-900">Cabinets performants</h3>
+                <p className="mt-4 text-sm leading-7 text-slate-500">
+                  Des outils pensés pour organiser, automatiser et valoriser l’activité
+                  médicale du cabinet.
+                </p>
+                <ul className="mt-6 space-y-3 text-sm text-slate-600">
+                  <li>• Agenda partagé et gestion multi-utilisateur</li>
+                  <li>• Dossiers patients centralisés et sécurisés</li>
+                </ul>
+              </article>
+
+              <article className="rounded-[2rem] border border-cyan-100 bg-white p-8 shadow-lg shadow-cyan-100/40 transition-all hover:shadow-cyan-200/40 animate-scaleInDelay2">
+                <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-cyan-600 text-white shadow-xl shadow-cyan-200/40">
+                  <UserCheck size={32} />
+                </div>
+                <h3 className="text-2xl font-semibold text-slate-900">Confiance renforcée</h3>
+                <p className="mt-4 text-sm leading-7 text-slate-500">
+                  Une communication claire entre patients, médecins et secrétaires
+                  pour des soins plus fluides et plus humains.
+                </p>
+                <ul className="mt-6 space-y-3 text-sm text-slate-600">
+                  <li>• Suivi transparent des demandes et statuts</li>
+                  <li>• Rapports et ordonnances partagés sans friction</li>
+                </ul>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section id="why" className="bg-white py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-600 animate-fadeInUp">
+                POURQUOI MEDICABINET ?
+              </p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl animate-fadeInUpDelay">
+                Des bénéfices chiffrés pour médecins et patients
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-500 animate-fadeInUpDelay2">
+                Découvrez pourquoi MediCabinet change la manière de travailler dans les cabinets,
+                tout en améliorant l’expérience patient.
+              </p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+              <article className="rounded-[1.75rem] border border-slate-200 bg-cyan-50 p-8 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md animate-scaleIn">
+                <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-3xl bg-cyan-600 text-white shadow-lg shadow-cyan-200/40">
+                  <CalendarCheck size={24} />
+                </div>
+                <p className="text-4xl font-bold text-slate-900">+35%</p>
+                <p className="mt-3 text-sm text-slate-600">
+                  Gain de temps administratif pour les cabinets grâce à l’agenda partagé.
+                </p>
+              </article>
+
+              <article className="rounded-[1.75rem] border border-slate-200 bg-cyan-50 p-8 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md animate-scaleInDelay">
+                <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-3xl bg-cyan-600 text-white shadow-lg shadow-cyan-200/40">
+                  <Building2 size={24} />
+                </div>
+                <p className="text-4xl font-bold text-slate-900">+50%</p>
+                <p className="mt-3 text-sm text-slate-600">
+                  Augmentation de la satisfaction patient par une meilleure prise en charge.
+                </p>
+              </article>
+
+              <article className="rounded-[1.75rem] border border-slate-200 bg-cyan-50 p-8 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md animate-scaleInDelay2">
+                <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-3xl bg-cyan-600 text-white shadow-lg shadow-cyan-200/40">
+                  <Users size={24} />
+                </div>
+                <p className="text-4xl font-bold text-slate-900">+40%</p>
+                <p className="mt-3 text-sm text-slate-600">
+                  Réduction de l’absentéisme des patients grâce aux rappels et notifications.
+                </p>
+              </article>
+
+              <article className="rounded-[1.75rem] border border-slate-200 bg-cyan-50 p-8 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md animate-scaleInDelay3">
+                <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-3xl bg-cyan-600 text-white shadow-lg shadow-cyan-200/40">
+                  <FolderHeart size={24} />
+                </div>
+                <p className="text-4xl font-bold text-slate-900">24/7</p>
+                <p className="mt-3 text-sm text-slate-600">
+                  Accès continu aux dossiers et analyses médicales pour un suivi patient optimisé.
+                </p>
+              </article>
             </div>
           </div>
         </section>
@@ -554,9 +703,9 @@ export default function LandingPage() {
 
         <section id="pricing" className="bg-slate-50 py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <SectionLabel className="animate-fadeInUp">PRICING</SectionLabel>
+            <SectionLabel className="animate-fadeInUp">OFFRES</SectionLabel>
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl animate-fadeInUpDelay">
-              Choisissez l'offre qui vous convient
+              Choisissez l'offre qui correspond à votre usage
             </h2>
 
             <div className="mt-6 flex justify-center">
