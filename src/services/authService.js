@@ -6,7 +6,7 @@ function normalizeRole(role) {
   return role || "patient";
 }
 
-function toUiUser(user, role, token, profile = null) {
+function toUiUser(user, role, token, profile = null, secretaryRequest = null) {
   return {
     id: user?.id,
     role: role || "patient",
@@ -16,6 +16,7 @@ function toUiUser(user, role, token, profile = null) {
     phone: user?.telephone || "",
     token,
     profile,
+    secretaryRequest,
     raw: user,
   };
 }
@@ -43,28 +44,28 @@ const authService = {
 
       if (role === "patient") {
         Object.assign(payload, {
-          date_naissance: userData.dateNaissance,
-          cin: userData.cin,
-          adresse: userData.adresse,
-          ville: userData.ville,
+          date_naissance: userData.dateNaissance || null,
+          cin: userData.cin || null,
+          adresse: userData.adresse || null,
+          ville: userData.ville || null,
         });
       }
 
       if (role === "medecin") {
         Object.assign(payload, {
-          specialite: userData.specialite,
+          specialite: userData.specialite || null,
           cabinet: {
-            nom: userData.cabinetNom,
-            adresse: userData.cabinetAdresse,
-            ville: userData.cabinetVille,
-            specialite: userData.specialite,
+            nom: userData.cabinetNom || null,
+            adresse: userData.cabinetAdresse || null,
+            ville: userData.cabinetVille || null,
+            specialite: userData.specialite || null,
           },
         });
       }
 
       if (role === "secretaire") {
         Object.assign(payload, {
-          cabinet_id: userData.cabinet_id || userData.cabinetId,
+          cabinet_id: userData.cabinet_id || userData.cabinetId || null,
         });
       }
 
@@ -74,7 +75,24 @@ const authService = {
 
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: "Erreur lors de l'inscription" };
+      const errorData = error.response?.data || { message: "Erreur lors de l'inscription" };
+      
+      // Extract validation errors in a readable format
+      if (errorData.errors && typeof errorData.errors === "object") {
+        const errorMessages = Object.entries(errorData.errors)
+          .map(([field, messages]) => {
+            const msg = Array.isArray(messages) ? messages[0] : messages;
+            return msg;
+          })
+          .join(" ");
+        
+        throw { 
+          message: errorMessages || errorData.message || "Données invalides",
+          errors: errorData.errors 
+        };
+      }
+      
+      throw errorData;
     }
   },
 
@@ -100,6 +118,7 @@ const authService = {
           response.data.role,
           response.data.token,
           response.data.profile,
+          response.data.secretary_request,
         );
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("user", JSON.stringify(response.data.user));

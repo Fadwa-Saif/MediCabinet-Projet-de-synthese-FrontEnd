@@ -16,6 +16,8 @@ import {
   Microscope,
   Users,
   FileText,
+  ClipboardCheck,
+  ClipboardList,
   PanelLeft,
   PanelLeftClose,
   UserCircle,
@@ -276,6 +278,12 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
           icon: Users,
         },
         {
+          label: "Secrétaires",
+          labelAr: "السكرتير",
+          path: "/medecin/secretaires",
+          icon: ClipboardList,
+        },
+        {
           label: "Rapports",
           labelAr: "التقارير",
           path: "/medecin/rapports",
@@ -285,7 +293,7 @@ export function Navbar({ userRole = "patient", children, pageTitle = null }) {
           label: "Attestation",
           labelAr: "شهادة طبية",
           path: "/medecin/attestation",
-          icon: FileText,
+          icon: ClipboardCheck,
         },
       ],
       secretaire: [
