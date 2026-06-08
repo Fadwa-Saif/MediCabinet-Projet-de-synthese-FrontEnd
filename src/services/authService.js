@@ -85,14 +85,17 @@ const authService = {
             return msg;
           })
           .join(" ");
-        
-        throw { 
-          message: errorMessages || errorData.message || "Données invalides",
-          errors: errorData.errors 
-        };
+
+        const registrationError = new Error(
+          errorMessages || errorData.message || "Données invalides",
+        );
+        registrationError.errors = errorData.errors;
+        throw registrationError;
       }
-      
-      throw errorData;
+
+      const genericError = new Error(errorData.message || "Données invalides");
+      genericError.data = errorData;
+      throw genericError;
     }
   },
 
