@@ -25,8 +25,8 @@ export function ProtectedRoute({ children, requiredRole }) {
       // Wrong role, redirect to their dashboard
       const roleDashboards = {
         patient: "/patient/dashboard",
-        medecin: "/doctor/dashboard",
-        secretaire: "/secretary/dashboard",
+        medecin: "/medecin/dashboard",
+        secretaire: "/secretaire/dashboard",
       };
       return <Navigate to={roleDashboards[userRole] || "/login"} replace />;
     }

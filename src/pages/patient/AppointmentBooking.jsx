@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
+import { Search, Stethoscope, User } from "lucide-react";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -139,15 +140,18 @@ export function AppointmentBooking() {
 
   const isEditMode = Boolean(id); // Check if we're in edit mode
 
+  const [medecins, setMedecins] = useState([]); // List of available doctors
   const [creneaux, setCreneaux] = useState([]);
   const [availableDates, setAvailDates] = useState([]);
-  const [loadingCreneaux, setLoadingCren] = useState(true);
+  const [loadingMedecins, setLoadingMedecins] = useState(true);
+  const [loadingCreneaux, setLoadingCren] = useState(false);
   const [loadingRdv, setLoadingRdv] = useState(isEditMode); // Loading existing data if editing
   const [adminId, setAdminId] = useState(null);
 
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedCreneau, setSelectedCreneau] = useState("");
   const [motif, setMotif] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -186,27 +190,30 @@ export function AppointmentBooking() {
   useEffect(() => {
     if (isEditMode) return; // Skip if editing, adminId comes from existing rdv
 
-    const fetchAdminId = async () => {
+    const fetchMedecins = async () => {
       try {
-        setLoadingCren(true);
+        setLoadingMedecins(true);
         setError(null);
 
-        const dispoRes = await api.get("/disponibilites");
-        const dispoData = Array.isArray(dispoRes.data?.data)
-          ? dispoRes.data.data
-          : dispoRes.data || [];
+        const medecinRes = await api.get("/medecins");
+        const medecinsList = Array.isArray(medecinRes.data)
+          ? medecinRes.data
+          : medecinRes.data?.data || [];
 
-        const firstAdminId =
-          dispoData.find((d) => d.admin_id)?.admin_id ?? null;
-        setAdminId(firstAdminId);
+        setMedecins(medecinsList);
+        
+        // Auto-select first doctor if available
+        if (medecinsList.length > 0) {
+          setAdminId(medecinsList[0].id);
+        }
       } catch {
-        setError("Impossible de charger les disponibilités du médecin.");
+        setError("Impossible de charger la liste des médecins.");
       } finally {
-        setLoadingCren(false);
+        setLoadingMedecins(false);
       }
     };
 
-    fetchAdminId();
+    fetchMedecins();
   }, [isEditMode]);
 
   // ── Compute available dates ──────────────────────────────────────────────
@@ -271,6 +278,7 @@ export function AppointmentBooking() {
     const fetchSlots = async () => {
       if (!adminId || !selectedDate) {
         setCreneaux([]);
+        setLoadingCren(false);
         return;
       }
 
@@ -315,8 +323,28 @@ export function AppointmentBooking() {
 
   const creneauxDuJour = creneaux.filter((c) => c.date === selectedDate);
 
+  const selectedMedecin = medecins.find((medecin) => medecin.id === adminId);
+  const filteredMedecins = medecins.filter((medecin) => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return true;
+    return [
+      medecin.prenom,
+      medecin.nom,
+      medecin.specialite,
+      medecin.matricule,
+    ]
+      .filter(Boolean)
+      .some((value) => value.toLowerCase().includes(query));
+  });
+
   const handleSelectDate = (date) => {
     setSelectedDate(date);
+    setSelectedCreneau("");
+  };
+
+  const handleSelectMedecin = (medecinId) => {
+    setAdminId(medecinId);
+    setSelectedDate("");
     setSelectedCreneau("");
   };
 
@@ -340,7 +368,7 @@ export function AppointmentBooking() {
 
       if (isEditMode) {
         // Update existing rendezvous
-        await api.patch(`/rendezvous/${id}`, payload);
+        await api.patch(`/rendezvous/${id}/patient`, payload);
       } else {
         // Create new rendezvous
         await api.post("/rendezvous", payload);
@@ -357,7 +385,7 @@ export function AppointmentBooking() {
     }
   };
 
-  const isLoading = loadingCreneaux || loadingRdv;
+  const isLoading = loadingRdv || (selectedDate && loadingCreneaux);
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
@@ -391,7 +419,128 @@ export function AppointmentBooking() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* ── Colonne gauche ──────────────────────────────────────────── */}
           <div className="lg:col-span-8 space-y-8">
-            {/* Date & créneaux */}
+            {/* Sélection du médecin */}
+            <div className="bg-surface-container-lowest rounded-xl p-8 border border-outline-variant/15 shadow-[0_20px_40px_rgba(0,26,65,0.05)]">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="grid place-items-center h-11 w-11 rounded-2xl bg-primary/10 text-primary">
+                  <Stethoscope size={22} />
+                </div>
+                <h2 className="text-xl font-bold font-headline">
+                  Choix du médecin
+                </h2>
+              </div>
+
+              {loadingMedecins ? (
+                <p className="text-on-surface-variant text-sm animate-pulse">
+                  Chargement des médecins...
+                </p>
+              ) : medecins.length === 0 ? (
+                <p className="text-on-surface-variant text-sm">
+                  Aucun médecin disponible pour le moment.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                    <input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Rechercher par nom ou spécialité..."
+                      className="w-full rounded-lg border border-outline-variant/30 bg-surface-container-lowest py-3 pl-12 pr-4 text-on-surface focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition"
+                    />
+                  </div>
+                  {filteredMedecins.length === 0 ? (
+                    <p className="text-sm text-on-surface-variant">
+                      Aucun médecin trouvé pour "{searchQuery}".
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {filteredMedecins.map((medecin) => (
+                        <button
+                          key={medecin.id}
+                          onClick={() => handleSelectMedecin(medecin.id)}
+                          className={`p-4 rounded-lg border-2 transition-all text-left ${
+                            adminId === medecin.id
+                              ? "border-primary bg-primary/5 shadow-md"
+                              : "border-outline-variant/30 hover:border-primary/50"
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            {medecin.photo_profil ? (
+                              <img
+                                src={medecin.photo_profil}
+                                alt={`${medecin.prenom} ${medecin.nom}`}
+                                className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary grid place-items-center">
+                                <User size={20} />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-on-surface">
+                                Dr. {medecin.prenom} {medecin.nom}
+                              </p>
+                              {medecin.specialite && (
+                                <p className="text-sm text-on-surface-variant">
+                                  {medecin.specialite}
+                                </p>
+                              )}
+                              <div className="mt-2 text-xs text-on-surface-variant space-y-1">
+                                {medecin.cabinet_ville && (
+                                  <p>{medecin.cabinet_ville}</p>
+                                )}
+                                {medecin.telephone && (
+                                  <p>Tél. {medecin.telephone}</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            {selectedMedecin ? (
+              <div className="rounded-3xl border border-primary/15 bg-white p-5 shadow-sm shadow-sky-100">
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 rounded-2xl bg-primary/10 grid place-items-center text-primary">
+                    {selectedMedecin.photo_profil ? (
+                      <img
+                        src={selectedMedecin.photo_profil}
+                        alt={`Dr. ${selectedMedecin.prenom} ${selectedMedecin.nom}`}
+                        className="h-14 w-14 rounded-2xl object-cover"
+                      />
+                    ) : (
+                      <div className="h-12 w-12 rounded-2xl bg-primary/20 grid place-items-center text-primary">
+                        <User size={24} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary/80">
+                      Médecin sélectionné
+                    </p>
+                    <h3 className="mt-2 text-xl font-bold text-slate-900 truncate">
+                      Dr. {selectedMedecin.prenom} {selectedMedecin.nom}
+                    </h3>
+                    {selectedMedecin.specialite && (
+                      <p className="mt-1 text-sm text-slate-500">
+                        {selectedMedecin.specialite}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-3xl border border-dashed border-outline-variant/40 bg-surface-container-lowest p-6 text-center">
+                <p className="text-sm text-on-surface-variant">
+                  Veuillez choisir un médecin pour voir ses informations.
+                </p>
+              </div>
+            )}
             <div className="bg-surface-container-lowest rounded-xl p-8 border border-outline-variant/15 shadow-[0_20px_40px_rgba(0,26,65,0.05)]">
               <div className="flex items-center gap-3 mb-6">
                 <span className="material-symbols-outlined text-primary">
@@ -511,6 +660,19 @@ export function AppointmentBooking() {
 
               <div className="p-6 space-y-6">
                 <div className="space-y-4 border-t border-surface-container-high pt-4">
+                  {adminId && medecins.length > 0 && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-on-surface-variant text-sm">
+                          Médecin
+                        </span>
+                        <span className="font-bold text-on-surface text-sm">
+                          {medecins.find(m => m.id === adminId)?.prenom} {medecins.find(m => m.id === adminId)?.nom}
+                        </span>
+                      </div>
+                      <div className="border-t border-surface-container-high pt-4" />
+                    </>
+                  )}
                   <div className="flex justify-between items-center">
                     <span className="text-on-surface-variant text-sm">
                       Date

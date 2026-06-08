@@ -27,9 +27,11 @@ import { DoctorAnalysisDetails } from "./pages/doctor/DoctorAnalysisDetails";
 import { DoctorAttestationNew } from "./pages/doctor/DoctorAttestationNew";
 import { DoctorConsultationDetails } from "./pages/doctor/DoctorConsultationDetails";
 import DoctorProfilePage from "./pages/doctor/profil";
+import { SecretaryRequests } from "./pages/doctor/SecretaryRequests";
 
 // Secretary Pages
 import { SecretaireDashboard } from "./pages/secretary/SecretaireDashboard";
+import { SecretaryWaiting } from "./pages/secretary/SecretaryWaiting";
 import SecretaryPatients from "./pages/secretary/SecretaryPatientsList";
 import { SecretaryAppointments } from "./pages/secretary/SecretaryAppointments";
 import { SecretaryPatientDetail } from "./pages/secretary/SecretaryPatientDetail";
@@ -61,6 +63,14 @@ export default function App() {
             element={
               <ProtectedRoute requiredRole="secretary">
                 <SecretaireDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/secretaire/en-attente"
+            element={
+              <ProtectedRoute requiredRole="secretaire">
+                <SecretaryWaiting />
               </ProtectedRoute>
             }
           />
@@ -243,6 +253,14 @@ export default function App() {
             element={
               <ProtectedRoute requiredRole="medecin">
                 <DoctorAttestationNew />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/medecin/secretaires"
+            element={
+              <ProtectedRoute requiredRole="medecin">
+                <SecretaryRequests />
               </ProtectedRoute>
             }
           />
