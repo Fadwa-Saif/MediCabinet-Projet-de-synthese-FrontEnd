@@ -20,7 +20,7 @@ export function DoctorPatients() {
       setLoading(true);
       setError(null);
       try {
-        const response = await api.get("/patients");
+        const response = await api.get("/mes-patients");
         const data = Array.isArray(response.data?.data)
           ? response.data.data
           : response.data || [];
