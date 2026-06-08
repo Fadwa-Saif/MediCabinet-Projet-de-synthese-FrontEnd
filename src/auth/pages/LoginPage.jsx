@@ -36,9 +36,13 @@ export function LoginPage() {
       if (data.role === "patient") {
         navigate("/patient/dashboard", { replace: true });
       } else if (data.role === "medecin") {
-        navigate("/doctor/dashboard", { replace: true });
+        navigate("/medecin/dashboard", { replace: true });
       } else if (data.role === "secretaire") {
-        navigate("/secretary/dashboard", { replace: true });
+        if (data.secretary_request?.statut === "en_attente") {
+          navigate("/secretaire/en-attente", { replace: true });
+        } else {
+          navigate("/secretaire/dashboard", { replace: true });
+        }
       } else {
         navigate("/login", { replace: true });
       }

@@ -6,7 +6,7 @@ function normalizeRole(role) {
   return role || "patient";
 }
 
-function toUiUser(user, role, token, profile = null) {
+function toUiUser(user, role, token, profile = null, secretaryRequest = null) {
   return {
     id: user?.id,
     role: role || "patient",
@@ -16,6 +16,7 @@ function toUiUser(user, role, token, profile = null) {
     phone: user?.telephone || "",
     token,
     profile,
+    secretaryRequest,
     raw: user,
   };
 }
@@ -117,6 +118,7 @@ const authService = {
           response.data.role,
           response.data.token,
           response.data.profile,
+          response.data.secretary_request,
         );
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("user", JSON.stringify(response.data.user));
