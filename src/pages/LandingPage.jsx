@@ -596,7 +596,7 @@ export default function LandingPage() {
                   <li className="flex items-center gap-2"><Check size={16} /> Notifications intelligentes</li>
                 </ul>
                 <Link
-                  to="/inscription"
+                  to="/inscription?role=patient"
                   className="mt-8 inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-50 hover:shadow-lg"
                 >
                   Je deviens patient
@@ -629,7 +629,7 @@ export default function LandingPage() {
                   <li className="flex items-center gap-2"><Check size={16} className="text-cyan-600" /> Rapports et dossiers patients numériques</li>
                 </ul>
                 <Link
-                  to="/inscription"
+                  to="/inscription?role=medecin"
                   className="mt-8 inline-flex items-center justify-center rounded-full bg-cyan-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700 hover:shadow-lg"
                 >
                   Créer mon cabinet
