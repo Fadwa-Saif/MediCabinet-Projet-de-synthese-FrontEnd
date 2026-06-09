@@ -370,16 +370,16 @@ export default function LandingPage() {
               </div>
               
               <h1 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight text-slate-800 lg:text-6xl animate-fadeInUpDelay">
-                Gérez votre cabinet médical
+                Une plateforme qui connecte patients et médecins
                 <br />
                 <span className="bg-gradient-to-r from-cyan-600 to-sky-600 bg-clip-text text-transparent">
-                  avec intelligence et simplicité
+                  pour un suivi plus simple, collaboratif et sécurisé
                 </span>
               </h1>
               
               <p className="mt-6 text-lg text-slate-500 max-w-xl animate-fadeInUpDelay2">
-                Automatisez la prise de rendez-vous, centralisez les dossiers patients 
-                et améliorez la communication entre médecin, secrétaire et patient.
+                Facilitez la prise de rendez-vous pour les patients et offrez aux médecins un agenda intelligent,
+                tout en centralisant les dossiers, les analyses et les échanges du cabinet.
               </p>
 
               {/* Mobile Hero Image */}
@@ -415,24 +415,6 @@ export default function LandingPage() {
                 </button>
               </div>
 
-              <div className="mt-8 flex items-center gap-4 animate-fadeInUpDelay3">
-                <div className="flex -space-x-3">
-                  {[1,2,3,4].map((i) => (
-                    <div key={i} className="h-10 w-10 rounded-full border-2 border-white bg-gradient-to-br from-cyan-400 to-sky-600 flex items-center justify-center text-white text-xs font-bold">
-                      {['M', 'S', 'P', 'D'][i-1]}
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <div className="flex items-center gap-1">
-                    {[1,2,3,4,5].map((i) => (
-                      <Star key={i} size={14} className="fill-yellow-400 text-yellow-400" />
-                    ))}
-                    <span className="text-sm font-semibold text-slate-700 ml-1">4.9/5</span>
-                  </div>
-                  <p className="text-xs text-slate-500">Basé sur 200+ avis de professionnels de santé</p>
-                </div>
-              </div>
             </div>
 
             {/* Right Content - Desktop */}
@@ -465,37 +447,6 @@ export default function LandingPage() {
             <ChevronDown size={20} className="text-slate-400" />
           </div>
         </section>
-        {/* Role toggle for Services / Features / Benefits */}
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-center py-8">
-            <div className="rounded-full bg-white/80 px-3 py-2 shadow-sm ring-1 ring-slate-200">
-              <div className="inline-flex rounded-full bg-slate-100 p-1">
-                <button
-                  onClick={() => setViewRole("patient")}
-                  className={`rounded-full px-8 py-3 text-base font-semibold transition-all ${
-                    viewRole === "patient"
-                      ? "bg-cyan-600 text-white shadow-md"
-                      : "text-slate-700 hover:bg-slate-100"
-                  }`}
-                >
-                  Patient
-                </button>
-                <button
-                  onClick={() => setViewRole("medecin")}
-                  className={`rounded-full px-8 py-3 text-base font-semibold transition-all ${
-                    viewRole === "medecin"
-                      ? "bg-cyan-600 text-white shadow-md"
-                      : "text-slate-700 hover:bg-slate-100"
-                  }`}
-                >
-                  Médecin
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Problem Section */}
         <section id="problem" className="bg-slate-50 py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
@@ -538,6 +489,33 @@ export default function LandingPage() {
                   <p className="text-sm leading-7 text-slate-500">{item.desc}</p>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-10 flex justify-center">
+              <div className="rounded-full bg-white/95 px-10 py-4 shadow-sm ring-1 ring-slate-200">
+                <div className="inline-flex rounded-full bg-slate-100 p-1.5">
+                  <button
+                    onClick={() => setViewRole("patient")}
+                    className={`rounded-full px-10 py-4 text-lg font-semibold transition-all ${
+                      viewRole === "patient"
+                        ? "bg-cyan-600 text-white shadow-md"
+                        : "text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    Patient
+                  </button>
+                  <button
+                    onClick={() => setViewRole("medecin")}
+                    className={`rounded-full px-10 py-4 text-lg font-semibold transition-all ${
+                      viewRole === "medecin"
+                        ? "bg-cyan-600 text-white shadow-md"
+                        : "text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    Médecin
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -739,40 +717,6 @@ export default function LandingPage() {
           </section>
         )}
 
-        {/* Testimonials Section */}
-        <section id="testimonials" className="bg-gradient-to-br from-slate-50 to-cyan-50 py-20">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <SectionLabel className="animate-fadeInUp">TÉMOIGNAGES</SectionLabel>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl animate-fadeInUpDelay">
-                Ce que disent nos utilisateurs
-              </h2>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <TestimonialCard 
-                quote="MediCabinet a révolutionné la gestion de mon cabinet. Je gagne plus de 2 heures par jour et mes patients sont plus satisfaits."
-                author="Dr. Amine Benali"
-                role="Médecin généraliste, Casablanca"
-                rating={5}
-              />
-              <TestimonialCard 
-                quote="En tant que secrétaire, je peux enfin gérer tous les rendez-vous efficacement. L'interface est intuitive et les notifications sont très pratiques."
-                author="Sara El Amrani"
-                role="Secrétaire médicale, Rabat"
-                rating={5}
-              />
-              <TestimonialCard 
-                quote="Je peux prendre rendez-vous en ligne et consulter mes analyses depuis mon téléphone. C'est exactement ce qu'il me fallait !"
-                author="Karim Fassi"
-                role="Patient, Marrakech"
-                rating={5}
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* Objectives Section */}
         <section id="objectives" className="bg-slate-50 py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
@@ -1021,6 +965,39 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Testimonials Section */}
+        <section id="testimonials" className="bg-gradient-to-br from-slate-50 to-cyan-50 py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <SectionLabel className="animate-fadeInUp">TÉMOIGNAGES</SectionLabel>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl animate-fadeInUpDelay">
+                Ce que disent nos utilisateurs
+              </h2>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <TestimonialCard 
+                quote="MediCabinet a révolutionné la gestion de mon cabinet. Je gagne plus de 2 heures par jour et mes patients sont plus satisfaits."
+                author="Dr. Amine Benali"
+                role="Médecin généraliste, Casablanca"
+                rating={5}
+              />
+              <TestimonialCard 
+                quote="En tant que secrétaire, je peux enfin gérer tous les rendez-vous efficacement. L'interface est intuitive et les notifications sont très pratiques."
+                author="Sara El Amrani"
+                role="Secrétaire médicale, Rabat"
+                rating={5}
+              />
+              <TestimonialCard 
+                quote="Je peux prendre rendez-vous en ligne et consulter mes analyses depuis mon téléphone. C'est exactement ce qu'il me fallait !"
+                author="Karim Fassi"
+                role="Patient, Marrakech"
+                rating={5}
+              />
+            </div>
+          </div>
+        </section>
+
         {/* FAQ Section */}
         <section id="faq" className="bg-white py-20">
           <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
@@ -1210,8 +1187,8 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-4">
             <div className="lg:col-span-1">
-              <Link to="/" className="inline-block">
-                <BrandLogo />
+              <Link to="/" className="inline-block text-white">
+                <BrandLogo className="text-white" textClassName="text-white" />
               </Link>
               <p className="mt-4 max-w-md text-sm leading-7 text-slate-400">
                 MediCabinet est une solution complète de gestion de cabinets médicaux, 
