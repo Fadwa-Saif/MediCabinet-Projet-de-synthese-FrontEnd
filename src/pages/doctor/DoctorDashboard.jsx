@@ -37,13 +37,19 @@ export function DoctorDashboard() {
       try {
         const today = new Date().toISOString().split("T")[0];
         const response = await api.get(`/rendezvous?date=${today}`);
-        const data = Array.isArray(response.data?.data) ? response.data.data : response.data || [];
-        
+        const data = Array.isArray(response.data?.data)
+          ? response.data.data
+          : response.data || [];
+
         const mapped = data.map((rdv) => {
-          const safeDate = rdv.date_heure ? rdv.date_heure.replace(' ', 'T') : null;
+          const safeDate = rdv.date_heure
+            ? rdv.date_heure.replace(" ", "T")
+            : null;
           return {
             id: rdv.id,
-            patientName: `${rdv.patient?.user?.prenom || ""} ${rdv.patient?.user?.nom || ""}`.trim() || "Patient Inconnu",
+            patientName:
+              `${rdv.patient?.user?.prenom || ""} ${rdv.patient?.user?.nom || ""}`.trim() ||
+              "Patient Inconnu",
             patientId: rdv.patient?.id,
             time: safeDate
               ? new Date(safeDate).toLocaleTimeString("fr-FR", {
@@ -52,14 +58,21 @@ export function DoctorDashboard() {
                 })
               : "—",
             reason: rdv.motif || "Consultation générale",
-            status: rdv.statut === 'confirme' ? 'Confirme' : rdv.statut === 'en_attente' ? 'En attente' : 'Annule',
-            period: safeDate && parseInt(safeDate.split("T")[1]?.split(":")[0], 10) < 12
-              ? 'morning'
-              : 'afternoon',
-            canLaunch: rdv.statut === 'en_attente',
+            status:
+              rdv.statut === "confirme"
+                ? "Confirme"
+                : rdv.statut === "en_attente"
+                  ? "En attente"
+                  : "Annule",
+            period:
+              safeDate &&
+              parseInt(safeDate.split("T")[1]?.split(":")[0], 10) < 12
+                ? "morning"
+                : "afternoon",
+            canLaunch: rdv.statut === "en_attente",
           };
         });
-        
+
         setAppointments(mapped);
         setStats({
           total: mapped.length,
@@ -81,7 +94,7 @@ export function DoctorDashboard() {
     try {
       const parsed = JSON.parse(raw);
       if (parsed?.consultationId) {
-        setSaveNotice(`Consultation #${parsed.consultationId} enregistree avec succes.`);
+        setSaveNotice(`Consultation enregistrée avec succès.`);
       }
     } catch {
       // ignore malformed flash data
@@ -113,7 +126,11 @@ export function DoctorDashboard() {
   const openPatientDetails = async (appointment) => {
     if (!appointment?.patientId) {
       setDetailError("Patient introuvable pour ce rendez-vous.");
-      setSelectedPatientDetail({ appointment, patient: null, consultations: [] });
+      setSelectedPatientDetail({
+        appointment,
+        patient: null,
+        consultations: [],
+      });
       return;
     }
 
@@ -164,7 +181,15 @@ export function DoctorDashboard() {
                 Bonjour, {doctorName}
               </h1>
               <p className="mt-1 text-sm font-medium text-slate-500 sm:text-base">
-                Voici votre planning pour aujourd&apos;hui, <span className="text-blue-600">{new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</span>.
+                Voici votre planning pour aujourd&apos;hui,{" "}
+                <span className="text-blue-600">
+                  {new Date().toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </span>
+                .
               </p>
             </div>
 
@@ -215,15 +240,22 @@ export function DoctorDashboard() {
             </article>
 
             <article className="rounded-2xl bg-gradient-to-b from-blue-700 to-blue-600 p-6 text-white shadow-lg lg:col-span-4">
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-100">Prochain patient</p>
-              <h3 className="mt-3 text-3xl font-extrabold">{nextPatient?.patientName || "Aucun rendez-vous"}</h3>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-100">
+                Prochain patient
+              </p>
+              <h3 className="mt-3 text-3xl font-extrabold">
+                {nextPatient?.patientName || "Aucun rendez-vous"}
+              </h3>
               <p className="mt-1 text-sm font-medium text-blue-100">
                 {nextPatient?.time || "—"} - Consultation Generale
               </p>
 
               <button
                 type="button"
-                onClick={() => nextPatient?.id && navigate(`/medecin/rapport/${nextPatient.id}`)}
+                onClick={() =>
+                  nextPatient?.id &&
+                  navigate(`/medecin/rapport/${nextPatient.id}`)
+                }
                 disabled={!nextPatient}
                 className="mt-8 w-full rounded-xl bg-white px-4 py-3 text-sm font-bold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -423,7 +455,8 @@ export function DoctorDashboard() {
                     Détails patient
                   </h4>
                   <p className="text-sm text-slate-500">
-                    Rendez-vous de {selectedPatientDetail.appointment?.time || "—"}
+                    Rendez-vous de{" "}
+                    {selectedPatientDetail.appointment?.time || "—"}
                   </p>
                 </div>
                 <button
@@ -437,7 +470,9 @@ export function DoctorDashboard() {
 
               <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
                 {detailLoading ? (
-                  <p className="text-sm font-medium text-slate-500">Chargement...</p>
+                  <p className="text-sm font-medium text-slate-500">
+                    Chargement...
+                  </p>
                 ) : detailError ? (
                   <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
                     {detailError}
@@ -451,19 +486,23 @@ export function DoctorDashboard() {
                       <div className="mt-3 grid gap-3 sm:grid-cols-2">
                         <p className="text-sm text-slate-700">
                           <span className="font-semibold">Nom:</span>{" "}
-                          {`${selectedPatientDetail.patient?.user?.prenom || ""} ${selectedPatientDetail.patient?.user?.nom || ""}`.trim() || "—"}
+                          {`${selectedPatientDetail.patient?.user?.prenom || ""} ${selectedPatientDetail.patient?.user?.nom || ""}`.trim() ||
+                            "—"}
                         </p>
                         <p className="text-sm text-slate-700">
                           <span className="font-semibold">CIN:</span>{" "}
                           {selectedPatientDetail.patient?.cin || "—"}
                         </p>
                         <p className="text-sm text-slate-700">
-                          <span className="font-semibold">Date de naissance:</span>{" "}
+                          <span className="font-semibold">
+                            Date de naissance:
+                          </span>{" "}
                           {selectedPatientDetail.patient?.date_naissance || "—"}
                         </p>
                         <p className="text-sm text-slate-700">
                           <span className="font-semibold">Téléphone:</span>{" "}
-                          {selectedPatientDetail.patient?.user?.telephone || "—"}
+                          {selectedPatientDetail.patient?.user?.telephone ||
+                            "—"}
                         </p>
                       </div>
                     </section>
@@ -478,26 +517,33 @@ export function DoctorDashboard() {
                         </p>
                       ) : (
                         <div className="mt-3 space-y-2">
-                          {selectedPatientDetail.consultations.map((consultation) => (
-                            <div
-                              key={consultation.id}
-                              className="rounded-lg border border-slate-200 bg-white px-3 py-3"
-                            >
-                              <p className="text-sm font-bold text-slate-900">
-                                {new Date(consultation.date || Date.now()).toLocaleDateString("fr-FR", {
-                                  day: "2-digit",
-                                  month: "long",
-                                  year: "numeric",
-                                })}
-                              </p>
-                              <p className="mt-1 text-sm text-slate-700">
-                                Diagnostic: {consultation.diagnostic || "—"}
-                              </p>
-                              <p className="mt-1 text-sm text-slate-600">
-                                Notes: {consultation.notes_medecin || consultation.symptomes || "—"}
-                              </p>
-                            </div>
-                          ))}
+                          {selectedPatientDetail.consultations.map(
+                            (consultation) => (
+                              <div
+                                key={consultation.id}
+                                className="rounded-lg border border-slate-200 bg-white px-3 py-3"
+                              >
+                                <p className="text-sm font-bold text-slate-900">
+                                  {new Date(
+                                    consultation.date || Date.now(),
+                                  ).toLocaleDateString("fr-FR", {
+                                    day: "2-digit",
+                                    month: "long",
+                                    year: "numeric",
+                                  })}
+                                </p>
+                                <p className="mt-1 text-sm text-slate-700">
+                                  Diagnostic: {consultation.diagnostic || "—"}
+                                </p>
+                                <p className="mt-1 text-sm text-slate-600">
+                                  Notes:{" "}
+                                  {consultation.notes_medecin ||
+                                    consultation.symptomes ||
+                                    "—"}
+                                </p>
+                              </div>
+                            ),
+                          )}
                         </div>
                       )}
                     </section>
