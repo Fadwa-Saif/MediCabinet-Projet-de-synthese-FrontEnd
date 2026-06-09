@@ -37,6 +37,8 @@ const formatDate = (d) => {
   });
 };
 
+const safeArray = (val) => (Array.isArray(val) ? val : []);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // TOAST COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
@@ -290,100 +292,14 @@ export function MedicalRecord() {
   const [consultations, setConsultations] = useState([]);
   const [patientSexe, setPatientSexe] = useState(null);
 
-  // ─ Fetch Data on Mount
-  /* eslint-disable no-use-before-define */
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        if (isDoctorView) {
-          const { data } = await api.get(`/patients/${patientId}`);
-          const pd = data?.data || data;
-          setPatient({
-            nom: pd?.user?.nom,
-            prenom: pd?.user?.prenom,
-            patient: pd,
-          });
-          parsePatientData(pd);
-          setConsultations(
-            [...(pd?.consultations || [])].sort(
-              (a, b) => new Date(b.date || 0) - new Date(a.date || 0),
-            ),
-          );
-          return;
-        }
-
-        // Patient view
-        const meRes = await api.get("/auth/me");
-        const userData = meRes.data.user || meRes.data;
-        setPatient({
-          nom: userData?.nom,
-          prenom: userData?.prenom,
-          patient: userData,
-        });
-        parsePatientData(userData);
-
-        const consultRes = await api.get("/consultations");
-        const raw = consultRes.data?.data || consultRes.data || [];
-
-        const [ordRes, anaRes, radRes] = await Promise.all([
-          api.get("/ordonnances").catch(() => ({ data: {} })),
-          api.get("/analyses").catch(() => ({ data: {} })),
-          api.get("/radiologies").catch(() => ({ data: {} })),
-        ]);
-
-        const allOrdonnances = Array.isArray(ordRes.data?.data)
-          ? ordRes.data.data
-          : (ordRes.data ?? []);
-        const allAnalyses = Array.isArray(anaRes.data?.data)
-          ? anaRes.data.data
-          : (anaRes.data ?? []);
-        const allRadiologies = Array.isArray(radRes.data?.data)
-          ? radRes.data.data
-          : (radRes.data ?? []);
-
-        setAnalyses(allAnalyses);
-        setRadiologies(allRadiologies);
-
-        const enriched = raw.map((c) => ({
-          ...c,
-          ordonnances: allOrdonnances.filter(
-            (o) => String(o.consultation_id) === String(c.id),
-          ),
-          analyses: allAnalyses.filter(
-            (a) => String(a.consultation_id) === String(c.id),
-          ),
-        }));
-
-        setConsultations(
-          enriched.sort(
-            (a, b) =>
-              new Date(b.date || b.date_heure || 0) -
-              new Date(a.date || a.date_heure || 0),
-          ),
-        );
-      } catch (err) {
-        setError(
-          err.response?.data?.message ||
-            "Impossible de charger le dossier médical.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [isDoctorView, patientId, parsePatientData]);
-  /* eslint-enable no-use-before-define */
-
   // ─ Parse Patient Data (extract TEXT fields)
+  // Defined BEFORE useEffect so it is initialized when the effect's dependency
+  // array is evaluated — avoids the "Cannot access before initialization" TDZ error.
   const parsePatientData = useCallback((pd) => {
     if (!pd) return;
 
     setPatientSexe(pd.sexe || null);
 
-    // Parse antecedents (stored as newline-delimited or JSON)
     try {
       if (pd.antecedents) {
         const parsed = JSON.parse(pd.antecedents);
@@ -403,7 +319,6 @@ export function MedicalRecord() {
       }
     }
 
-    // Parse antecedents_familiaux
     try {
       if (pd.antecedents_familiaux) {
         const parsed = JSON.parse(pd.antecedents_familiaux);
@@ -423,7 +338,6 @@ export function MedicalRecord() {
       }
     }
 
-    // Parse antecedents_chirurgicaux
     try {
       if (pd.antecedents_chirurgicaux) {
         const parsed = JSON.parse(pd.antecedents_chirurgicaux);
@@ -436,7 +350,12 @@ export function MedicalRecord() {
             .split("\n")
             .filter((x) => x.trim())
             .map((line) => {
-              const [intervention, date_intervention, etablissement, complications] = line.split("|");
+              const [
+                intervention,
+                date_intervention,
+                etablissement,
+                complications,
+              ] = line.split("|");
               return {
                 intervention,
                 date_intervention: date_intervention?.trim(),
@@ -448,7 +367,6 @@ export function MedicalRecord() {
       }
     }
 
-    // Parse vaccinations
     try {
       if (pd.vaccinations) {
         const parsed = JSON.parse(pd.vaccinations);
@@ -473,36 +391,37 @@ export function MedicalRecord() {
       }
     }
 
-    // Parse antecedents_toxicologiques
     try {
       if (pd.antecedents_toxicologiques) {
         const parsed = JSON.parse(pd.antecedents_toxicologiques);
-        setAntecedentsToxicologiques(parsed || { tabac: "", alcool: "", toxicomanie: "" });
+        setAntecedentsToxicologiques(
+          parsed || { tabac: "", alcool: "", toxicomanie: "" },
+        );
       }
     } catch {
       // Keep defaults
     }
 
-    // Parse antecedents_gynecologiques
     try {
       if (pd.antecedents_gynecologiques) {
         const parsed = JSON.parse(pd.antecedents_gynecologiques);
-        setAntecedentsGynecologiques(parsed || {
-          age_puberte: "",
-          cycle_menstruel: "",
-          contraception: "",
-          grossesses: "",
-          enfants_vivants: "",
-          fausses_couches: "",
-          ivg: "",
-          morts_ne: "",
-        });
+        setAntecedentsGynecologiques(
+          parsed || {
+            age_puberte: "",
+            cycle_menstruel: "",
+            contraception: "",
+            grossesses: "",
+            enfants_vivants: "",
+            fausses_couches: "",
+            ivg: "",
+            morts_ne: "",
+          },
+        );
       }
     } catch {
       // Keep defaults
     }
 
-    // Parse allergies
     try {
       if (pd.allergies) {
         const parsed = JSON.parse(pd.allergies);
@@ -528,7 +447,6 @@ export function MedicalRecord() {
       }
     }
 
-    // Parse traitements
     try {
       if (pd.traitement_en_cours) {
         const parsed = JSON.parse(pd.traitement_en_cours);
@@ -563,6 +481,87 @@ export function MedicalRecord() {
       }
     }
   }, []);
+
+  // ─ Fetch Data on Mount
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        if (isDoctorView) {
+          const { data } = await api.get(`/patients/${patientId}`);
+          const pd = data?.data || data;
+          setPatient({
+            nom: pd?.user?.nom,
+            prenom: pd?.user?.prenom,
+            patient: pd,
+          });
+          parsePatientData(pd);
+          setConsultations(
+            [...(pd?.consultations || [])].sort(
+              (a, b) => new Date(b.date || 0) - new Date(a.date || 0),
+            ),
+          );
+          setAnalyses(safeArray(pd?.analyses));
+          setRadiologies(safeArray(pd?.radiologies));
+          return;
+        }
+
+        // Patient view
+        const meRes = await api.get("/auth/me");
+        const userData = meRes.data.user || meRes.data;
+        setPatient({
+          nom: userData?.nom,
+          prenom: userData?.prenom,
+          patient: userData,
+        });
+        parsePatientData(userData);
+
+        const consultRes = await api.get("/consultations");
+        const raw = consultRes.data?.data || consultRes.data || [];
+
+        const [ordRes, anaRes, radRes] = await Promise.all([
+          api.get("/ordonnances").catch(() => ({ data: {} })),
+          api.get("/analyses").catch(() => ({ data: {} })),
+          api.get("/radiologies").catch(() => ({ data: {} })),
+        ]);
+
+        const allOrdonnances = safeArray(ordRes.data?.data ?? ordRes.data);
+        const allAnalyses = safeArray(anaRes.data?.data ?? anaRes.data);
+        const allRadiologies = safeArray(radRes.data?.data ?? radRes.data);
+
+        setAnalyses(allAnalyses);
+        setRadiologies(allRadiologies);
+
+        const enriched = raw.map((c) => ({
+          ...c,
+          ordonnances: allOrdonnances.filter(
+            (o) => String(o.consultation_id) === String(c.id),
+          ),
+          analyses: allAnalyses.filter(
+            (a) => String(a.consultation_id) === String(c.id),
+          ),
+        }));
+
+        setConsultations(
+          enriched.sort(
+            (a, b) =>
+              new Date(b.date || b.date_heure || 0) -
+              new Date(a.date || a.date_heure || 0),
+          ),
+        );
+      } catch (err) {
+        setError(
+          err.response?.data?.message ||
+            "Impossible de charger le dossier médical.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [isDoctorView, patientId, parsePatientData]);
 
   // ─ Serialize & Save Medical Data
   const saveMedicalData = async () => {
@@ -627,7 +626,12 @@ export function MedicalRecord() {
     setEditingItem({
       section: "antecedentChirurgicaux",
       index: antecedentChirurgicaux.length,
-      data: { intervention: "", date_intervention: "", etablissement: "", complications: "" },
+      data: {
+        intervention: "",
+        date_intervention: "",
+        etablissement: "",
+        complications: "",
+      },
     });
   };
 
@@ -827,7 +831,11 @@ export function MedicalRecord() {
                     <p className="text-on-surface-variant text-sm mt-1">
                       {age ? `${age} ans` : "—"} •{" "}
                       {patientData.groupe_sanguin || "—"} •{" "}
-                      {patientSexe === "M" ? "Homme" : patientSexe === "F" ? "Femme" : "—"}
+                      {patientSexe === "M"
+                        ? "Homme"
+                        : patientSexe === "F"
+                          ? "Femme"
+                          : "—"}
                     </p>
                   </div>
                 </div>
@@ -953,24 +961,42 @@ export function MedicalRecord() {
                     )}
                     {antecedents.map((item, idx) => (
                       <div key={idx}>
-                        {editingItem?.section === "antecedents" && editingItem?.index === idx ? (
-                          <EditFormCard onSave={saveEditingItem} onCancel={cancelEdit}>
+                        {editingItem?.section === "antecedents" &&
+                        editingItem?.index === idx ? (
+                          <EditFormCard
+                            onSave={saveEditingItem}
+                            onCancel={cancelEdit}
+                          >
                             <div>
-                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Pathologie</label>
+                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                Pathologie
+                              </label>
                               <input
                                 type="text"
                                 value={editingItem.data.pathologie}
-                                onChange={(e) => updateEditingField("pathologie", e.target.value)}
+                                onChange={(e) =>
+                                  updateEditingField(
+                                    "pathologie",
+                                    e.target.value,
+                                  )
+                                }
                                 className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
                                 placeholder="Ex: Diabète type 2"
                               />
                             </div>
                             <div>
-                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Date diagnostic</label>
+                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                Date diagnostic
+                              </label>
                               <input
                                 type="date"
                                 value={editingItem.data.date_diagnostic || ""}
-                                onChange={(e) => updateEditingField("date_diagnostic", e.target.value)}
+                                onChange={(e) =>
+                                  updateEditingField(
+                                    "date_diagnostic",
+                                    e.target.value,
+                                  )
+                                }
                                 className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
                               />
                             </div>
@@ -978,17 +1004,30 @@ export function MedicalRecord() {
                         ) : (
                           <div className="flex items-start justify-between p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/20">
                             <div className="flex-1">
-                              <p className="font-semibold text-on-surface">{item.pathologie}</p>
+                              <p className="font-semibold text-on-surface">
+                                {item.pathologie}
+                              </p>
                               {item.date_diagnostic && (
-                                <p className="text-xs text-on-surface-variant mt-1">{formatDate(item.date_diagnostic)}</p>
+                                <p className="text-xs text-on-surface-variant mt-1">
+                                  {formatDate(item.date_diagnostic)}
+                                </p>
                               )}
                             </div>
                             <div className="flex gap-2 ml-3 shrink-0">
-                              <button onClick={() => startEdit("antecedents", idx, item)} className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface transition-colors">
+                              <button
+                                onClick={() =>
+                                  startEdit("antecedents", idx, item)
+                                }
+                                className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface transition-colors"
+                              >
                                 <Edit2 size={16} />
                               </button>
                               <button
-                                onClick={() => setAntecedents(antecedents.filter((_, i) => i !== idx))}
+                                onClick={() =>
+                                  setAntecedents(
+                                    antecedents.filter((_, i) => i !== idx),
+                                  )
+                                }
                                 className="p-1.5 hover:bg-error-container rounded-lg text-error transition-colors"
                               >
                                 <Trash2 size={16} />
@@ -998,32 +1037,50 @@ export function MedicalRecord() {
                         )}
                       </div>
                     ))}
-                    {/* New antecedent form */}
-                    {editingItem?.section === "antecedents" && editingItem?.index === antecedents.length && (
-                      <EditFormCard onSave={saveEditingItem} onCancel={cancelEdit}>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Pathologie</label>
-                          <input
-                            type="text"
-                            value={editingItem.data.pathologie}
-                            onChange={(e) => updateEditingField("pathologie", e.target.value)}
-                            className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
-                            placeholder="Ex: Diabète type 2"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Date diagnostic</label>
-                          <input
-                            type="date"
-                            value={editingItem.data.date_diagnostic || ""}
-                            onChange={(e) => updateEditingField("date_diagnostic", e.target.value)}
-                            className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
-                          />
-                        </div>
-                      </EditFormCard>
-                    )}
+                    {editingItem?.section === "antecedents" &&
+                      editingItem?.index === antecedents.length && (
+                        <EditFormCard
+                          onSave={saveEditingItem}
+                          onCancel={cancelEdit}
+                        >
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Pathologie
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.pathologie}
+                              onChange={(e) =>
+                                updateEditingField("pathologie", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Ex: Diabète type 2"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Date diagnostic
+                            </label>
+                            <input
+                              type="date"
+                              value={editingItem.data.date_diagnostic || ""}
+                              onChange={(e) =>
+                                updateEditingField(
+                                  "date_diagnostic",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
+                            />
+                          </div>
+                        </EditFormCard>
+                      )}
                   </div>
-                  <button onClick={addAntecedent} disabled={!!editingItem} className="mt-3 w-full p-2.5 border border-outline-variant/30 hover:bg-surface-container-high disabled:opacity-40 rounded-xl text-primary font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                  <button
+                    onClick={addAntecedent}
+                    disabled={!!editingItem}
+                    className="mt-3 w-full p-2.5 border border-outline-variant/30 hover:bg-surface-container-high disabled:opacity-40 rounded-xl text-primary font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                  >
                     <Plus size={16} />
                     Ajouter un Antécédent
                   </button>
@@ -1031,72 +1088,218 @@ export function MedicalRecord() {
 
                 {/* B. Antécédents Chirurgicaux */}
                 <div className="p-5 bg-surface-container-low rounded-2xl border border-outline-variant/20">
-                  <h4 className="font-bold text-on-surface mb-4">B. Antécédents Chirurgicaux</h4>
+                  <h4 className="font-bold text-on-surface mb-4">
+                    B. Antécédents Chirurgicaux
+                  </h4>
                   <div className="space-y-3">
                     {antecedentChirurgicaux.length === 0 && !editingItem && (
-                      <p className="text-on-surface-variant text-sm italic">Aucun antécédent chirurgical enregistré</p>
+                      <p className="text-on-surface-variant text-sm italic">
+                        Aucun antécédent chirurgical enregistré
+                      </p>
                     )}
                     {antecedentChirurgicaux.map((item, idx) => (
                       <div key={idx}>
-                        {editingItem?.section === "antecedentChirurgicaux" && editingItem?.index === idx ? (
-                          <EditFormCard onSave={saveEditingItem} onCancel={cancelEdit}>
+                        {editingItem?.section === "antecedentChirurgicaux" &&
+                        editingItem?.index === idx ? (
+                          <EditFormCard
+                            onSave={saveEditingItem}
+                            onCancel={cancelEdit}
+                          >
                             <div>
-                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Intervention</label>
-                              <input type="text" value={editingItem.data.intervention} onChange={(e) => updateEditingField("intervention", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Appendicectomie" />
+                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                Intervention
+                              </label>
+                              <input
+                                type="text"
+                                value={editingItem.data.intervention}
+                                onChange={(e) =>
+                                  updateEditingField(
+                                    "intervention",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                                placeholder="Ex: Appendicectomie"
+                              />
                             </div>
                             <div>
-                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Date</label>
-                              <input type="date" value={editingItem.data.date_intervention || ""} onChange={(e) => updateEditingField("date_intervention", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface" />
+                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                Date
+                              </label>
+                              <input
+                                type="date"
+                                value={editingItem.data.date_intervention || ""}
+                                onChange={(e) =>
+                                  updateEditingField(
+                                    "date_intervention",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
+                              />
                             </div>
                             <div>
-                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Établissement</label>
-                              <input type="text" value={editingItem.data.etablissement} onChange={(e) => updateEditingField("etablissement", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: CHU Hassan II" />
+                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                Établissement
+                              </label>
+                              <input
+                                type="text"
+                                value={editingItem.data.etablissement}
+                                onChange={(e) =>
+                                  updateEditingField(
+                                    "etablissement",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                                placeholder="Ex: CHU Hassan II"
+                              />
                             </div>
                             <div>
-                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Complications</label>
-                              <input type="text" value={editingItem.data.complications} onChange={(e) => updateEditingField("complications", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Aucune" />
+                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                Complications
+                              </label>
+                              <input
+                                type="text"
+                                value={editingItem.data.complications}
+                                onChange={(e) =>
+                                  updateEditingField(
+                                    "complications",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                                placeholder="Ex: Aucune"
+                              />
                             </div>
                           </EditFormCard>
                         ) : (
                           <div className="flex items-start justify-between p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/20">
                             <div className="flex-1">
-                              <p className="font-semibold text-on-surface">{item.intervention}</p>
+                              <p className="font-semibold text-on-surface">
+                                {item.intervention}
+                              </p>
                               <div className="text-xs text-on-surface-variant mt-1 space-y-1">
-                                {item.date_intervention && <p>Date : {formatDate(item.date_intervention)}</p>}
-                                {item.etablissement && <p>Établissement : {item.etablissement}</p>}
-                                {item.complications && <p>Complications : {item.complications}</p>}
+                                {item.date_intervention && (
+                                  <p>
+                                    Date : {formatDate(item.date_intervention)}
+                                  </p>
+                                )}
+                                {item.etablissement && (
+                                  <p>Établissement : {item.etablissement}</p>
+                                )}
+                                {item.complications && (
+                                  <p>Complications : {item.complications}</p>
+                                )}
                               </div>
                             </div>
                             <div className="flex gap-2 ml-3 shrink-0">
-                              <button onClick={() => startEdit("antecedentChirurgicaux", idx, item)} className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface transition-colors"><Edit2 size={16} /></button>
-                              <button onClick={() => setAntecedentChirurgicaux(antecedentChirurgicaux.filter((_, i) => i !== idx))} className="p-1.5 hover:bg-error-container rounded-lg text-error transition-colors"><Trash2 size={16} /></button>
+                              <button
+                                onClick={() =>
+                                  startEdit("antecedentChirurgicaux", idx, item)
+                                }
+                                className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface transition-colors"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setAntecedentChirurgicaux(
+                                    antecedentChirurgicaux.filter(
+                                      (_, i) => i !== idx,
+                                    ),
+                                  )
+                                }
+                                className="p-1.5 hover:bg-error-container rounded-lg text-error transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             </div>
                           </div>
                         )}
                       </div>
                     ))}
-                    {editingItem?.section === "antecedentChirurgicaux" && editingItem?.index === antecedentChirurgicaux.length && (
-                      <EditFormCard onSave={saveEditingItem} onCancel={cancelEdit}>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Intervention</label>
-                          <input type="text" value={editingItem.data.intervention} onChange={(e) => updateEditingField("intervention", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Appendicectomie" />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Date</label>
-                          <input type="date" value={editingItem.data.date_intervention || ""} onChange={(e) => updateEditingField("date_intervention", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface" />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Établissement</label>
-                          <input type="text" value={editingItem.data.etablissement} onChange={(e) => updateEditingField("etablissement", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: CHU Hassan II" />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Complications</label>
-                          <input type="text" value={editingItem.data.complications} onChange={(e) => updateEditingField("complications", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Aucune" />
-                        </div>
-                      </EditFormCard>
-                    )}
+                    {editingItem?.section === "antecedentChirurgicaux" &&
+                      editingItem?.index === antecedentChirurgicaux.length && (
+                        <EditFormCard
+                          onSave={saveEditingItem}
+                          onCancel={cancelEdit}
+                        >
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Intervention
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.intervention}
+                              onChange={(e) =>
+                                updateEditingField(
+                                  "intervention",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Ex: Appendicectomie"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Date
+                            </label>
+                            <input
+                              type="date"
+                              value={editingItem.data.date_intervention || ""}
+                              onChange={(e) =>
+                                updateEditingField(
+                                  "date_intervention",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Établissement
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.etablissement}
+                              onChange={(e) =>
+                                updateEditingField(
+                                  "etablissement",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Ex: CHU Hassan II"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Complications
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.complications}
+                              onChange={(e) =>
+                                updateEditingField(
+                                  "complications",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Ex: Aucune"
+                            />
+                          </div>
+                        </EditFormCard>
+                      )}
                   </div>
-                  <button onClick={addAntecedentChirurgical} disabled={!!editingItem} className="mt-3 w-full p-2.5 border border-outline-variant/30 hover:bg-surface-container-high disabled:opacity-40 rounded-xl text-primary font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                  <button
+                    onClick={addAntecedentChirurgical}
+                    disabled={!!editingItem}
+                    className="mt-3 w-full p-2.5 border border-outline-variant/30 hover:bg-surface-container-high disabled:opacity-40 rounded-xl text-primary font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                  >
                     <Plus size={16} />
                     Ajouter un Antécédent Chirurgical
                   </button>
@@ -1104,52 +1307,136 @@ export function MedicalRecord() {
 
                 {/* C. Antécédents Familiaux */}
                 <div className="p-5 bg-surface-container-low rounded-2xl border border-outline-variant/20">
-                  <h4 className="font-bold text-on-surface mb-4">C. Antécédents Familiaux</h4>
+                  <h4 className="font-bold text-on-surface mb-4">
+                    C. Antécédents Familiaux
+                  </h4>
                   <div className="space-y-3">
                     {antecedentsFamiliaux.length === 0 && !editingItem && (
-                      <p className="text-on-surface-variant text-sm italic">Aucun antécédent familial enregistré</p>
+                      <p className="text-on-surface-variant text-sm italic">
+                        Aucun antécédent familial enregistré
+                      </p>
                     )}
                     {antecedentsFamiliaux.map((item, idx) => (
                       <div key={idx}>
-                        {editingItem?.section === "antecedentsFamiliaux" && editingItem?.index === idx ? (
-                          <EditFormCard onSave={saveEditingItem} onCancel={cancelEdit}>
+                        {editingItem?.section === "antecedentsFamiliaux" &&
+                        editingItem?.index === idx ? (
+                          <EditFormCard
+                            onSave={saveEditingItem}
+                            onCancel={cancelEdit}
+                          >
                             <div>
-                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Maladie</label>
-                              <input type="text" value={editingItem.data.maladie} onChange={(e) => updateEditingField("maladie", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Diabète" />
+                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                Maladie
+                              </label>
+                              <input
+                                type="text"
+                                value={editingItem.data.maladie}
+                                onChange={(e) =>
+                                  updateEditingField("maladie", e.target.value)
+                                }
+                                className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                                placeholder="Ex: Diabète"
+                              />
                             </div>
                             <div>
-                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Lien de parenté</label>
-                              <input type="text" value={editingItem.data.lien_parente} onChange={(e) => updateEditingField("lien_parente", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Père, Mère, Frère..." />
+                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                Lien de parenté
+                              </label>
+                              <input
+                                type="text"
+                                value={editingItem.data.lien_parente}
+                                onChange={(e) =>
+                                  updateEditingField(
+                                    "lien_parente",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                                placeholder="Ex: Père, Mère, Frère..."
+                              />
                             </div>
                           </EditFormCard>
                         ) : (
                           <div className="flex items-start justify-between p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/20">
                             <div className="flex-1">
-                              <p className="font-semibold text-on-surface">{item.maladie}</p>
-                              <p className="text-xs text-on-surface-variant mt-1">Lien : {item.lien_parente || "Autre"}</p>
+                              <p className="font-semibold text-on-surface">
+                                {item.maladie}
+                              </p>
+                              <p className="text-xs text-on-surface-variant mt-1">
+                                Lien : {item.lien_parente || "Autre"}
+                              </p>
                             </div>
                             <div className="flex gap-2 ml-3 shrink-0">
-                              <button onClick={() => startEdit("antecedentsFamiliaux", idx, item)} className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface transition-colors"><Edit2 size={16} /></button>
-                              <button onClick={() => setAntecedentsFamiliaux(antecedentsFamiliaux.filter((_, i) => i !== idx))} className="p-1.5 hover:bg-error-container rounded-lg text-error transition-colors"><Trash2 size={16} /></button>
+                              <button
+                                onClick={() =>
+                                  startEdit("antecedentsFamiliaux", idx, item)
+                                }
+                                className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface transition-colors"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setAntecedentsFamiliaux(
+                                    antecedentsFamiliaux.filter(
+                                      (_, i) => i !== idx,
+                                    ),
+                                  )
+                                }
+                                className="p-1.5 hover:bg-error-container rounded-lg text-error transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             </div>
                           </div>
                         )}
                       </div>
                     ))}
-                    {editingItem?.section === "antecedentsFamiliaux" && editingItem?.index === antecedentsFamiliaux.length && (
-                      <EditFormCard onSave={saveEditingItem} onCancel={cancelEdit}>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Maladie</label>
-                          <input type="text" value={editingItem.data.maladie} onChange={(e) => updateEditingField("maladie", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Diabète" />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Lien de parenté</label>
-                          <input type="text" value={editingItem.data.lien_parente} onChange={(e) => updateEditingField("lien_parente", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Père, Mère, Frère..." />
-                        </div>
-                      </EditFormCard>
-                    )}
+                    {editingItem?.section === "antecedentsFamiliaux" &&
+                      editingItem?.index === antecedentsFamiliaux.length && (
+                        <EditFormCard
+                          onSave={saveEditingItem}
+                          onCancel={cancelEdit}
+                        >
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Maladie
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.maladie}
+                              onChange={(e) =>
+                                updateEditingField("maladie", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Ex: Diabète"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Lien de parenté
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.lien_parente}
+                              onChange={(e) =>
+                                updateEditingField(
+                                  "lien_parente",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Ex: Père, Mère, Frère..."
+                            />
+                          </div>
+                        </EditFormCard>
+                      )}
                   </div>
-                  <button onClick={addAntecedentFamilial} disabled={!!editingItem} className="mt-3 w-full p-2.5 border border-outline-variant/30 hover:bg-surface-container-high disabled:opacity-40 rounded-xl text-primary font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                  <button
+                    onClick={addAntecedentFamilial}
+                    disabled={!!editingItem}
+                    className="mt-3 w-full p-2.5 border border-outline-variant/30 hover:bg-surface-container-high disabled:opacity-40 rounded-xl text-primary font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                  >
                     <Plus size={16} />
                     Ajouter un Antécédent Familial
                   </button>
@@ -1157,72 +1444,200 @@ export function MedicalRecord() {
 
                 {/* D. Vaccinations */}
                 <div className="p-5 bg-surface-container-low rounded-2xl border border-outline-variant/20">
-                  <h4 className="font-bold text-on-surface mb-4">D. Vaccinations</h4>
+                  <h4 className="font-bold text-on-surface mb-4">
+                    D. Vaccinations
+                  </h4>
                   <div className="space-y-3">
                     {vaccinations.length === 0 && !editingItem && (
-                      <p className="text-on-surface-variant text-sm italic">Aucune vaccination enregistrée</p>
+                      <p className="text-on-surface-variant text-sm italic">
+                        Aucune vaccination enregistrée
+                      </p>
                     )}
                     {vaccinations.map((item, idx) => (
                       <div key={idx}>
-                        {editingItem?.section === "vaccinations" && editingItem?.index === idx ? (
-                          <EditFormCard onSave={saveEditingItem} onCancel={cancelEdit}>
+                        {editingItem?.section === "vaccinations" &&
+                        editingItem?.index === idx ? (
+                          <EditFormCard
+                            onSave={saveEditingItem}
+                            onCancel={cancelEdit}
+                          >
                             <div>
-                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Vaccin</label>
-                              <input type="text" value={editingItem.data.vaccin} onChange={(e) => updateEditingField("vaccin", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: DT Polio" />
+                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                Vaccin
+                              </label>
+                              <input
+                                type="text"
+                                value={editingItem.data.vaccin}
+                                onChange={(e) =>
+                                  updateEditingField("vaccin", e.target.value)
+                                }
+                                className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                                placeholder="Ex: DT Polio"
+                              />
                             </div>
                             <div>
-                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Date</label>
-                              <input type="date" value={editingItem.data.date_vaccination || ""} onChange={(e) => updateEditingField("date_vaccination", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface" />
+                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                Date
+                              </label>
+                              <input
+                                type="date"
+                                value={editingItem.data.date_vaccination || ""}
+                                onChange={(e) =>
+                                  updateEditingField(
+                                    "date_vaccination",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
+                              />
                             </div>
                             <div>
-                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Lot</label>
-                              <input type="text" value={editingItem.data.lot} onChange={(e) => updateEditingField("lot", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="N° de lot" />
+                              <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                Lot
+                              </label>
+                              <input
+                                type="text"
+                                value={editingItem.data.lot}
+                                onChange={(e) =>
+                                  updateEditingField("lot", e.target.value)
+                                }
+                                className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                                placeholder="N° de lot"
+                              />
                             </div>
                             <div className="flex items-center gap-2">
-                              <input id={`rappel-${idx}`} type="checkbox" checked={editingItem.data.rappel} onChange={(e) => updateEditingField("rappel", e.target.checked)} className="w-4 h-4 accent-primary" />
-                              <label htmlFor={`rappel-${idx}`} className="text-sm text-on-surface">Rappel effectué</label>
+                              <input
+                                id={`rappel-${idx}`}
+                                type="checkbox"
+                                checked={editingItem.data.rappel}
+                                onChange={(e) =>
+                                  updateEditingField("rappel", e.target.checked)
+                                }
+                                className="w-4 h-4 accent-primary"
+                              />
+                              <label
+                                htmlFor={`rappel-${idx}`}
+                                className="text-sm text-on-surface"
+                              >
+                                Rappel effectué
+                              </label>
                             </div>
                           </EditFormCard>
                         ) : (
                           <div className="flex items-start justify-between p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/20">
                             <div className="flex-1">
-                              <p className="font-semibold text-on-surface">{item.vaccin}</p>
+                              <p className="font-semibold text-on-surface">
+                                {item.vaccin}
+                              </p>
                               <div className="text-xs text-on-surface-variant mt-1 space-y-1">
-                                {item.date_vaccination && <p>Date : {formatDate(item.date_vaccination)}</p>}
+                                {item.date_vaccination && (
+                                  <p>
+                                    Date : {formatDate(item.date_vaccination)}
+                                  </p>
+                                )}
                                 {item.lot && <p>Lot : {item.lot}</p>}
                                 {item.rappel && <p>✓ Rappel effectué</p>}
                               </div>
                             </div>
                             <div className="flex gap-2 ml-3 shrink-0">
-                              <button onClick={() => startEdit("vaccinations", idx, item)} className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface transition-colors"><Edit2 size={16} /></button>
-                              <button onClick={() => setVaccinations(vaccinations.filter((_, i) => i !== idx))} className="p-1.5 hover:bg-error-container rounded-lg text-error transition-colors"><Trash2 size={16} /></button>
+                              <button
+                                onClick={() =>
+                                  startEdit("vaccinations", idx, item)
+                                }
+                                className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface transition-colors"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setVaccinations(
+                                    vaccinations.filter((_, i) => i !== idx),
+                                  )
+                                }
+                                className="p-1.5 hover:bg-error-container rounded-lg text-error transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             </div>
                           </div>
                         )}
                       </div>
                     ))}
-                    {editingItem?.section === "vaccinations" && editingItem?.index === vaccinations.length && (
-                      <EditFormCard onSave={saveEditingItem} onCancel={cancelEdit}>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Vaccin</label>
-                          <input type="text" value={editingItem.data.vaccin} onChange={(e) => updateEditingField("vaccin", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: DT Polio" />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Date</label>
-                          <input type="date" value={editingItem.data.date_vaccination || ""} onChange={(e) => updateEditingField("date_vaccination", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface" />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Lot</label>
-                          <input type="text" value={editingItem.data.lot} onChange={(e) => updateEditingField("lot", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="N° de lot" />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input id="rappel-new" type="checkbox" checked={editingItem.data.rappel} onChange={(e) => updateEditingField("rappel", e.target.checked)} className="w-4 h-4 accent-primary" />
-                          <label htmlFor="rappel-new" className="text-sm text-on-surface">Rappel effectué</label>
-                        </div>
-                      </EditFormCard>
-                    )}
+                    {editingItem?.section === "vaccinations" &&
+                      editingItem?.index === vaccinations.length && (
+                        <EditFormCard
+                          onSave={saveEditingItem}
+                          onCancel={cancelEdit}
+                        >
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Vaccin
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.vaccin}
+                              onChange={(e) =>
+                                updateEditingField("vaccin", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Ex: DT Polio"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Date
+                            </label>
+                            <input
+                              type="date"
+                              value={editingItem.data.date_vaccination || ""}
+                              onChange={(e) =>
+                                updateEditingField(
+                                  "date_vaccination",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Lot
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.lot}
+                              onChange={(e) =>
+                                updateEditingField("lot", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="N° de lot"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              id="rappel-new"
+                              type="checkbox"
+                              checked={editingItem.data.rappel}
+                              onChange={(e) =>
+                                updateEditingField("rappel", e.target.checked)
+                              }
+                              className="w-4 h-4 accent-primary"
+                            />
+                            <label
+                              htmlFor="rappel-new"
+                              className="text-sm text-on-surface"
+                            >
+                              Rappel effectué
+                            </label>
+                          </div>
+                        </EditFormCard>
+                      )}
                   </div>
-                  <button onClick={addVaccination} disabled={!!editingItem} className="mt-3 w-full p-2.5 border border-outline-variant/30 hover:bg-surface-container-high disabled:opacity-40 rounded-xl text-primary font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                  <button
+                    onClick={addVaccination}
+                    disabled={!!editingItem}
+                    className="mt-3 w-full p-2.5 border border-outline-variant/30 hover:bg-surface-container-high disabled:opacity-40 rounded-xl text-primary font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                  >
                     <Plus size={16} />
                     Ajouter une Vaccination
                   </button>
@@ -1230,19 +1645,60 @@ export function MedicalRecord() {
 
                 {/* E. Antécédents Toxicologiques */}
                 <div className="p-5 bg-surface-container-low rounded-2xl border border-outline-variant/20">
-                  <h4 className="font-bold text-on-surface mb-4">E. Antécédents Toxicologiques</h4>
+                  <h4 className="font-bold text-on-surface mb-4">
+                    E. Antécédents Toxicologiques
+                  </h4>
                   <div className="space-y-4">
                     <div>
-                      <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">Tabac</label>
-                      <input type="text" placeholder="Non / Ancien fumeur / Fumeur actif..." value={antecedentsToxicologiques.tabac} onChange={(e) => setAntecedentsToxicologiques({ ...antecedentsToxicologiques, tabac: e.target.value })} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" />
+                      <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">
+                        Tabac
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Non / Ancien fumeur / Fumeur actif..."
+                        value={antecedentsToxicologiques.tabac}
+                        onChange={(e) =>
+                          setAntecedentsToxicologiques({
+                            ...antecedentsToxicologiques,
+                            tabac: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                      />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">Alcool</label>
-                      <input type="text" placeholder="Non / Modéré / Régulier..." value={antecedentsToxicologiques.alcool} onChange={(e) => setAntecedentsToxicologiques({ ...antecedentsToxicologiques, alcool: e.target.value })} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" />
+                      <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">
+                        Alcool
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Non / Modéré / Régulier..."
+                        value={antecedentsToxicologiques.alcool}
+                        onChange={(e) =>
+                          setAntecedentsToxicologiques({
+                            ...antecedentsToxicologiques,
+                            alcool: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                      />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">Toxicomanie</label>
-                      <textarea placeholder="Détails des antécédents toxicologiques..." value={antecedentsToxicologiques.toxicomanie} onChange={(e) => setAntecedentsToxicologiques({ ...antecedentsToxicologiques, toxicomanie: e.target.value })} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50 resize-none" rows={3} />
+                      <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">
+                        Toxicomanie
+                      </label>
+                      <textarea
+                        placeholder="Détails des antécédents toxicologiques..."
+                        value={antecedentsToxicologiques.toxicomanie}
+                        onChange={(e) =>
+                          setAntecedentsToxicologiques({
+                            ...antecedentsToxicologiques,
+                            toxicomanie: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50 resize-none"
+                        rows={3}
+                      />
                     </div>
                   </div>
                 </div>
@@ -1250,39 +1706,145 @@ export function MedicalRecord() {
                 {/* F. Antécédents Gynécologiques/Obstétricaux (femmes uniquement) */}
                 {patientSexe === "F" && (
                   <div className="p-5 bg-surface-container-low rounded-2xl border border-outline-variant/20">
-                    <h4 className="font-bold text-on-surface mb-4">F. Antécédents Gynécologiques & Obstétricaux</h4>
+                    <h4 className="font-bold text-on-surface mb-4">
+                      F. Antécédents Gynécologiques & Obstétricaux
+                    </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">Âge Puberté</label>
-                        <input type="text" placeholder="Ans" value={antecedentsGynecologiques.age_puberte} onChange={(e) => setAntecedentsGynecologiques({ ...antecedentsGynecologiques, age_puberte: e.target.value })} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" />
+                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">
+                          Âge Puberté
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ans"
+                          value={antecedentsGynecologiques.age_puberte}
+                          onChange={(e) =>
+                            setAntecedentsGynecologiques({
+                              ...antecedentsGynecologiques,
+                              age_puberte: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                        />
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">Cycle Menstruel</label>
-                        <input type="text" placeholder="Ex: 28 jours régulier" value={antecedentsGynecologiques.cycle_menstruel} onChange={(e) => setAntecedentsGynecologiques({ ...antecedentsGynecologiques, cycle_menstruel: e.target.value })} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" />
+                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">
+                          Cycle Menstruel
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ex: 28 jours régulier"
+                          value={antecedentsGynecologiques.cycle_menstruel}
+                          onChange={(e) =>
+                            setAntecedentsGynecologiques({
+                              ...antecedentsGynecologiques,
+                              cycle_menstruel: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                        />
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">Contraception</label>
-                        <input type="text" placeholder="Pilule / DIU / Aucune..." value={antecedentsGynecologiques.contraception} onChange={(e) => setAntecedentsGynecologiques({ ...antecedentsGynecologiques, contraception: e.target.value })} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" />
+                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">
+                          Contraception
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Pilule / DIU / Aucune..."
+                          value={antecedentsGynecologiques.contraception}
+                          onChange={(e) =>
+                            setAntecedentsGynecologiques({
+                              ...antecedentsGynecologiques,
+                              contraception: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                        />
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">Grossesses (G)</label>
-                        <input type="text" placeholder="Nombre" value={antecedentsGynecologiques.grossesses} onChange={(e) => setAntecedentsGynecologiques({ ...antecedentsGynecologiques, grossesses: e.target.value })} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" />
+                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">
+                          Grossesses (G)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Nombre"
+                          value={antecedentsGynecologiques.grossesses}
+                          onChange={(e) =>
+                            setAntecedentsGynecologiques({
+                              ...antecedentsGynecologiques,
+                              grossesses: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                        />
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">Enfants Vivants (P)</label>
-                        <input type="text" placeholder="Nombre" value={antecedentsGynecologiques.enfants_vivants} onChange={(e) => setAntecedentsGynecologiques({ ...antecedentsGynecologiques, enfants_vivants: e.target.value })} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" />
+                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">
+                          Enfants Vivants (P)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Nombre"
+                          value={antecedentsGynecologiques.enfants_vivants}
+                          onChange={(e) =>
+                            setAntecedentsGynecologiques({
+                              ...antecedentsGynecologiques,
+                              enfants_vivants: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                        />
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">Fausses Couches</label>
-                        <input type="text" placeholder="Nombre" value={antecedentsGynecologiques.fausses_couches} onChange={(e) => setAntecedentsGynecologiques({ ...antecedentsGynecologiques, fausses_couches: e.target.value })} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" />
+                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">
+                          Fausses Couches
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Nombre"
+                          value={antecedentsGynecologiques.fausses_couches}
+                          onChange={(e) =>
+                            setAntecedentsGynecologiques({
+                              ...antecedentsGynecologiques,
+                              fausses_couches: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                        />
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">IVG</label>
-                        <input type="text" placeholder="Nombre" value={antecedentsGynecologiques.ivg} onChange={(e) => setAntecedentsGynecologiques({ ...antecedentsGynecologiques, ivg: e.target.value })} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" />
+                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">
+                          IVG
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Nombre"
+                          value={antecedentsGynecologiques.ivg}
+                          onChange={(e) =>
+                            setAntecedentsGynecologiques({
+                              ...antecedentsGynecologiques,
+                              ivg: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                        />
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">Morts-Nés</label>
-                        <input type="text" placeholder="Nombre" value={antecedentsGynecologiques.morts_ne} onChange={(e) => setAntecedentsGynecologiques({ ...antecedentsGynecologiques, morts_ne: e.target.value })} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" />
+                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-2">
+                          Morts-Nés
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Nombre"
+                          value={antecedentsGynecologiques.morts_ne}
+                          onChange={(e) =>
+                            setAntecedentsGynecologiques({
+                              ...antecedentsGynecologiques,
+                              morts_ne: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                        />
                       </div>
                     </div>
                   </div>
@@ -1328,72 +1890,185 @@ export function MedicalRecord() {
                     A. Allergies Médicamenteuses (CRITIQUE)
                   </h4>
                   <div className="space-y-3">
-                    {allergies.filter((a) => a.categorie === "medicament").length === 0 && !editingItem && (
-                      <p className="text-red-700 text-sm italic">Aucune allergie médicamenteuse enregistrée</p>
-                    )}
-                    {allergies.filter((a) => a.categorie === "medicament").map((item, idx) => {
-                      const realIndex = allergies.findIndex((a) => a === item);
-                      return (
-                        <div key={realIndex}>
-                          {editingItem?.section === "allergies" && editingItem?.index === realIndex ? (
-                            <EditFormCard onSave={saveEditingItem} onCancel={cancelEdit}>
-                              <div>
-                                <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Substance</label>
-                                <input type="text" value={editingItem.data.substance} onChange={(e) => updateEditingField("substance", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Pénicilline" />
-                              </div>
-                              <div>
-                                <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Réaction</label>
-                                <input type="text" value={editingItem.data.reaction} onChange={(e) => updateEditingField("reaction", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Urticaire, choc anaphylactique..." />
-                              </div>
-                              <div>
-                                <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Sévérité</label>
-                                <select value={editingItem.data.severite} onChange={(e) => updateEditingField("severite", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface">
-                                  <option value="Légère">Légère</option>
-                                  <option value="Modérée">Modérée</option>
-                                  <option value="Sévère">Sévère</option>
-                                </select>
-                              </div>
-                            </EditFormCard>
-                          ) : (
-                            <div className="flex items-start justify-between p-3 bg-white rounded-xl border border-red-200">
-                              <div className="flex-1">
-                                <p className="font-semibold text-on-surface">{item.substance}</p>
-                                <div className="text-xs text-on-surface-variant mt-2 space-y-1">
-                                  {item.reaction && <p>Réaction : {item.reaction}</p>}
-                                  <p>Sévérité : <span className="font-semibold text-red-600">{item.severite || "—"}</span></p>
+                    {allergies.filter((a) => a.categorie === "medicament")
+                      .length === 0 &&
+                      !editingItem && (
+                        <p className="text-red-700 text-sm italic">
+                          Aucune allergie médicamenteuse enregistrée
+                        </p>
+                      )}
+                    {allergies
+                      .filter((a) => a.categorie === "medicament")
+                      .map((item) => {
+                        const realIndex = allergies.findIndex(
+                          (a) => a === item,
+                        );
+                        return (
+                          <div key={realIndex}>
+                            {editingItem?.section === "allergies" &&
+                            editingItem?.index === realIndex ? (
+                              <EditFormCard
+                                onSave={saveEditingItem}
+                                onCancel={cancelEdit}
+                              >
+                                <div>
+                                  <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                    Substance
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={editingItem.data.substance}
+                                    onChange={(e) =>
+                                      updateEditingField(
+                                        "substance",
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                                    placeholder="Ex: Pénicilline"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                    Réaction
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={editingItem.data.reaction}
+                                    onChange={(e) =>
+                                      updateEditingField(
+                                        "reaction",
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                                    placeholder="Ex: Urticaire, choc anaphylactique..."
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                    Sévérité
+                                  </label>
+                                  <select
+                                    value={editingItem.data.severite}
+                                    onChange={(e) =>
+                                      updateEditingField(
+                                        "severite",
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
+                                  >
+                                    <option value="Légère">Légère</option>
+                                    <option value="Modérée">Modérée</option>
+                                    <option value="Sévère">Sévère</option>
+                                  </select>
+                                </div>
+                              </EditFormCard>
+                            ) : (
+                              <div className="flex items-start justify-between p-3 bg-white rounded-xl border border-red-200">
+                                <div className="flex-1">
+                                  <p className="font-semibold text-on-surface">
+                                    {item.substance}
+                                  </p>
+                                  <div className="text-xs text-on-surface-variant mt-2 space-y-1">
+                                    {item.reaction && (
+                                      <p>Réaction : {item.reaction}</p>
+                                    )}
+                                    <p>
+                                      Sévérité :{" "}
+                                      <span className="font-semibold text-red-600">
+                                        {item.severite || "—"}
+                                      </span>
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 ml-3 shrink-0">
+                                  <button
+                                    onClick={() =>
+                                      startEdit("allergies", realIndex, item)
+                                    }
+                                    className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface transition-colors"
+                                  >
+                                    <Edit2 size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      setAllergies(
+                                        allergies.filter(
+                                          (_, i) => i !== realIndex,
+                                        ),
+                                      )
+                                    }
+                                    className="p-1.5 hover:bg-error-container rounded-lg text-error transition-colors"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
                                 </div>
                               </div>
-                              <div className="flex gap-2 ml-3 shrink-0">
-                                <button onClick={() => startEdit("allergies", realIndex, item)} className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface transition-colors"><Edit2 size={16} /></button>
-                                <button onClick={() => setAllergies(allergies.filter((_, i) => i !== realIndex))} className="p-1.5 hover:bg-error-container rounded-lg text-error transition-colors"><Trash2 size={16} /></button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                    {editingItem?.section === "allergies" && editingItem?.index === allergies.length && editingItem?.data?.categorie === "medicament" && (
-                      <EditFormCard onSave={saveEditingItem} onCancel={cancelEdit}>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Substance</label>
-                          <input type="text" value={editingItem.data.substance} onChange={(e) => updateEditingField("substance", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Pénicilline" />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Réaction</label>
-                          <input type="text" value={editingItem.data.reaction} onChange={(e) => updateEditingField("reaction", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Urticaire, choc anaphylactique..." />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Sévérité</label>
-                          <select value={editingItem.data.severite} onChange={(e) => updateEditingField("severite", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface">
-                            <option value="Légère">Légère</option>
-                            <option value="Modérée">Modérée</option>
-                            <option value="Sévère">Sévère</option>
-                          </select>
-                        </div>
-                      </EditFormCard>
-                    )}
+                            )}
+                          </div>
+                        );
+                      })}
+                    {editingItem?.section === "allergies" &&
+                      editingItem?.index === allergies.length &&
+                      editingItem?.data?.categorie === "medicament" && (
+                        <EditFormCard
+                          onSave={saveEditingItem}
+                          onCancel={cancelEdit}
+                        >
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Substance
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.substance}
+                              onChange={(e) =>
+                                updateEditingField("substance", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Ex: Pénicilline"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Réaction
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.reaction}
+                              onChange={(e) =>
+                                updateEditingField("reaction", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Ex: Urticaire, choc anaphylactique..."
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Sévérité
+                            </label>
+                            <select
+                              value={editingItem.data.severite}
+                              onChange={(e) =>
+                                updateEditingField("severite", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
+                            >
+                              <option value="Légère">Légère</option>
+                              <option value="Modérée">Modérée</option>
+                              <option value="Sévère">Sévère</option>
+                            </select>
+                          </div>
+                        </EditFormCard>
+                      )}
                   </div>
-                  <button onClick={() => addAllergy("medicament")} disabled={!!editingItem} className="mt-3 w-full p-2.5 border border-red-200 hover:bg-red-100 disabled:opacity-40 rounded-xl text-red-700 font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => addAllergy("medicament")}
+                    disabled={!!editingItem}
+                    className="mt-3 w-full p-2.5 border border-red-200 hover:bg-red-100 disabled:opacity-40 rounded-xl text-red-700 font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                  >
                     <Plus size={16} />
                     Ajouter une Allergie Médicamenteuse
                   </button>
@@ -1401,71 +2076,183 @@ export function MedicalRecord() {
 
                 {/* B. Alimentaires */}
                 <div className="p-5 bg-surface-container-low rounded-2xl border border-outline-variant/20">
-                  <h4 className="font-bold text-on-surface mb-4">B. Allergies Alimentaires</h4>
+                  <h4 className="font-bold text-on-surface mb-4">
+                    B. Allergies Alimentaires
+                  </h4>
                   <div className="space-y-3">
-                    {allergies.filter((a) => a.categorie === "alimentaire").length === 0 && !editingItem && (
-                      <p className="text-on-surface-variant text-sm italic">Aucune allergie alimentaire enregistrée</p>
-                    )}
-                    {allergies.filter((a) => a.categorie === "alimentaire").map((item, idx) => {
-                      const realIndex = allergies.findIndex((a) => a === item);
-                      return (
-                        <div key={realIndex}>
-                          {editingItem?.section === "allergies" && editingItem?.index === realIndex ? (
-                            <EditFormCard onSave={saveEditingItem} onCancel={cancelEdit}>
-                              <div>
-                                <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Substance</label>
-                                <input type="text" value={editingItem.data.substance} onChange={(e) => updateEditingField("substance", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Arachides" />
+                    {allergies.filter((a) => a.categorie === "alimentaire")
+                      .length === 0 &&
+                      !editingItem && (
+                        <p className="text-on-surface-variant text-sm italic">
+                          Aucune allergie alimentaire enregistrée
+                        </p>
+                      )}
+                    {allergies
+                      .filter((a) => a.categorie === "alimentaire")
+                      .map((item) => {
+                        const realIndex = allergies.findIndex(
+                          (a) => a === item,
+                        );
+                        return (
+                          <div key={realIndex}>
+                            {editingItem?.section === "allergies" &&
+                            editingItem?.index === realIndex ? (
+                              <EditFormCard
+                                onSave={saveEditingItem}
+                                onCancel={cancelEdit}
+                              >
+                                <div>
+                                  <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                    Substance
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={editingItem.data.substance}
+                                    onChange={(e) =>
+                                      updateEditingField(
+                                        "substance",
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                                    placeholder="Ex: Arachides"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                    Réaction
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={editingItem.data.reaction}
+                                    onChange={(e) =>
+                                      updateEditingField(
+                                        "reaction",
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                                    placeholder="Ex: Œdème, urticaire..."
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                    Sévérité
+                                  </label>
+                                  <select
+                                    value={editingItem.data.severite}
+                                    onChange={(e) =>
+                                      updateEditingField(
+                                        "severite",
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
+                                  >
+                                    <option value="Légère">Légère</option>
+                                    <option value="Modérée">Modérée</option>
+                                    <option value="Sévère">Sévère</option>
+                                  </select>
+                                </div>
+                              </EditFormCard>
+                            ) : (
+                              <div className="flex items-start justify-between p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/20">
+                                <div className="flex-1">
+                                  <p className="font-semibold text-on-surface">
+                                    {item.substance}
+                                  </p>
+                                  {item.reaction && (
+                                    <p className="text-xs text-on-surface-variant mt-1">
+                                      Réaction : {item.reaction}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex gap-2 ml-3 shrink-0">
+                                  <button
+                                    onClick={() =>
+                                      startEdit("allergies", realIndex, item)
+                                    }
+                                    className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface transition-colors"
+                                  >
+                                    <Edit2 size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      setAllergies(
+                                        allergies.filter(
+                                          (_, i) => i !== realIndex,
+                                        ),
+                                      )
+                                    }
+                                    className="p-1.5 hover:bg-error-container rounded-lg text-error transition-colors"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
                               </div>
-                              <div>
-                                <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Réaction</label>
-                                <input type="text" value={editingItem.data.reaction} onChange={(e) => updateEditingField("reaction", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Œdème, urticaire..." />
-                              </div>
-                              <div>
-                                <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Sévérité</label>
-                                <select value={editingItem.data.severite} onChange={(e) => updateEditingField("severite", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface">
-                                  <option value="Légère">Légère</option>
-                                  <option value="Modérée">Modérée</option>
-                                  <option value="Sévère">Sévère</option>
-                                </select>
-                              </div>
-                            </EditFormCard>
-                          ) : (
-                            <div className="flex items-start justify-between p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/20">
-                              <div className="flex-1">
-                                <p className="font-semibold text-on-surface">{item.substance}</p>
-                                {item.reaction && <p className="text-xs text-on-surface-variant mt-1">Réaction : {item.reaction}</p>}
-                              </div>
-                              <div className="flex gap-2 ml-3 shrink-0">
-                                <button onClick={() => startEdit("allergies", realIndex, item)} className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface transition-colors"><Edit2 size={16} /></button>
-                                <button onClick={() => setAllergies(allergies.filter((_, i) => i !== realIndex))} className="p-1.5 hover:bg-error-container rounded-lg text-error transition-colors"><Trash2 size={16} /></button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                    {editingItem?.section === "allergies" && editingItem?.index === allergies.length && editingItem?.data?.categorie === "alimentaire" && (
-                      <EditFormCard onSave={saveEditingItem} onCancel={cancelEdit}>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Substance</label>
-                          <input type="text" value={editingItem.data.substance} onChange={(e) => updateEditingField("substance", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Arachides" />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Réaction</label>
-                          <input type="text" value={editingItem.data.reaction} onChange={(e) => updateEditingField("reaction", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Œdème, urticaire..." />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Sévérité</label>
-                          <select value={editingItem.data.severite} onChange={(e) => updateEditingField("severite", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface">
-                            <option value="Légère">Légère</option>
-                            <option value="Modérée">Modérée</option>
-                            <option value="Sévère">Sévère</option>
-                          </select>
-                        </div>
-                      </EditFormCard>
-                    )}
+                            )}
+                          </div>
+                        );
+                      })}
+                    {editingItem?.section === "allergies" &&
+                      editingItem?.index === allergies.length &&
+                      editingItem?.data?.categorie === "alimentaire" && (
+                        <EditFormCard
+                          onSave={saveEditingItem}
+                          onCancel={cancelEdit}
+                        >
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Substance
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.substance}
+                              onChange={(e) =>
+                                updateEditingField("substance", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Ex: Arachides"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Réaction
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.reaction}
+                              onChange={(e) =>
+                                updateEditingField("reaction", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Ex: Œdème, urticaire..."
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Sévérité
+                            </label>
+                            <select
+                              value={editingItem.data.severite}
+                              onChange={(e) =>
+                                updateEditingField("severite", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
+                            >
+                              <option value="Légère">Légère</option>
+                              <option value="Modérée">Modérée</option>
+                              <option value="Sévère">Sévère</option>
+                            </select>
+                          </div>
+                        </EditFormCard>
+                      )}
                   </div>
-                  <button onClick={() => addAllergy("alimentaire")} disabled={!!editingItem} className="mt-3 w-full p-2.5 border border-outline-variant/30 hover:bg-surface-container-high disabled:opacity-40 rounded-xl text-primary font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => addAllergy("alimentaire")}
+                    disabled={!!editingItem}
+                    className="mt-3 w-full p-2.5 border border-outline-variant/30 hover:bg-surface-container-high disabled:opacity-40 rounded-xl text-primary font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                  >
                     <Plus size={16} />
                     Ajouter une Allergie Alimentaire
                   </button>
@@ -1473,74 +2260,192 @@ export function MedicalRecord() {
 
                 {/* C. Environnementales / Autres */}
                 <div className="p-5 bg-surface-container-low rounded-2xl border border-outline-variant/20">
-                  <h4 className="font-bold text-on-surface mb-4">C. Allergies Environnementales / Autres</h4>
+                  <h4 className="font-bold text-on-surface mb-4">
+                    C. Allergies Environnementales / Autres
+                  </h4>
                   <div className="space-y-3">
-                    {allergies.filter((a) => a.categorie !== "medicament" && a.categorie !== "alimentaire").length === 0 && !editingItem && (
-                      <p className="text-on-surface-variant text-sm italic">Aucune allergie environnementale enregistrée</p>
-                    )}
-                    {allergies.filter((a) => a.categorie !== "medicament" && a.categorie !== "alimentaire").map((item, idx) => {
-                      const realIndex = allergies.findIndex((a) => a === item);
-                      return (
-                        <div key={realIndex}>
-                          {editingItem?.section === "allergies" && editingItem?.index === realIndex ? (
-                            <EditFormCard onSave={saveEditingItem} onCancel={cancelEdit}>
-                              <div>
-                                <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Substance</label>
-                                <input type="text" value={editingItem.data.substance} onChange={(e) => updateEditingField("substance", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Pollen, acariens..." />
-                              </div>
-                              <div>
-                                <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Réaction</label>
-                                <input type="text" value={editingItem.data.reaction} onChange={(e) => updateEditingField("reaction", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Rhinite, asthme..." />
-                              </div>
-                              <div>
-                                <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Sévérité</label>
-                                <select value={editingItem.data.severite} onChange={(e) => updateEditingField("severite", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface">
-                                  <option value="Légère">Légère</option>
-                                  <option value="Modérée">Modérée</option>
-                                  <option value="Sévère">Sévère</option>
-                                </select>
-                              </div>
-                            </EditFormCard>
-                          ) : (
-                            <div className="flex items-start justify-between p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/20">
-                              <div className="flex-1">
-                                <p className="font-semibold text-on-surface">{item.substance}</p>
-                                <div className="text-xs text-on-surface-variant mt-1 space-y-1">
-                                  {item.type && <p>Type : {item.type}</p>}
-                                  {item.reaction && <p>Réaction : {item.reaction}</p>}
+                    {allergies.filter(
+                      (a) =>
+                        a.categorie !== "medicament" &&
+                        a.categorie !== "alimentaire",
+                    ).length === 0 &&
+                      !editingItem && (
+                        <p className="text-on-surface-variant text-sm italic">
+                          Aucune allergie environnementale enregistrée
+                        </p>
+                      )}
+                    {allergies
+                      .filter(
+                        (a) =>
+                          a.categorie !== "medicament" &&
+                          a.categorie !== "alimentaire",
+                      )
+                      .map((item) => {
+                        const realIndex = allergies.findIndex(
+                          (a) => a === item,
+                        );
+                        return (
+                          <div key={realIndex}>
+                            {editingItem?.section === "allergies" &&
+                            editingItem?.index === realIndex ? (
+                              <EditFormCard
+                                onSave={saveEditingItem}
+                                onCancel={cancelEdit}
+                              >
+                                <div>
+                                  <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                    Substance
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={editingItem.data.substance}
+                                    onChange={(e) =>
+                                      updateEditingField(
+                                        "substance",
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                                    placeholder="Ex: Pollen, acariens..."
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                    Réaction
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={editingItem.data.reaction}
+                                    onChange={(e) =>
+                                      updateEditingField(
+                                        "reaction",
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                                    placeholder="Ex: Rhinite, asthme..."
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                                    Sévérité
+                                  </label>
+                                  <select
+                                    value={editingItem.data.severite}
+                                    onChange={(e) =>
+                                      updateEditingField(
+                                        "severite",
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
+                                  >
+                                    <option value="Légère">Légère</option>
+                                    <option value="Modérée">Modérée</option>
+                                    <option value="Sévère">Sévère</option>
+                                  </select>
+                                </div>
+                              </EditFormCard>
+                            ) : (
+                              <div className="flex items-start justify-between p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/20">
+                                <div className="flex-1">
+                                  <p className="font-semibold text-on-surface">
+                                    {item.substance}
+                                  </p>
+                                  <div className="text-xs text-on-surface-variant mt-1 space-y-1">
+                                    {item.type && <p>Type : {item.type}</p>}
+                                    {item.reaction && (
+                                      <p>Réaction : {item.reaction}</p>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 ml-3 shrink-0">
+                                  <button
+                                    onClick={() =>
+                                      startEdit("allergies", realIndex, item)
+                                    }
+                                    className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface transition-colors"
+                                  >
+                                    <Edit2 size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      setAllergies(
+                                        allergies.filter(
+                                          (_, i) => i !== realIndex,
+                                        ),
+                                      )
+                                    }
+                                    className="p-1.5 hover:bg-error-container rounded-lg text-error transition-colors"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
                                 </div>
                               </div>
-                              <div className="flex gap-2 ml-3 shrink-0">
-                                <button onClick={() => startEdit("allergies", realIndex, item)} className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface transition-colors"><Edit2 size={16} /></button>
-                                <button onClick={() => setAllergies(allergies.filter((_, i) => i !== realIndex))} className="p-1.5 hover:bg-error-container rounded-lg text-error transition-colors"><Trash2 size={16} /></button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                    {editingItem?.section === "allergies" && editingItem?.index === allergies.length && editingItem?.data?.categorie !== "medicament" && editingItem?.data?.categorie !== "alimentaire" && (
-                      <EditFormCard onSave={saveEditingItem} onCancel={cancelEdit}>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Substance</label>
-                          <input type="text" value={editingItem.data.substance} onChange={(e) => updateEditingField("substance", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Pollen, acariens..." />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Réaction</label>
-                          <input type="text" value={editingItem.data.reaction} onChange={(e) => updateEditingField("reaction", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Rhinite, asthme..." />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Sévérité</label>
-                          <select value={editingItem.data.severite} onChange={(e) => updateEditingField("severite", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface">
-                            <option value="Légère">Légère</option>
-                            <option value="Modérée">Modérée</option>
-                            <option value="Sévère">Sévère</option>
-                          </select>
-                        </div>
-                      </EditFormCard>
-                    )}
+                            )}
+                          </div>
+                        );
+                      })}
+                    {editingItem?.section === "allergies" &&
+                      editingItem?.index === allergies.length &&
+                      editingItem?.data?.categorie !== "medicament" &&
+                      editingItem?.data?.categorie !== "alimentaire" && (
+                        <EditFormCard
+                          onSave={saveEditingItem}
+                          onCancel={cancelEdit}
+                        >
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Substance
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.substance}
+                              onChange={(e) =>
+                                updateEditingField("substance", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Ex: Pollen, acariens..."
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Réaction
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.reaction}
+                              onChange={(e) =>
+                                updateEditingField("reaction", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Ex: Rhinite, asthme..."
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Sévérité
+                            </label>
+                            <select
+                              value={editingItem.data.severite}
+                              onChange={(e) =>
+                                updateEditingField("severite", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
+                            >
+                              <option value="Légère">Légère</option>
+                              <option value="Modérée">Modérée</option>
+                              <option value="Sévère">Sévère</option>
+                            </select>
+                          </div>
+                        </EditFormCard>
+                      )}
                   </div>
-                  <button onClick={() => addAllergy("autre")} disabled={!!editingItem} className="mt-3 w-full p-2.5 border border-outline-variant/30 hover:bg-surface-container-high disabled:opacity-40 rounded-xl text-primary font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => addAllergy("autre")}
+                    disabled={!!editingItem}
+                    className="mt-3 w-full p-2.5 border border-outline-variant/30 hover:bg-surface-container-high disabled:opacity-40 rounded-xl text-primary font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                  >
                     <Plus size={16} />
                     Ajouter une Allergie Environnementale
                   </button>
@@ -1584,9 +2489,18 @@ export function MedicalRecord() {
               <div className="space-y-4">
                 {traitements.length === 0 && !editingItem && (
                   <div className="p-6 text-center bg-surface-container-lowest rounded-2xl border border-outline-variant/20">
-                    <Pill size={32} className="text-outline mx-auto mb-3 opacity-50" />
-                    <p className="text-on-surface-variant mb-4">Aucun traitement en cours</p>
-                    <button onClick={addTraitement} disabled={!!editingItem} className="px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-40 text-on-primary rounded-xl font-semibold text-sm transition-colors inline-flex items-center gap-2">
+                    <Pill
+                      size={32}
+                      className="text-outline mx-auto mb-3 opacity-50"
+                    />
+                    <p className="text-on-surface-variant mb-4">
+                      Aucun traitement en cours
+                    </p>
+                    <button
+                      onClick={addTraitement}
+                      disabled={!!editingItem}
+                      className="px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-40 text-on-primary rounded-xl font-semibold text-sm transition-colors inline-flex items-center gap-2"
+                    >
                       <Plus size={16} />
                       Ajouter un Traitement
                     </button>
@@ -1594,44 +2508,127 @@ export function MedicalRecord() {
                 )}
                 {traitements.map((item, idx) => (
                   <div key={idx}>
-                    {editingItem?.section === "traitements" && editingItem?.index === idx ? (
-                      <EditFormCard onSave={saveEditingItem} onCancel={cancelEdit}>
+                    {editingItem?.section === "traitements" &&
+                    editingItem?.index === idx ? (
+                      <EditFormCard
+                        onSave={saveEditingItem}
+                        onCancel={cancelEdit}
+                      >
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div className="md:col-span-2">
-                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Médicament</label>
-                            <input type="text" value={editingItem.data.medicament} onChange={(e) => updateEditingField("medicament", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Metformine 500mg" />
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Médicament
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.medicament}
+                              onChange={(e) =>
+                                updateEditingField("medicament", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Ex: Metformine 500mg"
+                            />
                           </div>
                           <div className="md:col-span-2">
-                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Posologie</label>
-                            <input type="text" value={editingItem.data.posologie} onChange={(e) => updateEditingField("posologie", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: 1 comprimé matin et soir" />
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Posologie
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.posologie}
+                              onChange={(e) =>
+                                updateEditingField("posologie", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Ex: 1 comprimé matin et soir"
+                            />
                           </div>
                           <div>
-                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Fréquence</label>
-                            <input type="text" value={editingItem.data.frequence} onChange={(e) => updateEditingField("frequence", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: 2 fois/jour" />
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Fréquence
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.frequence}
+                              onChange={(e) =>
+                                updateEditingField("frequence", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Ex: 2 fois/jour"
+                            />
                           </div>
                           <div>
-                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Statut</label>
-                            <select value={editingItem.data.statut} onChange={(e) => updateEditingField("statut", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface">
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Statut
+                            </label>
+                            <select
+                              value={editingItem.data.statut}
+                              onChange={(e) =>
+                                updateEditingField("statut", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
+                            >
                               <option value="En cours">En cours</option>
                               <option value="Terminé">Terminé</option>
                               <option value="Suspendu">Suspendu</option>
                             </select>
                           </div>
                           <div>
-                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Date début</label>
-                            <input type="date" value={editingItem.data.date_debut || ""} onChange={(e) => updateEditingField("date_debut", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface" />
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Date début
+                            </label>
+                            <input
+                              type="date"
+                              value={editingItem.data.date_debut || ""}
+                              onChange={(e) =>
+                                updateEditingField("date_debut", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
+                            />
                           </div>
                           <div>
-                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Date fin</label>
-                            <input type="date" value={editingItem.data.date_fin || ""} onChange={(e) => updateEditingField("date_fin", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface" />
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Date fin
+                            </label>
+                            <input
+                              type="date"
+                              value={editingItem.data.date_fin || ""}
+                              onChange={(e) =>
+                                updateEditingField("date_fin", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
+                            />
                           </div>
                           <div className="md:col-span-2">
-                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Indication</label>
-                            <input type="text" value={editingItem.data.indication} onChange={(e) => updateEditingField("indication", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Raison de la prescription" />
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Indication
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.indication}
+                              onChange={(e) =>
+                                updateEditingField("indication", e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Raison de la prescription"
+                            />
                           </div>
                           <div className="md:col-span-2">
-                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Prescrit par</label>
-                            <input type="text" value={editingItem.data.prescrit_par} onChange={(e) => updateEditingField("prescrit_par", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Dr. ..." />
+                            <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                              Prescrit par
+                            </label>
+                            <input
+                              type="text"
+                              value={editingItem.data.prescrit_par}
+                              onChange={(e) =>
+                                updateEditingField(
+                                  "prescrit_par",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                              placeholder="Dr. ..."
+                            />
                           </div>
                         </div>
                       </EditFormCard>
@@ -1640,73 +2637,196 @@ export function MedicalRecord() {
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-bold text-on-surface">{item.medicament}</h4>
-                              <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                                item.statut === "En cours" ? "bg-green-100 text-green-700" : item.statut === "Terminé" ? "bg-gray-100 text-gray-700" : "bg-amber-100 text-amber-700"
-                              }`}>{item.statut}</span>
+                              <h4 className="font-bold text-on-surface">
+                                {item.medicament}
+                              </h4>
+                              <span
+                                className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                                  item.statut === "En cours"
+                                    ? "bg-green-100 text-green-700"
+                                    : item.statut === "Terminé"
+                                      ? "bg-gray-100 text-gray-700"
+                                      : "bg-amber-100 text-amber-700"
+                                }`}
+                              >
+                                {item.statut}
+                              </span>
                             </div>
-                            <p className="text-sm text-on-surface-variant mt-1">{item.posologie}{item.frequence && ` • ${item.frequence}`}</p>
-                            {item.indication && <p className="text-sm text-on-surface-variant mt-2">Indication : {item.indication}</p>}
+                            <p className="text-sm text-on-surface-variant mt-1">
+                              {item.posologie}
+                              {item.frequence && ` • ${item.frequence}`}
+                            </p>
+                            {item.indication && (
+                              <p className="text-sm text-on-surface-variant mt-2">
+                                Indication : {item.indication}
+                              </p>
+                            )}
                           </div>
                           <div className="flex gap-2 ml-3 shrink-0">
-                            <button onClick={() => startEdit("traitements", idx, item)} className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface transition-colors"><Edit2 size={16} /></button>
-                            <button onClick={() => setTraitements(traitements.filter((_, i) => i !== idx))} className="p-1.5 hover:bg-error-container rounded-lg text-error transition-colors"><Trash2 size={16} /></button>
+                            <button
+                              onClick={() =>
+                                startEdit("traitements", idx, item)
+                              }
+                              className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface transition-colors"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
+                              onClick={() =>
+                                setTraitements(
+                                  traitements.filter((_, i) => i !== idx),
+                                )
+                              }
+                              className="p-1.5 hover:bg-error-container rounded-lg text-error transition-colors"
+                            >
+                              <Trash2 size={16} />
+                            </button>
                           </div>
                         </div>
                         <div className="text-xs text-on-surface-variant space-y-1">
-                          {item.date_debut && <p>Début : {formatDate(item.date_debut)}</p>}
-                          {item.date_fin && <p>Fin : {formatDate(item.date_fin)}</p>}
-                          {item.prescrit_par && <p>Prescrit par : {item.prescrit_par}</p>}
+                          {item.date_debut && (
+                            <p>Début : {formatDate(item.date_debut)}</p>
+                          )}
+                          {item.date_fin && (
+                            <p>Fin : {formatDate(item.date_fin)}</p>
+                          )}
+                          {item.prescrit_par && (
+                            <p>Prescrit par : {item.prescrit_par}</p>
+                          )}
                         </div>
                       </div>
                     )}
                   </div>
                 ))}
-                {editingItem?.section === "traitements" && editingItem?.index === traitements.length && (
-                  <EditFormCard onSave={saveEditingItem} onCancel={cancelEdit}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="md:col-span-2">
-                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Médicament</label>
-                        <input type="text" value={editingItem.data.medicament} onChange={(e) => updateEditingField("medicament", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: Metformine 500mg" />
+                {editingItem?.section === "traitements" &&
+                  editingItem?.index === traitements.length && (
+                    <EditFormCard
+                      onSave={saveEditingItem}
+                      onCancel={cancelEdit}
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="md:col-span-2">
+                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                            Médicament
+                          </label>
+                          <input
+                            type="text"
+                            value={editingItem.data.medicament}
+                            onChange={(e) =>
+                              updateEditingField("medicament", e.target.value)
+                            }
+                            className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                            placeholder="Ex: Metformine 500mg"
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                            Posologie
+                          </label>
+                          <input
+                            type="text"
+                            value={editingItem.data.posologie}
+                            onChange={(e) =>
+                              updateEditingField("posologie", e.target.value)
+                            }
+                            className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                            placeholder="Ex: 1 comprimé matin et soir"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                            Fréquence
+                          </label>
+                          <input
+                            type="text"
+                            value={editingItem.data.frequence}
+                            onChange={(e) =>
+                              updateEditingField("frequence", e.target.value)
+                            }
+                            className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                            placeholder="Ex: 2 fois/jour"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                            Statut
+                          </label>
+                          <select
+                            value={editingItem.data.statut}
+                            onChange={(e) =>
+                              updateEditingField("statut", e.target.value)
+                            }
+                            className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
+                          >
+                            <option value="En cours">En cours</option>
+                            <option value="Terminé">Terminé</option>
+                            <option value="Suspendu">Suspendu</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                            Date début
+                          </label>
+                          <input
+                            type="date"
+                            value={editingItem.data.date_debut || ""}
+                            onChange={(e) =>
+                              updateEditingField("date_debut", e.target.value)
+                            }
+                            className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                            Date fin
+                          </label>
+                          <input
+                            type="date"
+                            value={editingItem.data.date_fin || ""}
+                            onChange={(e) =>
+                              updateEditingField("date_fin", e.target.value)
+                            }
+                            className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface"
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                            Indication
+                          </label>
+                          <input
+                            type="text"
+                            value={editingItem.data.indication}
+                            onChange={(e) =>
+                              updateEditingField("indication", e.target.value)
+                            }
+                            className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                            placeholder="Raison de la prescription"
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                            Prescrit par
+                          </label>
+                          <input
+                            type="text"
+                            value={editingItem.data.prescrit_par}
+                            onChange={(e) =>
+                              updateEditingField("prescrit_par", e.target.value)
+                            }
+                            className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50"
+                            placeholder="Dr. ..."
+                          />
+                        </div>
                       </div>
-                      <div className="md:col-span-2">
-                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Posologie</label>
-                        <input type="text" value={editingItem.data.posologie} onChange={(e) => updateEditingField("posologie", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: 1 comprimé matin et soir" />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Fréquence</label>
-                        <input type="text" value={editingItem.data.frequence} onChange={(e) => updateEditingField("frequence", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Ex: 2 fois/jour" />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Statut</label>
-                        <select value={editingItem.data.statut} onChange={(e) => updateEditingField("statut", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface">
-                          <option value="En cours">En cours</option>
-                          <option value="Terminé">Terminé</option>
-                          <option value="Suspendu">Suspendu</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Date début</label>
-                        <input type="date" value={editingItem.data.date_debut || ""} onChange={(e) => updateEditingField("date_debut", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface" />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Date fin</label>
-                        <input type="date" value={editingItem.data.date_fin || ""} onChange={(e) => updateEditingField("date_fin", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface" />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Indication</label>
-                        <input type="text" value={editingItem.data.indication} onChange={(e) => updateEditingField("indication", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Raison de la prescription" />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wide block mb-1.5">Prescrit par</label>
-                        <input type="text" value={editingItem.data.prescrit_par} onChange={(e) => updateEditingField("prescrit_par", e.target.value)} className="w-full px-3 py-2 bg-surface-container-highest border border-outline-variant/30 rounded-lg text-on-surface placeholder-on-surface-variant/50" placeholder="Dr. ..." />
-                      </div>
-                    </div>
-                  </EditFormCard>
-                )}
+                    </EditFormCard>
+                  )}
 
                 {traitements.length > 0 && (
-                  <button onClick={addTraitement} disabled={!!editingItem} className="w-full p-3 border border-outline-variant/30 hover:bg-surface-container-high disabled:opacity-40 rounded-xl text-primary font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                  <button
+                    onClick={addTraitement}
+                    disabled={!!editingItem}
+                    className="w-full p-3 border border-outline-variant/30 hover:bg-surface-container-high disabled:opacity-40 rounded-xl text-primary font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                  >
                     <Plus size={16} />
                     Ajouter un Traitement
                   </button>
@@ -1738,7 +2858,7 @@ export function MedicalRecord() {
               title="Documents et Résultats"
               icon={FileText}
               badge={
-                (analyses.length + radiologies.length) > 0
+                analyses.length + radiologies.length > 0
                   ? `${analyses.length + radiologies.length} document(s)`
                   : ""
               }
@@ -1752,8 +2872,12 @@ export function MedicalRecord() {
                   <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center mx-auto mb-4">
                     <FileText size={32} className="text-outline" />
                   </div>
-                  <p className="text-on-surface-variant text-base mb-1">Aucun document enregistré</p>
-                  <p className="text-outline text-sm">Les analyses et radiologies apparaîtront ici.</p>
+                  <p className="text-on-surface-variant text-base mb-1">
+                    Aucun document enregistré
+                  </p>
+                  <p className="text-outline text-sm">
+                    Les analyses et radiologies apparaîtront ici.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1765,9 +2889,8 @@ export function MedicalRecord() {
                     )
                     .map((doc, idx) => {
                       const isAnalyse = !!doc.date_analyse;
-                      const doctorName = isAnalyse
-                        ? `Dr. ${doc.medecin?.prenom || ""} ${doc.medecin?.nom || ""}`.trim()
-                        : `Dr. ${doc.medecin?.prenom || ""} ${doc.medecin?.nom || ""}`.trim();
+                      const doctorName =
+                        `Dr. ${doc.medecin?.prenom || ""} ${doc.medecin?.nom || ""}`.trim();
 
                       return (
                         <button
@@ -1782,8 +2905,13 @@ export function MedicalRecord() {
                             <div className="flex-1 min-w-0">
                               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-1.5">
                                 <span className="flex items-center gap-1.5 text-sm font-semibold text-on-surface">
-                                  <Calendar size={14} className="text-primary" />
-                                  {formatDate(doc.date_analyse || doc.date_radiologie)}
+                                  <Calendar
+                                    size={14}
+                                    className="text-primary"
+                                  />
+                                  {formatDate(
+                                    doc.date_analyse || doc.date_radiologie,
+                                  )}
                                 </span>
                                 <span
                                   className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${
@@ -1821,7 +2949,7 @@ export function MedicalRecord() {
               )}
             </Section>
 
-            {/* SECTION 6: Consultations (existing) */}
+            {/* SECTION 6: Consultations */}
             <Section
               title="Historique des Consultations"
               icon={Stethoscope}
@@ -1840,8 +2968,12 @@ export function MedicalRecord() {
                   <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center mx-auto mb-4">
                     <Stethoscope size={32} className="text-outline" />
                   </div>
-                  <p className="text-on-surface-variant text-base mb-1">Aucune consultation enregistrée</p>
-                  <p className="text-outline text-sm">Les consultations passées apparaîtront ici.</p>
+                  <p className="text-on-surface-variant text-base mb-1">
+                    Aucune consultation enregistrée
+                  </p>
+                  <p className="text-outline text-sm">
+                    Les consultations passées apparaîtront ici.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
