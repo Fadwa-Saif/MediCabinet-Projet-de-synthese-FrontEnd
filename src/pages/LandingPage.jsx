@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Building2,
@@ -160,89 +160,12 @@ function PricingCard({
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [billing, setBilling] = useState("monthly");
-  const [stats, setStats] = useState({
-    cabinets: 50,
-    patients: 1200,
-    appointments: 8500,
-  });
-  const [displayStats, setDisplayStats] = useState({
-    cabinets: 0,
-    patients: 0,
-    appointments: 0,
-  });
-  const displayStatsRef = useRef(displayStats);
-
-  useEffect(() => {
-    displayStatsRef.current = displayStats;
-  }, [displayStats]);
-
-  useEffect(() => {
-    let active = true;
-
-    fetch("/api/stats")
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Stats fetch failed");
-        }
-        return response.json();
-      })
-      .then((data) => {
-        if (!active) return;
-
-        setStats({
-          cabinets: data.cabinets ?? 50,
-          patients: data.patients ?? 1200,
-          appointments: data.appointments ?? 8500,
-        });
-      })
-      .catch(() => {
-        // Silence failures and keep fallback values
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    const duration = 1500;
-    const steps = 45;
-    let step = 0;
-    const start = displayStatsRef.current;
-    const diff = {
-      cabinets: stats.cabinets - start.cabinets,
-      patients: stats.patients - start.patients,
-      appointments: stats.appointments - start.appointments,
-    };
-
-    const intervalId = window.setInterval(() => {
-      step += 1;
-      if (step >= steps) {
-        setDisplayStats(stats);
-        window.clearInterval(intervalId);
-        return;
-      }
-
-      setDisplayStats({
-        cabinets: Math.round(start.cabinets + (diff.cabinets * step) / steps),
-        patients: Math.round(start.patients + (diff.patients * step) / steps),
-        appointments: Math.round(
-          start.appointments + (diff.appointments * step) / steps,
-        ),
-      });
-    }, duration / steps);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [stats]);
 
   const navItems = [
     { label: "À propos", href: "#about" },
     { label: "Services", href: "#services" },
     { label: "Objectifs", href: "#objectives" },
     { label: "Pourquoi ?", href: "#why" },
-    { label: "Confiance", href: "#trust" },
     { label: "Offres", href: "#pricing" },
     { label: "Contact", href: "#contact" },
   ];
@@ -640,61 +563,6 @@ export default function LandingPage() {
                 <p className="text-4xl font-bold text-slate-900">24/7</p>
                 <p className="mt-3 text-sm text-slate-600">
                   Accès continu aux dossiers et analyses médicales pour un suivi patient optimisé.
-                </p>
-              </article>
-            </div>
-          </div>
-        </section>
-
-        <section id="trust" className="bg-cyan-600 py-20 text-white">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-100/80 animate-fadeInUp">
-                CONFIANCE
-              </p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl animate-fadeInUpDelay">
-                Ils nous font confiance
-              </h2>
-              <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-cyan-100/80 animate-fadeInUpDelay2">
-                Des chiffres qui parlent d'eux-mêmes.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
-              <article className="rounded-3xl border border-cyan-500/30 bg-white/10 p-8 text-center animate-scaleIn">
-                <Building2 className="mx-auto text-cyan-100" size={32} />
-                <p className="mt-6 text-5xl font-bold text-white">
-                  {displayStats.cabinets.toLocaleString("fr-FR")}
-                </p>
-                <p className="mt-3 text-lg font-semibold text-cyan-100">
-                  Cabinets Médicaux
-                </p>
-                <p className="mt-2 text-sm text-cyan-100/80">
-                  nous rejoignent chaque mois
-                </p>
-              </article>
-              <article className="rounded-3xl border border-cyan-500/30 bg-white/10 p-8 text-center animate-scaleInDelay">
-                <Users className="mx-auto text-cyan-100" size={32} />
-                <p className="mt-6 text-5xl font-bold text-white">
-                  {displayStats.patients.toLocaleString("fr-FR")}
-                </p>
-                <p className="mt-3 text-lg font-semibold text-cyan-100">
-                  Patients Actifs
-                </p>
-                <p className="mt-2 text-sm text-cyan-100/80">
-                  gèrent leur santé en ligne
-                </p>
-              </article>
-              <article className="rounded-3xl border border-cyan-500/30 bg-white/10 p-8 text-center animate-scaleInDelay2">
-                <CalendarCheck className="mx-auto text-cyan-100" size={32} />
-                <p className="mt-6 text-5xl font-bold text-white">
-                  {displayStats.appointments.toLocaleString("fr-FR")}
-                </p>
-                <p className="mt-3 text-lg font-semibold text-cyan-100">
-                  RDV Planifiés
-                </p>
-                <p className="mt-2 text-sm text-cyan-100/80">
-                  depuis le lancement de la plateforme
                 </p>
               </article>
             </div>
