@@ -291,6 +291,7 @@ export function MedicalRecord() {
   const [patientSexe, setPatientSexe] = useState(null);
 
   // ─ Fetch Data on Mount
+  /* eslint-disable no-use-before-define */
   useEffect(() => {
     const load = async () => {
       try {
@@ -374,6 +375,7 @@ export function MedicalRecord() {
     };
     load();
   }, [isDoctorView, patientId, parsePatientData]);
+  /* eslint-enable no-use-before-define */
 
   // ─ Parse Patient Data (extract TEXT fields)
   const parsePatientData = useCallback((pd) => {
