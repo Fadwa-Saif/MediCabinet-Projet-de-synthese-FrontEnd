@@ -1132,9 +1132,7 @@ export function ConsultationReportNew() {
           consultationData.diagnostic_principal_libelle,
         diagnostic_principal_code_cim10:
           consultationData.diagnostic_principal_code_cim10,
-        diagnostics_secondaires: JSON.stringify(
-          consultationData.diagnostics_secondaires,
-        ),
+        diagnostics_secondaires: consultationData.diagnostics_secondaires,
         raisonnement_clinique: consultationData.raisonnement_clinique,
         refere_specialiste: consultationData.refere_specialiste,
         specialite_referral: consultationData.specialite_referral,
@@ -1216,20 +1214,11 @@ export function ConsultationReportNew() {
       let errorMsg = "Erreur lors de la création.";
 
       if (err.response?.data?.errors) {
-        // Parse specific validation errors from backend
+        // Log technical validation errors to console only
         const errors = err.response.data.errors;
-        const errorMessages = Object.entries(errors)
-          .map(([field, messages]) => {
-            const fieldName = field
-              .replace(/_/g, " ")
-              .replace(/\b\w/g, (l) => l.toUpperCase());
-            const msgs = Array.isArray(messages)
-              ? messages.join(", ")
-              : messages;
-            return `${fieldName}: ${msgs}`;
-          })
-          .join("\n");
-        errorMsg = errorMessages;
+        console.error("Validation errors:", errors);
+        // Don't show technical errors to user - just show generic message
+        errorMsg = "Erreur lors de la création. Veuillez vérifier vos données et réessayer.";
       } else if (err.response?.data?.message) {
         errorMsg = err.response.data.message;
       } else if (err.message) {
