@@ -370,16 +370,16 @@ export default function LandingPage() {
               </div>
               
               <h1 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight text-slate-800 lg:text-6xl animate-fadeInUpDelay">
-                Gérez votre cabinet médical
+                Une plateforme qui connecte patients et médecins
                 <br />
                 <span className="bg-gradient-to-r from-cyan-600 to-sky-600 bg-clip-text text-transparent">
-                  avec intelligence et simplicité
+                  pour un suivi plus simple, collaboratif et sécurisé
                 </span>
               </h1>
               
               <p className="mt-6 text-lg text-slate-500 max-w-xl animate-fadeInUpDelay2">
-                Automatisez la prise de rendez-vous, centralisez les dossiers patients 
-                et améliorez la communication entre médecin, secrétaire et patient.
+                Facilitez la prise de rendez-vous pour les patients et offrez aux médecins un agenda intelligent,
+                tout en centralisant les dossiers, les analyses et les échanges du cabinet.
               </p>
 
               {/* Mobile Hero Image */}
