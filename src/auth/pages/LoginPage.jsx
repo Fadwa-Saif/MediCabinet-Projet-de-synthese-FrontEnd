@@ -1,14 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { CircleUserRound, ClipboardList, Stethoscope } from "lucide-react";
 import authService from "../../services/authService";
 import { BrandLogo } from "../../components/BrandLogo";
-
-const ROLE_OPTIONS = [
-  { value: "patient", label: "Patient", icon: CircleUserRound },
-  { value: "medecin", label: "Docteur", icon: Stethoscope },
-  { value: "secretaire", label: "Secrétaire", icon: ClipboardList },
-];
 
 // DEBUG: Verify API URL is set in Create React App
 const DEBUG_URL = process.env.REACT_APP_API_URL || "FALLBACK_USED";
@@ -17,7 +10,6 @@ console.log("DEBUG REACT_APP_API_URL:", DEBUG_URL);
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [role, setRole] = useState("patient");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +23,7 @@ export function LoginPage() {
     setIsLoading(true);
 
     try {
-      const data = await authService.login(email, password, role);
+      const data = await authService.login(email, password);
 
       if (data.role === "patient") {
         navigate("/patient/dashboard", { replace: true });
@@ -73,7 +65,7 @@ export function LoginPage() {
           Bienvenue à MediCabinet
         </h1>
         <p className="mb-8 text-center text-sm text-slate-500">
-          Connectez-vous avec votre rôle pour accéder à votre espace.
+          Connectez-vous avec votre email et votre mot de passe pour accéder à votre espace.
         </p>
 
         {successMessage && (
@@ -88,28 +80,6 @@ export function LoginPage() {
           </div>
         )}
 
-        <div className="mb-6 grid grid-cols-3 gap-2 rounded-2xl bg-slate-100 p-1.5">
-          {ROLE_OPTIONS.map((option) => {
-            const Icon = option.icon;
-            const active = role === option.value;
-
-            return (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setRole(option.value)}
-                className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition sm:text-sm ${
-                  active
-                    ? "bg-cyan-600 text-white shadow-md shadow-cyan-600/20"
-                    : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
-                }`}
-              >
-                <Icon size={14} />
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
