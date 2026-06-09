@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
@@ -373,10 +373,10 @@ export function MedicalRecord() {
       }
     };
     load();
-  }, [isDoctorView, patientId]);
+  }, [isDoctorView, patientId, parsePatientData]);
 
   // ─ Parse Patient Data (extract TEXT fields)
-  const parsePatientData = (pd) => {
+  const parsePatientData = useCallback((pd) => {
     if (!pd) return;
 
     setPatientSexe(pd.sexe || null);
@@ -485,7 +485,16 @@ export function MedicalRecord() {
     try {
       if (pd.antecedents_gynecologiques) {
         const parsed = JSON.parse(pd.antecedents_gynecologiques);
-        setAntecedentsGynecologiques(parsed || antecedentsGynecologiques);
+        setAntecedentsGynecologiques(parsed || {
+          age_puberte: "",
+          cycle_menstruel: "",
+          contraception: "",
+          grossesses: "",
+          enfants_vivants: "",
+          fausses_couches: "",
+          ivg: "",
+          morts_ne: "",
+        });
       }
     } catch {
       // Keep defaults
@@ -551,7 +560,7 @@ export function MedicalRecord() {
         );
       }
     }
-  };
+  }, []);
 
   // ─ Serialize & Save Medical Data
   const saveMedicalData = async () => {
