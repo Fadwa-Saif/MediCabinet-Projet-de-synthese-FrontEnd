@@ -37,7 +37,6 @@ import {
   Smartphone,
   Sparkles,
   Quote,
-  TrendingUp,
 } from "lucide-react";
 import { BrandLogo } from "../components/BrandLogo";
 
@@ -75,17 +74,7 @@ function PrimaryButton({ to, children, className = "", icon: Icon, ...props }) {
   );
 }
 
-function AnchorButton({ href, children, className = "", icon: Icon }) {
-  return (
-    <a
-      href={href}
-      className={`inline-flex items-center justify-center gap-2 rounded-full border border-cyan-200 bg-white px-5 py-3 text-sm font-semibold text-cyan-700 transition-all hover:border-cyan-300 hover:bg-cyan-50 hover:shadow-md ${className}`}
-    >
-      {children}
-      {Icon && <Icon size={16} />}
-    </a>
-  );
-}
+// AnchorButton removed: use Link or button for accessible actions
 
 function ServiceCard({ icon: Icon, title, description, color = "cyan" }) {
   const colors = {
@@ -1290,12 +1279,12 @@ export default function LandingPage() {
                 conçue pour simplifier le quotidien des professionnels de santé au Maroc.
               </p>
               <div className="mt-6 flex gap-4">
-                <a href="#" className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition">
+                <button type="button" aria-label="Site web" className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition">
                   <Globe size={18} />
-                </a>
-                <a href="#" className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition">
+                </button>
+                <button type="button" aria-label="Site web" className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition">
                   <Globe size={18} />
-                </a>
+                </button>
               </div>
             </div>
 
@@ -1321,10 +1310,10 @@ export default function LandingPage() {
                 Services
               </h3>
               <div className="flex flex-col gap-3">
-                <a href="#" className="text-sm text-slate-400 transition-colors hover:text-white">Pour les patients</a>
-                <a href="#" className="text-sm text-slate-400 transition-colors hover:text-white">Pour les médecins</a>
-                <a href="#" className="text-sm text-slate-400 transition-colors hover:text-white">Pour les secrétaires</a>
-                <a href="#" className="text-sm text-slate-400 transition-colors hover:text-white">Tarification</a>
+                <button type="button" className="text-sm text-slate-400 text-left transition-colors hover:text-white">Pour les patients</button>
+                <button type="button" className="text-sm text-slate-400 text-left transition-colors hover:text-white">Pour les médecins</button>
+                <button type="button" className="text-sm text-slate-400 text-left transition-colors hover:text-white">Pour les secrétaires</button>
+                <button type="button" className="text-sm text-slate-400 text-left transition-colors hover:text-white">Tarification</button>
               </div>
             </div>
 
@@ -1345,9 +1334,9 @@ export default function LandingPage() {
               © 2026 MediCabinet. Tous droits réservés.
             </p>
             <div className="flex gap-6">
-              <a href="#" className="text-xs text-slate-500 hover:text-white transition">Politique de confidentialité</a>
-              <a href="#" className="text-xs text-slate-500 hover:text-white transition">Conditions d'utilisation</a>
-              <a href="#" className="text-xs text-slate-500 hover:text-white transition">Mentions légales</a>
+              <button type="button" className="text-xs text-slate-500 hover:text-white transition">Politique de confidentialité</button>
+              <button type="button" className="text-xs text-slate-500 hover:text-white transition">Conditions d'utilisation</button>
+              <button type="button" className="text-xs text-slate-500 hover:text-white transition">Mentions légales</button>
             </div>
           </div>
         </div>
