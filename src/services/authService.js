@@ -104,11 +104,6 @@ const authService = {
    */
   login: async (email, password) => {
     try {
-<<<<<<< HEAD
-      console.log("[authService] Login attempt:", { email });
-      
-=======
->>>>>>> 5b9886d791390290bc91744ddb6b91a654b52f82
       const response = await api.post("/auth/login", {
         email,
         password,
