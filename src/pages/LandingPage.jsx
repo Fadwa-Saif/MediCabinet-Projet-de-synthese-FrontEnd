@@ -468,11 +468,11 @@ export default function LandingPage() {
         {/* Role toggle for Services / Features / Benefits */}
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-center py-8">
-            <div className="rounded-full bg-white/60 p-1 shadow-sm ring-1 ring-slate-200">
-              <div className="inline-flex rounded-full bg-transparent p-1">
+            <div className="rounded-full bg-white/80 px-3 py-2 shadow-sm ring-1 ring-slate-200">
+              <div className="inline-flex rounded-full bg-slate-100 p-1">
                 <button
                   onClick={() => setViewRole("patient")}
-                  className={`rounded-full px-6 py-2 text-sm font-semibold transition-all ${
+                  className={`rounded-full px-8 py-3 text-base font-semibold transition-all ${
                     viewRole === "patient"
                       ? "bg-cyan-600 text-white shadow-md"
                       : "text-slate-700 hover:bg-slate-100"
@@ -482,7 +482,7 @@ export default function LandingPage() {
                 </button>
                 <button
                   onClick={() => setViewRole("medecin")}
-                  className={`rounded-full px-6 py-2 text-sm font-semibold transition-all ${
+                  className={`rounded-full px-8 py-3 text-base font-semibold transition-all ${
                     viewRole === "medecin"
                       ? "bg-cyan-600 text-white shadow-md"
                       : "text-slate-700 hover:bg-slate-100"
@@ -691,51 +691,53 @@ export default function LandingPage() {
         </section>
 
         {/* How It Works */}
-        <section className="bg-white py-20">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <SectionLabel className="animate-fadeInUp">COMMENT ÇA MARCHE</SectionLabel>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl animate-fadeInUpDelay">
-                Trois étapes simples pour transformer votre cabinet
-              </h2>
-            </div>
+        {viewRole === "medecin" && (
+          <section className="bg-white py-20">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-12">
+                <SectionLabel className="animate-fadeInUp">COMMENT ÇA MARCHE</SectionLabel>
+                <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl animate-fadeInUpDelay">
+                  Trois étapes simples pour transformer votre cabinet
+                </h2>
+              </div>
 
-            <div className="grid gap-8 md:grid-cols-3">
-              {[
-                {
-                  step: "01",
-                  icon: UserPlus,
-                  title: "Créez votre compte",
-                  desc: "Inscrivez-vous en tant que médecin, secrétaire ou patient en quelques minutes."
-                },
-                {
-                  step: "02",
-                  icon: Settings,
-                  title: "Configurez votre cabinet",
-                  desc: "Personnalisez vos horaires, services et préférences selon vos besoins."
-                },
-                {
-                  step: "03",
-                  icon: Rocket,
-                  title: "Commencez à utiliser",
-                  desc: "Gérez vos rendez-vous, patients et documents depuis un seul tableau de bord."
-                }
-              ].map((item, i) => (
-                <div key={i} className="relative text-center">
-                  <div className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-cyan-500 to-sky-600 text-white shadow-xl shadow-cyan-500/30 mb-6 relative z-10">
-                    <item.icon size={32} />
+              <div className="grid gap-8 md:grid-cols-3">
+                {[
+                  {
+                    step: "01",
+                    icon: UserPlus,
+                    title: "Créez votre compte",
+                    desc: "Inscrivez-vous en tant que médecin, secrétaire ou patient en quelques minutes."
+                  },
+                  {
+                    step: "02",
+                    icon: Settings,
+                    title: "Configurez votre cabinet",
+                    desc: "Personnalisez vos horaires, services et préférences selon vos besoins."
+                  },
+                  {
+                    step: "03",
+                    icon: Rocket,
+                    title: "Commencez à utiliser",
+                    desc: "Gérez vos rendez-vous, patients et documents depuis un seul tableau de bord."
+                  }
+                ].map((item, i) => (
+                  <div key={i} className="relative text-center">
+                    <div className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-cyan-500 to-sky-600 text-white shadow-xl shadow-cyan-500/30 mb-6 relative z-10">
+                      <item.icon size={32} />
+                    </div>
+                    <div className="absolute top-10 left-1/2 w-full h-0.5 bg-gradient-to-r from-cyan-200 to-sky-200 hidden md:block" style={{ transform: 'translateX(50%)' }} />
+                    <div className="text-6xl font-bold text-slate-100 absolute top-0 left-1/2 -translate-x-1/2 -z-10">
+                      {item.step}
+                    </div>
+                    <h3 className="text-xl font-semibold text-slate-800 mb-3">{item.title}</h3>
+                    <p className="text-sm leading-7 text-slate-500 max-w-xs mx-auto">{item.desc}</p>
                   </div>
-                  <div className="absolute top-10 left-1/2 w-full h-0.5 bg-gradient-to-r from-cyan-200 to-sky-200 hidden md:block" style={{ transform: 'translateX(50%)' }} />
-                  <div className="text-6xl font-bold text-slate-100 absolute top-0 left-1/2 -translate-x-1/2 -z-10">
-                    {item.step}
-                  </div>
-                  <h3 className="text-xl font-semibold text-slate-800 mb-3">{item.title}</h3>
-                  <p className="text-sm leading-7 text-slate-500 max-w-xs mx-auto">{item.desc}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Testimonials Section */}
         <section id="testimonials" className="bg-gradient-to-br from-slate-50 to-cyan-50 py-20">
@@ -902,10 +904,12 @@ export default function LandingPage() {
             <div className="text-center mb-12">
               <SectionLabel className="animate-fadeInUp">OFFRES</SectionLabel>
               <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl animate-fadeInUpDelay">
-                Choisissez l'offre qui correspond à votre usage
+                {viewRole === "patient" ? "Offres pour les patients" : "Offres pour les cabinets"}
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-slate-500 animate-fadeInUpDelay2">
-                Des solutions adaptées à chaque besoin, des patients individuels aux cabinets les plus exigeants.
+                {viewRole === "patient"
+                  ? "Choisissez un plan patient conçu pour un parcours de santé fluide et digital."
+                  : "Choisissez un plan cabinet conçu pour organiser votre agenda, vos patients et votre croissance."}
               </p>
             </div>
 
@@ -936,104 +940,84 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="mt-12 grid gap-10 lg:grid-cols-2">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                  <UserCheck size={20} className="text-cyan-600" />
-                  Pour les Patients
-                </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  Accédez à vos soins en toute simplicité
-                </p>
-
-                <div className="mt-6 grid gap-6 sm:grid-cols-2">
-                  <PricingCard
-                    billing={billing}
-                    name="Starter"
-                    description="Idéal pour démarrer avec les fonctions essentielles."
-                    priceMonthly="0 DH"
-                    priceAnnual="0 DH"
-                    cta="Commencer gratuitement"
-                    features={[
-                      "Prise de RDV en ligne",
-                      "Historique des consultations",
-                      "Upload d'analyses médicales",
-                      "Messagerie avec le médecin",
-                    ]}
-                  />
-                  <PricingCard
-                    billing={billing}
-                    name="Premium Patient"
-                    description="Pour un suivi plus complet et prioritaire."
-                    priceMonthly="49 DH"
-                    priceAnnual="490 DH"
-                    annualMonthlyEquivalent="49 DH x 12"
-                    cta="Choisir Premium"
-                    highlighted
-                    badge="Le plus populaire"
-                    annualBadge={billing === "annual"}
-                    features={[
-                      "Tout du plan Starter",
-                      "Rappels SMS & Email automatiques",
-                      "Ordonnances numériques",
-                      "Accès prioritaire aux créneaux",
-                      "Stockage illimité d'analyses",
-                      "Support prioritaire",
-                    ]}
-                  />
-                </div>
+            {viewRole === "patient" ? (
+              <div className="mt-12 grid gap-6 sm:grid-cols-2">
+                <PricingCard
+                  billing={billing}
+                  name="Starter"
+                  description="Idéal pour démarrer avec les fonctions essentielles."
+                  priceMonthly="0 DH"
+                  priceAnnual="0 DH"
+                  cta="Commencer gratuitement"
+                  features={[
+                    "Prise de RDV en ligne",
+                    "Historique des consultations",
+                    "Upload d'analyses médicales",
+                    "Messagerie avec le médecin",
+                  ]}
+                />
+                <PricingCard
+                  billing={billing}
+                  name="Premium Patient"
+                  description="Pour un suivi plus complet et prioritaire."
+                  priceMonthly="49 DH"
+                  priceAnnual="490 DH"
+                  annualMonthlyEquivalent="49 DH x 12"
+                  cta="Choisir Premium"
+                  highlighted
+                  badge="Le plus populaire"
+                  annualBadge={billing === "annual"}
+                  features={[
+                    "Tout du plan Starter",
+                    "Rappels SMS & Email automatiques",
+                    "Ordonnances numériques",
+                    "Accès prioritaire aux créneaux",
+                    "Stockage illimité d'analyses",
+                    "Support prioritaire",
+                  ]}
+                />
               </div>
-
-              <div>
-                <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                  <Stethoscope size={20} className="text-cyan-600" />
-                  Pour les Cabinets
-                </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  Gérez votre cabinet efficacement
-                </p>
-
-                <div className="mt-6 grid gap-6 sm:grid-cols-2">
-                  <PricingCard
-                    billing={billing}
-                    name="Cabinet Starter"
-                    description="Une base solide pour un cabinet moderne."
-                    priceMonthly="299 DH"
-                    priceAnnual="2 990 DH"
-                    annualMonthlyEquivalent="299 DH x 12"
-                    cta="Essai gratuit 14 jours"
-                    annualBadge={billing === "annual"}
-                    features={[
-                      "1 médecin + 1 secrétaire",
-                      "Gestion des RDV",
-                      "Dossiers patients illimités",
-                      "Rapports de consultation",
-                      "Attestations médicales PDF",
-                    ]}
-                  />
-                  <PricingCard
-                    billing={billing}
-                    name="Cabinet Pro"
-                    description="La solution complète pour les cabinets exigeants."
-                    priceMonthly="599 DH"
-                    priceAnnual="5 990 DH"
-                    annualMonthlyEquivalent="599 DH x 12"
-                    cta="Choisir Cabinet Pro"
-                    highlighted
-                    badge="Recommandé"
-                    annualBadge={billing === "annual"}
-                    features={[
-                      "Tout du plan Essentiel",
-                      "Analyses de laboratoire avancées",
-                      "Statistiques & tableaux de bord",
-                      "Export PDF & Excel des rapports",
-                      "Support dédié 24/7",
-                      "Mises à jour prioritaires",
-                    ]}
-                  />
-                </div>
+            ) : (
+              <div className="mt-12 grid gap-6 sm:grid-cols-2">
+                <PricingCard
+                  billing={billing}
+                  name="Cabinet Starter"
+                  description="Une base solide pour un cabinet moderne."
+                  priceMonthly="299 DH"
+                  priceAnnual="2 990 DH"
+                  annualMonthlyEquivalent="299 DH x 12"
+                  cta="Essai gratuit 14 jours"
+                  annualBadge={billing === "annual"}
+                  features={[
+                    "1 médecin + 1 secrétaire",
+                    "Gestion des RDV",
+                    "Dossiers patients illimités",
+                    "Rapports de consultation",
+                    "Attestations médicales PDF",
+                  ]}
+                />
+                <PricingCard
+                  billing={billing}
+                  name="Cabinet Pro"
+                  description="La solution complète pour les cabinets exigeants."
+                  priceMonthly="599 DH"
+                  priceAnnual="5 990 DH"
+                  annualMonthlyEquivalent="599 DH x 12"
+                  cta="Choisir Cabinet Pro"
+                  highlighted
+                  badge="Recommandé"
+                  annualBadge={billing === "annual"}
+                  features={[
+                    "Tout du plan Essentiel",
+                    "Analyses de laboratoire avancées",
+                    "Statistiques & tableaux de bord",
+                    "Export PDF & Excel des rapports",
+                    "Support dédié 24/7",
+                    "Mises à jour prioritaires",
+                  ]}
+                />
               </div>
-            </div>
+            )}
           </div>
         </section>
 
