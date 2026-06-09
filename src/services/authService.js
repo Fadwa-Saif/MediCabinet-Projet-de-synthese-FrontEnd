@@ -102,7 +102,7 @@ const authService = {
   /**
    * Login user
    */
-  login: async (email, password, role = "patient") => {
+  login: async (email, password) => {
     try {
       const normalizedRole = normalizeRole(role);
       console.log("[authService] Login attempt:", { email, role: normalizedRole });
@@ -110,7 +110,6 @@ const authService = {
       const response = await api.post("/auth/login", {
         email,
         password,
-        role: normalizedRole,
       });
 
       console.log("[authService] Login response:", response.data);
