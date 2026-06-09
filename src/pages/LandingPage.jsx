@@ -299,6 +299,7 @@ function StatCounter({ end, suffix, label, icon: Icon }) {
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [billing, setBilling] = useState("monthly");
+  const [viewRole, setViewRole] = useState("patient");
   const [contactEmail, setContactEmail] = useState("");
   const [contactSubmitted, setContactSubmitted] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
@@ -508,6 +509,35 @@ export default function LandingPage() {
             <ChevronDown size={20} className="text-slate-400" />
           </div>
         </section>
+        {/* Role toggle for Services / Features / Benefits */}
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center py-8">
+            <div className="rounded-full bg-white/60 p-1 shadow-sm ring-1 ring-slate-200">
+              <div className="inline-flex rounded-full bg-transparent p-1">
+                <button
+                  onClick={() => setViewRole("patient")}
+                  className={`rounded-full px-6 py-2 text-sm font-semibold transition-all ${
+                    viewRole === "patient"
+                      ? "bg-cyan-600 text-white shadow-md"
+                      : "text-slate-700 hover:bg-slate-100"
+                  }`}
+                >
+                  Patient
+                </button>
+                <button
+                  onClick={() => setViewRole("medecin")}
+                  className={`rounded-full px-6 py-2 text-sm font-semibold transition-all ${
+                    viewRole === "medecin"
+                      ? "bg-cyan-600 text-white shadow-md"
+                      : "text-slate-700 hover:bg-slate-100"
+                  }`}
+                >
+                  Médecin
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Stats Section */}
         <section className="bg-gradient-to-r from-cyan-600 to-sky-700 py-16 relative overflow-hidden">
@@ -572,7 +602,8 @@ export default function LandingPage() {
         {/* Solution Cards */}
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
           <div className="grid gap-8 lg:grid-cols-2">
-            <article className="group overflow-hidden rounded-[2rem] bg-gradient-to-br from-cyan-600 via-sky-600 to-cyan-500 p-8 text-white shadow-2xl shadow-cyan-500/20 transition-all hover:-translate-y-2 hover:shadow-cyan-500/30 relative">
+            {viewRole === "patient" ? (
+              <article className="group overflow-hidden rounded-[2rem] bg-gradient-to-br from-cyan-600 via-sky-600 to-cyan-500 p-8 text-white shadow-2xl shadow-cyan-500/20 transition-all hover:-translate-y-2 hover:shadow-cyan-500/30 relative">
               <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-bl-full" />
               <div className="relative">
                 <div className="flex items-center justify-between gap-4">
@@ -604,8 +635,8 @@ export default function LandingPage() {
                 </Link>
               </div>
             </article>
-
-            <article className="group overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl shadow-slate-200/60 transition-all hover:-translate-y-2 hover:shadow-cyan-300/30 relative">
+            ) : (
+              <article className="group overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl shadow-slate-200/60 transition-all hover:-translate-y-2 hover:shadow-cyan-300/30 relative">
               <div className="absolute top-0 right-0 w-40 h-40 bg-cyan-50/50 rounded-bl-full" />
               <div className="relative">
                 <div className="flex items-center justify-between gap-4">
@@ -637,6 +668,7 @@ export default function LandingPage() {
                 </Link>
               </div>
             </article>
+            )}
           </div>
         </section>
 
@@ -646,63 +678,39 @@ export default function LandingPage() {
             <div className="text-center mb-12">
               <SectionLabel className="animate-fadeInUp">SERVICES</SectionLabel>
               <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl animate-fadeInUpDelay">
-                Des services conçus pour les patients et les cabinets
+                {viewRole === "patient" ? "Services pour les patients" : "Services pour les médecins"}
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-slate-500 animate-fadeInUpDelay2">
-                Un écosystème digital qui relie votre cabinet, votre secrétariat et vos patients.
-                Simplifiez les rendez-vous, améliorez le suivi et centralisez vos données médicales.
+                {viewRole === "patient"
+                  ? "Un espace patient qui facilite la prise de rendez-vous, l'accès aux résultats et la communication avec votre médecin."
+                  : "Des outils pour les cabinets afin d'optimiser la gestion des rendez-vous, des dossiers et des équipes."}
               </p>
             </div>
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="animate-scaleIn">
-                <ServiceCard
-                  icon={CalendarCheck}
-                  title="Prise de RDV en ligne"
-                  description="Réservez une consultation avec votre médecin en quelques secondes, depuis n'importe quel appareil."
-                  color="cyan"
-                />
-              </div>
-              <div className="animate-scaleInDelay">
-                <ServiceCard
-                  icon={FolderHeart}
-                  title="Dossier Médical Numérique"
-                  description="Consultez vos antécédents, analyses et prescriptions à tout moment, en toute sécurité."
-                  color="sky"
-                />
-              </div>
-              <div className="animate-scaleInDelay2">
-                <ServiceCard
-                  icon={FlaskConical}
-                  title="Gestion des Analyses"
-                  description="Uploadez et partagez vos résultats d'analyses directement avec votre médecin."
-                  color="teal"
-                />
-              </div>
-              <div className="animate-scaleInDelay3">
-                <ServiceCard
-                  icon={ClipboardList}
-                  title="Rapports de Consultation"
-                  description="Les médecins rédigent et partagent des rapports détaillés après chaque consultation."
-                  color="emerald"
-                />
-              </div>
-              <div className="animate-scaleIn">
-                <ServiceCard
-                  icon={FileText}
-                  title="Ordonnances & Attestations"
-                  description="Générez des ordonnances numériques et des attestations médicales en PDF en un clic."
-                  color="blue"
-                />
-              </div>
-              <div className="animate-scaleInDelay">
-                <ServiceCard
-                  icon={Building2}
-                  title="Gestion du Cabinet"
-                  description="Médecins et secrétaires gèrent rendez-vous, patients et documents depuis un seul tableau de bord."
-                  color="indigo"
-                />
-              </div>
+              {viewRole === "patient" ? (
+                [
+                  { icon: CalendarCheck, title: "Prise de RDV en ligne", desc: "Réservez une consultation en quelques secondes depuis n'importe quel appareil.", color: "cyan" },
+                  { icon: FolderHeart, title: "Dossier Médical Numérique", desc: "Consultez vos antécédents, analyses et prescriptions en toute sécurité.", color: "sky" },
+                  { icon: FlaskConical, title: "Gestion des Analyses", desc: "Suivez et partagez vos résultats d'analyses avec votre médecin.", color: "teal" },
+                  { icon: FileText, title: "Ordonnances & Attestations", desc: "Accédez à vos ordonnances et certificats en quelques clics.", color: "blue" },
+                ].map((s, i) => (
+                  <div key={i} className={`animate-scaleIn${i>0?"Delay":""}`}>
+                    <ServiceCard icon={s.icon} title={s.title} description={s.desc} color={s.color} />
+                  </div>
+                ))
+              ) : (
+                [
+                  { icon: Building2, title: "Gestion du Cabinet", desc: "Gérez rendez-vous, patients et documents depuis un tableau de bord central.", color: "indigo" },
+                  { icon: ClipboardList, title: "Rapports de Consultation", desc: "Rédigez et partagez des rapports structurés après chaque visite.", color: "emerald" },
+                  { icon: FileText, title: "Documents & Ordonnances", desc: "Générez et archivez documents médicaux et ordonnances en PDF.", color: "blue" },
+                  { icon: CalendarCheck, title: "Prise de RDV Avancée", desc: "Contrôlez vos plages horaires, rappels et synchronisations.", color: "cyan" },
+                ].map((s, i) => (
+                  <div key={i} className={`animate-scaleIn${i>0?"Delay":""}`}>
+                    <ServiceCard icon={s.icon} title={s.title} description={s.desc} color={s.color} />
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </section>
@@ -713,53 +721,28 @@ export default function LandingPage() {
             <div className="text-center mb-12">
               <SectionLabel className="animate-fadeInUp">FONCTIONNALITÉS CLÉS</SectionLabel>
               <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl animate-fadeInUpDelay">
-                Tout ce dont vous avez besoin pour un cabinet moderne
+                {viewRole === "patient" ? "Fonctionnalités pour les patients" : "Fonctionnalités clés pour les cabinets"}
               </h2>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <FeatureCard 
-                icon={Shield} 
-                title="Sécurité maximale" 
-                description="Données chiffrées, conformité RGPD et authentification à deux facteurs pour protéger vos informations sensibles."
-                stat="01"
-                color="cyan"
-              />
-              <FeatureCard 
-                icon={Zap} 
-                title="Performance optimale" 
-                description="Temps de chargement rapides et interface réactive pour une expérience utilisateur fluide et agréable."
-                stat="02"
-                color="teal"
-              />
-              <FeatureCard 
-                icon={Bell} 
-                title="Notifications intelligentes" 
-                description="Rappels automatiques par SMS et email pour réduire les absences et améliorer la ponctualité."
-                stat="03"
-                color="blue"
-              />
-              <FeatureCard 
-                icon={Smartphone} 
-                title="Multi-plateforme" 
-                description="Accédez à votre cabinet depuis n'importe quel appareil : ordinateur, tablette ou smartphone."
-                stat="04"
-                color="violet"
-              />
-              <FeatureCard 
-                icon={BarChart3} 
-                title="Statistiques avancées" 
-                description="Tableaux de bord et rapports détaillés pour suivre l'activité de votre cabinet en temps réel."
-                stat="05"
-                color="cyan"
-              />
-              <FeatureCard 
-                icon={FileCheck} 
-                title="Documents numériques" 
-                description="Générez, signez et archivez vos documents médicaux en format PDF sécurisé."
-                stat="06"
-                color="teal"
-              />
+              {viewRole === "patient" ? (
+                [
+                  { icon: Bell, title: "Notifications intelligentes", desc: "Rappels automatiques par SMS et email pour réduire les absences.", stat: "01", color: "blue" },
+                  { icon: Smartphone, title: "Multi-plateforme", desc: "Accédez à votre dossier et prenez RDV depuis n'importe quel appareil.", stat: "02", color: "violet" },
+                  { icon: FolderHeart, title: "Dossier centralisé", desc: "Historique médical et résultats accessibles en un seul endroit.", stat: "03", color: "sky" },
+                ].map((f, i) => (
+                  <FeatureCard key={i} icon={f.icon} title={f.title} description={f.desc} stat={f.stat} color={f.color} />
+                ))
+              ) : (
+                [
+                  { icon: Shield, title: "Sécurité maximale", desc: "Données chiffrées et conformité RGPD pour protéger vos patients.", stat: "01", color: "cyan" },
+                  { icon: BarChart3, title: "Statistiques avancées", desc: "Tableaux de bord pour analyser l'activité et optimiser les créneaux.", stat: "02", color: "cyan" },
+                  { icon: FileCheck, title: "Documents numériques", desc: "Générez et archivez ordonnances et rapports en PDF sécurisé.", stat: "03", color: "teal" },
+                ].map((f, i) => (
+                  <FeatureCard key={i} icon={f.icon} title={f.title} description={f.desc} stat={f.stat} color={f.color} />
+                ))
+              )}
             </div>
           </div>
         </section>
@@ -860,50 +843,78 @@ export default function LandingPage() {
             </div>
 
             <div className="grid gap-6 lg:grid-cols-3">
-              <article className="rounded-[2rem] border border-cyan-100 bg-white p-8 shadow-lg shadow-cyan-100/40 transition-all hover:shadow-cyan-200/40 hover:-translate-y-1 animate-scaleIn">
-                <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-sky-600 text-white shadow-xl shadow-cyan-200/40">
-                  <HeartPulse size={32} />
-                </div>
-                <h3 className="text-2xl font-semibold text-slate-900">Patients sereins</h3>
-                <p className="mt-4 text-sm leading-7 text-slate-500">
-                  Un parcours digital qui rassure, informe et simplifie chaque étape
-                  de la prise en charge médicale.
-                </p>
-                <ul className="mt-6 space-y-3 text-sm text-slate-600">
-                  <li className="flex items-center gap-2"><Check size={16} className="text-cyan-600" /> Interface intuitive pour la prise de rendez-vous</li>
-                  <li className="flex items-center gap-2"><Check size={16} className="text-cyan-600" /> Dossiers et résultats accessibles en un clic</li>
-                </ul>
-              </article>
-
-              <article className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/40 transition-all hover:shadow-slate-300/40 hover:-translate-y-1 animate-scaleInDelay">
-                <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-cyan-50 text-cyan-700 shadow-xl shadow-cyan-100/30">
-                  <Building2 size={32} />
-                </div>
-                <h3 className="text-2xl font-semibold text-slate-900">Cabinets performants</h3>
-                <p className="mt-4 text-sm leading-7 text-slate-500">
-                  Des outils pensés pour organiser, automatiser et valoriser l'activité
-                  médicale du cabinet.
-                </p>
-                <ul className="mt-6 space-y-3 text-sm text-slate-600">
-                  <li className="flex items-center gap-2"><Check size={16} className="text-cyan-600" /> Agenda partagé et gestion multi-utilisateur</li>
-                  <li className="flex items-center gap-2"><Check size={16} className="text-cyan-600" /> Dossiers patients centralisés et sécurisés</li>
-                </ul>
-              </article>
-
-              <article className="rounded-[2rem] border border-cyan-100 bg-white p-8 shadow-lg shadow-cyan-100/40 transition-all hover:shadow-cyan-200/40 hover:-translate-y-1 animate-scaleInDelay2">
-                <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-sky-600 text-white shadow-xl shadow-cyan-200/40">
-                  <UserCheck size={32} />
-                </div>
-                <h3 className="text-2xl font-semibold text-slate-900">Confiance renforcée</h3>
-                <p className="mt-4 text-sm leading-7 text-slate-500">
-                  Une communication claire entre patients, médecins et secrétaires
-                  pour des soins plus fluides et plus humains.
-                </p>
-                <ul className="mt-6 space-y-3 text-sm text-slate-600">
-                  <li className="flex items-center gap-2"><Check size={16} className="text-cyan-600" /> Suivi transparent des demandes et statuts</li>
-                  <li className="flex items-center gap-2"><Check size={16} className="text-cyan-600" /> Rapports et ordonnances partagés sans friction</li>
-                </ul>
-              </article>
+              {viewRole === "patient" ? (
+                [
+                  {
+                    icon: HeartPulse,
+                    title: "Patients sereins",
+                    desc: "Un parcours digital qui rassure, informe et simplifie chaque étape de la prise en charge.",
+                    bullets: [
+                      "Interface intuitive pour la prise de rendez-vous",
+                      "Dossiers et résultats accessibles en un clic",
+                    ],
+                  },
+                  {
+                    icon: UserCheck,
+                    title: "Confiance renforcée",
+                    desc: "Une communication claire pour un suivi plus humain et transparent.",
+                    bullets: ["Suivi transparent des demandes et statuts", "Rapports et ordonnances partagés sans friction"],
+                  },
+                  {
+                    icon: FolderHeart,
+                    title: "Accès continu",
+                    desc: "Accédez à vos dossiers et analyses 24/7 pour un meilleur suivi.",
+                    bullets: ["Accès permanent aux résultats", "Partage facile avec votre médecin"],
+                  },
+                ].map((b, i) => (
+                  <article key={i} className={`rounded-[2rem] border ${i===0?"border-cyan-100":"border-slate-200"} bg-white p-8 shadow-lg transition-all hover:-translate-y-1 animate-scaleIn`} style={{ animationDelay: `${i * 0.05}s` }}>
+                    <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-sky-600 text-white shadow-xl">
+                      <b.icon size={32} />
+                    </div>
+                    <h3 className="text-2xl font-semibold text-slate-900">{b.title}</h3>
+                    <p className="mt-4 text-sm leading-7 text-slate-500">{b.desc}</p>
+                    <ul className="mt-6 space-y-3 text-sm text-slate-600">
+                      {b.bullets.map((bt, j) => (
+                        <li key={j} className="flex items-center gap-2"><Check size={16} className="text-cyan-600" /> {bt}</li>
+                      ))}
+                    </ul>
+                  </article>
+                ))
+              ) : (
+                [
+                  {
+                    icon: Building2,
+                    title: "Cabinets performants",
+                    desc: "Des outils pour organiser, automatiser et valoriser l'activité médicale du cabinet.",
+                    bullets: ["Agenda partagé et gestion multi-utilisateur", "Dossiers patients centralisés et sécurisés"],
+                  },
+                  {
+                    icon: BarChart3,
+                    title: "Efficacité opérationnelle",
+                    desc: "Optimisez les créneaux et réduisez les tâches administratives.",
+                    bullets: ["Statistiques et rapports avancés", "Automatisation des rappels"],
+                  },
+                  {
+                    icon: FileCheck,
+                    title: "Conformité & Sécurité",
+                    desc: "Conservez des dossiers conformes et sécurisés pour vos patients.",
+                    bullets: ["Documents et ordonnances sécurisés", "Accès et permissions personnalisées"],
+                  },
+                ].map((b, i) => (
+                  <article key={i} className={`rounded-[2rem] border ${i===0?"border-cyan-100":"border-slate-200"} bg-white p-8 shadow-lg transition-all hover:-translate-y-1 animate-scaleIn`} style={{ animationDelay: `${i * 0.05}s` }}>
+                    <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-cyan-50 text-cyan-700 shadow-xl">
+                      <b.icon size={32} />
+                    </div>
+                    <h3 className="text-2xl font-semibold text-slate-900">{b.title}</h3>
+                    <p className="mt-4 text-sm leading-7 text-slate-500">{b.desc}</p>
+                    <ul className="mt-6 space-y-3 text-sm text-slate-600">
+                      {b.bullets.map((bt, j) => (
+                        <li key={j} className="flex items-center gap-2"><Check size={16} className="text-cyan-600" /> {bt}</li>
+                      ))}
+                    </ul>
+                  </article>
+                ))
+              )}
             </div>
           </div>
         </section>
@@ -914,11 +925,12 @@ export default function LandingPage() {
             <div className="text-center mb-12">
               <SectionLabel className="animate-fadeInUp">POURQUOI MEDICABINET ?</SectionLabel>
               <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl animate-fadeInUpDelay">
-                Des bénéfices chiffrés pour médecins et patients
+                {viewRole === "patient" ? "Des bénéfices chifrés pour les patients" : "Des bénéfices chifrés pour les médecins"}
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-slate-500 animate-fadeInUpDelay2">
-                Découvrez pourquoi MediCabinet change la manière de travailler dans les cabinets,
-                tout en améliorant l'expérience patient.
+                {viewRole === "patient"
+                  ? "Découvrez comment MediCabinet améliore le parcours patient et facilite l'accès aux soins."
+                  : "Découvrez comment MediCabinet optimise l'organisation et la performance de votre cabinet."}
               </p>
             </div>
 
