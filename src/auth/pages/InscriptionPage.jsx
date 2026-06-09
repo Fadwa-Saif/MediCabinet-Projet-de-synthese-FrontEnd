@@ -11,10 +11,39 @@ import {
 import authService from "../../services/authService";
 import { BrandLogo } from "../../components/BrandLogo";
 
-const ROLE_CARDS = [
-  { value: "patient", label: "Patient", icon: CircleUserRound },
-  { value: "medecin", label: "Docteur", icon: Stethoscope },
-  { value: "secretaire", label: "Secrétaire", icon: ClipboardList },
+const ROLE_SECTIONS = [
+  {
+    id: "patient",
+    title: "Patient",
+    description: "Accès patient sans cabinet à l'inscription.",
+    items: [
+      {
+        value: "patient",
+        label: "Patient",
+        icon: CircleUserRound,
+        detail: "Inscription patient sans création de cabinet.",
+      },
+    ],
+  },
+  {
+    id: "cabinet",
+    title: "Cabinet",
+    description: "Contient les rôles Médecin et Secrétaire.",
+    items: [
+      {
+        value: "medecin",
+        label: "Docteur",
+        icon: Stethoscope,
+        detail: "Créez votre cabinet lors de l'inscription.",
+      },
+      {
+        value: "secretaire",
+        label: "Secrétaire",
+        icon: ClipboardList,
+        detail: "Choisissez un cabinet existant via recherche.",
+      },
+    ],
+  },
 ];
 
 const SPECIALITES = [
@@ -121,6 +150,17 @@ export function InscriptionPage() {
     };
   }, [cabinetQuery, role]);
 
+  const handleSectionSelect = (sectionId) => {
+    if (sectionId === "patient") {
+      setRole("patient");
+      setStep(2);
+    } else {
+      setRole(null);
+    }
+    setErrors({});
+    setError("");
+  };
+
   const handleRoleSelect = (selectedRole) => {
     setRole(selectedRole);
     setStep(2);
@@ -221,7 +261,7 @@ export function InscriptionPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F6FA] px-4 py-8">
-      <div className="mx-auto w-full max-w-3xl">
+      <div className="mx-auto w-full max-w-6xl">
         <div className="mb-6 flex items-center justify-between gap-4">
           <Link
             to="/"
@@ -240,7 +280,7 @@ export function InscriptionPage() {
               Créez votre compte MediCabinet
             </h1>
             <p className="mt-3 text-sm text-slate-500">
-              Choisissez votre rôle puis complétez les informations requises.
+              Choisissez une section puis complétez les informations requises.
             </p>
           </div>
 
@@ -252,33 +292,44 @@ export function InscriptionPage() {
 
           {step === 1 ? (
             <div>
-              <h2 className="mb-4 text-lg font-semibold text-slate-800">Sélectionnez votre rôle</h2>
-              <div className="grid gap-4 md:grid-cols-3">
-                {ROLE_CARDS.map((item) => {
-                  const Icon = item.icon;
-                  const active = role === item.value;
-
+              <h2 className="mb-4 text-lg font-semibold text-slate-800">Choisissez une section</h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                {ROLE_SECTIONS.map((section) => {
                   return (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() => handleRoleSelect(item.value)}
-                      className={`rounded-2xl border p-5 text-left transition-all hover:-translate-y-0.5 hover:shadow-md ${
-                        active
-                          ? "border-cyan-600 bg-cyan-50 shadow-md shadow-cyan-100"
-                          : "border-slate-200 bg-white"
-                      }`}
-                    >
-                      <div className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl ${active ? "bg-cyan-600 text-white" : "bg-slate-100 text-slate-600"}`}>
-                        <Icon size={22} />
+                    <div key={section.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
+                      <div className="mb-4 flex w-full items-start gap-4">
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-600">{section.title}</p>
+                          <p className="mt-2 text-sm text-slate-500">{section.description}</p>
+                        </div>
                       </div>
-                      <h3 className="mt-4 text-lg font-semibold text-slate-800">{item.label}</h3>
-                      <p className="mt-2 text-sm text-slate-500">
-                        {item.value === "patient" && "Accès patient sans cabinet à l'inscription."}
-                        {item.value === "medecin" && "Créez votre cabinet lors de l'inscription."}
-                        {item.value === "secretaire" && "Choisissez un cabinet existant via recherche."}
-                      </p>
-                    </button>
+                      {section.items.length === 1 ? (
+                        <button
+                          type="button"
+                          onClick={() => handleSectionSelect(section.items[0].value)}
+                          className="w-full rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:border-cyan-300 hover:shadow-md"
+                        >
+                          <h3 className="text-lg font-semibold text-slate-800">{section.items[0].label}</h3>
+                          <p className="mt-2 text-sm text-slate-500">{section.items[0].detail}</p>
+                        </button>
+                      ) : (
+                        <div className="grid gap-4">
+                          {section.items.map((item) => {
+                            return (
+                              <button
+                                key={item.value}
+                                type="button"
+                                onClick={() => handleRoleSelect(item.value)}
+                                className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:border-cyan-300 hover:shadow-md"
+                              >
+                                <h3 className="text-lg font-semibold text-slate-800">{item.label}</h3>
+                                <p className="mt-2 text-sm text-slate-500">{item.detail}</p>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -289,7 +340,7 @@ export function InscriptionPage() {
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-600">Rôle sélectionné</p>
                   <h2 className="mt-1 text-xl font-semibold text-slate-800">
-                    {ROLE_CARDS.find((item) => item.value === role)?.label}
+                    {ROLE_SECTIONS.flatMap((section) => section.items).find((item) => item.value === role)?.label}
                   </h2>
                 </div>
                 <button
