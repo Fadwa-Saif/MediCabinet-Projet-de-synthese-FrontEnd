@@ -252,50 +252,6 @@ function PricingCard({
   );
 }
 
-function StatCounter({ end, suffix, label, icon: Icon }) {
-  const [count, setCount] = useState(0);
-  const ref = useRef(null);
-  const [hasAnimated, setHasAnimated] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasAnimated) {
-          setHasAnimated(true);
-          let start = 0;
-          const duration = 2000;
-          const increment = end / (duration / 16);
-          const timer = setInterval(() => {
-            start += increment;
-            if (start >= end) {
-              setCount(end);
-              clearInterval(timer);
-            } else {
-              setCount(Math.floor(start));
-            }
-          }, 16);
-        }
-      },
-      { threshold: 0.5 }
-    );
-
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [end, hasAnimated]);
-
-  return (
-    <div ref={ref} className="text-center">
-      <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur text-white mb-4">
-        <Icon size={28} />
-      </div>
-      <div className="text-4xl font-bold text-white mb-1">
-        {count}{suffix}
-      </div>
-      <p className="text-sm text-cyan-100">{label}</p>
-    </div>
-  );
-}
-
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [billing, setBilling] = useState("monthly");
@@ -538,19 +494,6 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-
-        {/* Stats Section */}
-        <section className="bg-gradient-to-r from-cyan-600 to-sky-700 py-16 relative overflow-hidden">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')] opacity-30" />
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-              <StatCounter end={500} suffix="+" label="Cabinets utilisateurs" icon={Building2} />
-              <StatCounter end={50} suffix="K+" label="Patients gérés" icon={Users} />
-              <StatCounter end={98} suffix="%" label="Satisfaction client" icon={HeartPulse} />
-              <StatCounter end={35} suffix="%" label="Gain de temps" icon={Calendar} />
-            </div>
-          </div>
-        </section>
 
         {/* Problem Section */}
         <section id="problem" className="bg-slate-50 py-20">
