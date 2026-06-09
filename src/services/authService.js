@@ -105,35 +105,83 @@ const authService = {
   login: async (email, password, role = "patient") => {
     try {
       const normalizedRole = normalizeRole(role);
+      console.log("[authService] Login attempt:", { email, role: normalizedRole });
+      
       const response = await api.post("/auth/login", {
         email,
         password,
         role: normalizedRole,
       });
 
-      if (response.data.token) {
-        if (response.data.role !== normalizedRole) {
-          throw new Error("Rôle incorrect pour ce compte");
-        }
+      console.log("[authService] Login response:", response.data);
 
-        const uiUser = toUiUser(
-          response.data.user,
-          response.data.role,
-          response.data.token,
-          response.data.profile,
-          response.data.secretary_request,
-        );
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data.user));
-        localStorage.setItem("role", response.data.role);
-        localStorage.setItem("profile", JSON.stringify(response.data.profile));
-        localStorage.setItem("medicabinet_user", JSON.stringify(uiUser));
-        localStorage.setItem("medicabinet_last_login_password", password);
+      if (!response.data) {
+        throw new Error("Réponse vide du serveur");
       }
 
+      // Handle secretary pending approval case (200 without token)
+      if (response.data.status === "en_attente" && !response.data.token) {
+        console.log("[authService] Secretary pending approval");
+        const pendingError = new Error("Votre demande d'accès est en attente d'approbation");
+        pendingError.isSecretaryPending = true;
+        pendingError.pendingData = response.data;
+        throw pendingError;
+      }
+
+      if (response.data.status === "refusee") {
+        console.log("[authService] Secretary request refused");
+        const refusedError = new Error("Votre demande d'accès a été refusée");
+        refusedError.isSecretaryRefused = true;
+        refusedError.refusedData = response.data;
+        throw refusedError;
+      }
+
+      if (!response.data.token) {
+        const errorMsg = response.data.message || 
+                        (response.data.error ? response.data.error : "Pas de token reçu");
+        throw new Error(`Erreur d'authentification: ${errorMsg}`);
+      }
+
+      if (!response.data.role) {
+        throw new Error("Rôle manquant dans la réponse du serveur");
+      }
+
+      if (response.data.role !== normalizedRole) {
+        throw new Error("Rôle incorrect pour ce compte");
+      }
+
+      const uiUser = toUiUser(
+        response.data.user,
+        response.data.role,
+        response.data.token,
+        response.data.profile,
+        response.data.secretary_request,
+      );
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+      localStorage.setItem("role", response.data.role);
+      localStorage.setItem("profile", JSON.stringify(response.data.profile || {}));
+      localStorage.setItem("medicabinet_user", JSON.stringify(uiUser));
+      localStorage.setItem("medicabinet_last_login_password", password);
+
+      console.log("[authService] Login successful, user stored in localStorage");
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: "Erreur de connexion" };
+      const errorMessage = error.response?.data?.message || 
+                          error.message || 
+                          "Erreur de connexion";
+      console.error("[authService] Login error:", errorMessage, error.response?.data);
+      
+      const finalError = new Error(errorMessage);
+      if (error.isSecretaryPending) {
+        finalError.isSecretaryPending = true;
+        finalError.pendingData = error.pendingData;
+      }
+      if (error.isSecretaryRefused) {
+        finalError.isSecretaryRefused = true;
+        finalError.refusedData = error.refusedData;
+      }
+      throw finalError;
     }
   },
 

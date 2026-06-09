@@ -22,33 +22,54 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errorType, setErrorType] = useState(""); // "error", "pending", "refused"
 
   const successMessage = location.state?.message || "";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setErrorType("");
     setIsLoading(true);
 
     try {
+      console.log("[LoginPage] Attempting login with role:", role);
       const data = await authService.login(email, password, role);
+      console.log("[LoginPage] Login successful, response:", data);
 
       if (data.role === "patient") {
+        console.log("[LoginPage] Redirecting to patient dashboard");
         navigate("/patient/dashboard", { replace: true });
       } else if (data.role === "medecin") {
+        console.log("[LoginPage] Redirecting to doctor dashboard");
         navigate("/medecin/dashboard", { replace: true });
       } else if (data.role === "secretaire") {
+        console.log("[LoginPage] Secretary login - secretary_request:", data.secretary_request);
         if (data.secretary_request?.statut === "en_attente") {
+          console.log("[LoginPage] Redirecting to secretary pending");
           navigate("/secretaire/en-attente", { replace: true });
         } else {
+          console.log("[LoginPage] Redirecting to secretary dashboard");
           navigate("/secretaire/dashboard", { replace: true });
         }
       } else {
+        console.log("[LoginPage] Unknown role, redirecting to login:", data.role);
         navigate("/login", { replace: true });
       }
     } catch (err) {
-      setError(err.message || "Une erreur est survenue lors de la connexion");
-      console.error("Login error:", err);
+      const errorMsg = err.message || "Une erreur est survenue lors de la connexion";
+      console.error("[LoginPage] Login failed:", errorMsg, err);
+      
+      if (err.isSecretaryPending) {
+        setErrorType("pending");
+        setError("Votre demande d'accès est en attente d'approbation par le médecin. Vous serez notifié(e) une fois approuvée.");
+      } else if (err.isSecretaryRefused) {
+        setErrorType("refused");
+        setError("Votre demande d'accès a été refusée. Veuillez contacter l'administrateur ou le médecin pour plus d'informations.");
+      } else {
+        setErrorType("error");
+        setError(errorMsg);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -82,9 +103,24 @@ export function LoginPage() {
           </div>
         )}
 
-        {error && (
-          <div className="mb-4 rounded-md bg-red-500 p-3 text-sm text-white">
-            {error}
+        {error && errorType === "pending" && (
+          <div className="mb-4 rounded-lg border-l-4 border-amber-500 bg-amber-50 p-4 text-sm text-amber-800">
+            <div className="font-semibold mb-1">⏳ En attente d'approbation</div>
+            <div>{error}</div>
+          </div>
+        )}
+
+        {error && errorType === "refused" && (
+          <div className="mb-4 rounded-lg border-l-4 border-red-500 bg-red-50 p-4 text-sm text-red-800">
+            <div className="font-semibold mb-1">❌ Accès refusé</div>
+            <div>{error}</div>
+          </div>
+        )}
+
+        {error && errorType === "error" && (
+          <div className="mb-4 rounded-lg border-l-4 border-red-500 bg-red-50 p-4 text-sm text-red-800">
+            <div className="font-semibold mb-1">⚠️ Erreur de connexion</div>
+            <div>{error}</div>
           </div>
         )}
 
@@ -97,7 +133,11 @@ export function LoginPage() {
               <button
                 key={option.value}
                 type="button"
-                onClick={() => setRole(option.value)}
+                onClick={() => {
+                  setRole(option.value);
+                  setError("");
+                  setErrorType("");
+                }}
                 className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition sm:text-sm ${
                   active
                     ? "bg-cyan-600 text-white shadow-md shadow-cyan-600/20"
