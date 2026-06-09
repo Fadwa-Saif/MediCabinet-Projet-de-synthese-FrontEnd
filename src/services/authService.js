@@ -104,8 +104,7 @@ const authService = {
    */
   login: async (email, password) => {
     try {
-      const normalizedRole = normalizeRole(role);
-      console.log("[authService] Login attempt:", { email, role: normalizedRole });
+      console.log("[authService] Login attempt:", { email });
       
       const response = await api.post("/auth/login", {
         email,
@@ -143,10 +142,6 @@ const authService = {
 
       if (!response.data.role) {
         throw new Error("Rôle manquant dans la réponse du serveur");
-      }
-
-      if (response.data.role !== normalizedRole) {
-        throw new Error("Rôle incorrect pour ce compte");
       }
 
       const uiUser = toUiUser(
