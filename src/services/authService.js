@@ -102,19 +102,14 @@ const authService = {
   /**
    * Login user
    */
-  login: async (email, password, role = "patient") => {
+  login: async (email, password) => {
     try {
-      const normalizedRole = normalizeRole(role);
       const response = await api.post("/auth/login", {
         email,
         password,
-        role: normalizedRole,
       });
 
       if (response.data.token) {
-        if (response.data.role !== normalizedRole) {
-          throw new Error("Rôle incorrect pour ce compte");
-        }
 
         const uiUser = toUiUser(
           response.data.user,
