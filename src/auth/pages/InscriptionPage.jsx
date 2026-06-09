@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   CircleUserRound,
@@ -90,6 +90,7 @@ function Input({ label, error, ...props }) {
 
 export function InscriptionPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [step, setStep] = useState(1);
   const [role, setRole] = useState(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
@@ -112,6 +113,20 @@ export function InscriptionPage() {
     }
   }, [role]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const preRole = params.get("role");
+    if (preRole) {
+      if (preRole === "patient") {
+        setRole("patient");
+        setStep(2);
+      } else if (preRole === "medecin") {
+        setRole("medecin");
+        setStep(2);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     if (role !== "secretaire") return undefined;
 
