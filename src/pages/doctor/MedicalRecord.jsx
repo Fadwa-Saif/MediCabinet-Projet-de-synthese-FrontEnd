@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
 import api from "../../services/api";
@@ -13,17 +13,12 @@ import {
   Edit2,
   User,
   Calendar,
-  Phone,
-  MapPin,
   AlertTriangle,
   Activity,
-  Stethoscope,
-  Droplet,
   ClipboardList,
   FlaskConical,
   Pill,
   Save,
-  X,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -35,15 +30,6 @@ const formatDate = (d) => {
   return new Date(d).toLocaleDateString("fr-FR", {
     day: "numeric",
     month: "long",
-    year: "numeric",
-  });
-};
-
-const formatDateShort = (d) => {
-  if (!d) return "—";
-  return new Date(d).toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "short",
     year: "numeric",
   });
 };
@@ -237,7 +223,6 @@ export function MedicalRecord() {
   // ─ State: Medical Record Sections
   const [antecedents, setAntecedents] = useState([]);
   const [antecedentsFamiliaux, setAntecedentsFamiliaux] = useState([]);
-  const [antecedentsFemme, setAntecedentsFemme] = useState(null);
   const [allergies, setAllergies] = useState([]);
   const [traitements, setTraitements] = useState([]);
 

@@ -1,17 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
-  ArrowRight,
-  ClipboardList,
-  FileText,
   FlaskConical,
-  HeartPulse,
   Pill,
-  Ruler,
   Save,
   Search,
-  Stethoscope,
-  Weight,
   X,
   ChevronDown,
   AlertTriangle,
@@ -392,15 +385,6 @@ const getIMCLabel = (imc) => {
   if (imc < 25) return "Normal";
   if (imc < 30) return "Surpoids";
   return "Obésité";
-};
-
-const formatDateShort = (dateStr) => {
-  if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
 };
 
 const getInitials = (fullName) => {
