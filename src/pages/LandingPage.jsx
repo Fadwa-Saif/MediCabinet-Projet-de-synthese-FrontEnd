@@ -160,12 +160,14 @@ function PricingCard({
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [billing, setBilling] = useState("monthly");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactSubmitted, setContactSubmitted] = useState(false);
 
   const navItems = [
     { label: "À propos", href: "#about" },
     { label: "Services", href: "#services" },
-    { label: "Objectifs", href: "#objectives" },
-    { label: "Pourquoi ?", href: "#why" },
+    { label: "Pour qui", href: "#audience" },
+    { label: "Comment ça marche", href: "#how" },
     { label: "Offres", href: "#pricing" },
     { label: "Contact", href: "#contact" },
   ];
@@ -253,14 +255,13 @@ export default function LandingPage() {
                 MEDICAL
               </span>
               <h1 className="text-3xl sm:text-4xl font-bold leading-tight tracking-tight text-slate-800 sm:text-5xl lg:text-6xl animate-fadeInUpDelay">
-                Une plateforme pensée pour
+                Une plateforme de gestion médicale
                 <br />
-                <span className="text-cyan-600">les cabinets et les patients</span>
+                <span className="text-cyan-600">pour les cabinets et leurs patients</span>
               </h1>
               <p className="mt-4 text-base sm:text-lg text-slate-500 animate-fadeInUpDelay2">
-                MediCabinet connecte votre cabinet à vos patients,
-                fluidifie la prise de rendez-vous et transforme la gestion
-                médicale en une expérience sereine et moderne.
+                Automatisez la prise de rendez-vous, centralisez les dossiers
+                et améliorez la communication entre médecin, secrétaire et patient.
               </p>
 
               {/* Icons - Now inside Left Content */}
@@ -287,6 +288,33 @@ export default function LandingPage() {
                 <AnchorButton href="#pricing" className="px-8 py-3">
                   Voir les offres
                 </AnchorButton>
+              </div>
+
+              <div className="mt-10 grid gap-4 sm:grid-cols-3 animate-fadeInUpDelay3">
+                <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-sm font-semibold uppercase tracking-[0.35em] text-cyan-600">
+                    Gain de temps
+                  </p>
+                  <p className="mt-3 text-sm leading-7 text-slate-500">
+                    Réduisez de 35 % le temps passé à gérer les rendez-vous et les dossiers.
+                  </p>
+                </div>
+                <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-sm font-semibold uppercase tracking-[0.35em] text-cyan-600">
+                    Suivi simplifié
+                  </p>
+                  <p className="mt-3 text-sm leading-7 text-slate-500">
+                    Centralisez les informations patients et partagez les documents en un clic.
+                  </p>
+                </div>
+                <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-sm font-semibold uppercase tracking-[0.35em] text-cyan-600">
+                    Moins d'absentéisme
+                  </p>
+                  <p className="mt-3 text-sm leading-7 text-slate-500">
+                    Rappels automatiques et communication claire pour des patients mieux suivis.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -316,6 +344,43 @@ export default function LandingPage() {
                     className="text-cyan-600 sm:block hidden lg:block"
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="problem" className="bg-slate-50 py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-600">
+                LE PROBLÈME
+              </p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl">
+                Les cabinets médicaux et patients perdent du temps dans des processus manuels.
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-500">
+                Entre les appels, les dossiers papier et les doublons, la gestion devient lourde,
+                les rendez-vous sont manqués et la relation patient-médecin s’affaiblit.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-3xl bg-white p-8 shadow-sm">
+                <h3 className="text-xl font-semibold text-slate-900">Rendez-vous perdus</h3>
+                <p className="mt-3 text-sm leading-7 text-slate-500">
+                  Des créneaux difficiles à gérer et des annulations faute de suivi automatisé.
+                </p>
+              </div>
+              <div className="rounded-3xl bg-white p-8 shadow-sm">
+                <h3 className="text-xl font-semibold text-slate-900">Dossiers éparpillés</h3>
+                <p className="mt-3 text-sm leading-7 text-slate-500">
+                  Informations patients dispersées entre notes papier, e-mails et fichiers locaux.
+                </p>
+              </div>
+              <div className="rounded-3xl bg-white p-8 shadow-sm">
+                <h3 className="text-xl font-semibold text-slate-900">Communication lente</h3>
+                <p className="mt-3 text-sm leading-7 text-slate-500">
+                  Patients, médecins et secrétaires manquent d’une plateforme unique pour échanger.
+                </p>
               </div>
             </div>
           </div>
@@ -701,6 +766,56 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        <section className="bg-white py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-600">
+                  CONTACT RAPIDE
+                </p>
+                <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+                  Demandez une démo ou posez une question en moins de 30 secondes
+                </h2>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-500">
+                  Laissez votre email et nous revenons vers vous avec une réponse précise pour votre cabinet.
+                </p>
+              </div>
+
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 shadow-sm">
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    setContactSubmitted(true);
+                  }}
+                >
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={contactEmail}
+                    onChange={(event) => setContactEmail(event.target.value)}
+                    placeholder="votre.email@exemple.com"
+                    className="mt-3 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-200"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
+                  >
+                    Envoyer ma demande
+                  </button>
+                </form>
+                {contactSubmitted && (
+                  <div className="mt-6 rounded-3xl bg-cyan-50 px-4 py-4 text-sm text-cyan-800">
+                    Merci ! Nous vous contacterons bientôt pour vous présenter MediCabinet.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
       <footer id="contact" className="border-t border-slate-200 bg-slate-50">
@@ -710,14 +825,14 @@ export default function LandingPage() {
               <BrandLogo />
             </Link>
             <p className="mt-4 max-w-md text-sm leading-7 text-slate-500">
-              A modern healthcare management platform for appointments, patient
-              records, and care coordination.
+              Une page de projet faite pour présenter MediCabinet : une solution
+              claire et professionnelle pour la gestion de cabinets médicaux.
             </p>
           </div>
 
           <div className="animate-fadeInUpDelay">
             <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">
-              Links
+              Navigation
             </h3>
             <div className="mt-4 flex flex-col gap-3">
               <a
@@ -727,10 +842,16 @@ export default function LandingPage() {
                 Services
               </a>
               <a
-                href="#doctors"
+                href="#audience"
                 className="text-sm text-slate-600 transition-colors hover:text-sky-700"
               >
-                Doctors
+                Pour qui
+              </a>
+              <a
+                href="#how"
+                className="text-sm text-slate-600 transition-colors hover:text-sky-700"
+              >
+                Comment ça marche
               </a>
               <a
                 href="#contact"
@@ -738,33 +859,38 @@ export default function LandingPage() {
               >
                 Contact
               </a>
-              <Link
-                to="/login"
-                className="text-sm text-slate-600 transition-colors hover:text-sky-700"
-              >
-                Privacy
-              </Link>
             </div>
           </div>
 
           <div className="animate-fadeInUpDelay2">
             <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">
-              Get Started
+              Contact
             </h3>
             <p className="mt-4 text-sm leading-7 text-slate-500">
-              Access your account to book appointments, manage records, and
-              communicate with your care team.
+              contact@medicabinet.app
             </p>
-            <div className="mt-6">
-              <PrimaryButton to="/login" className="px-6 py-3">
-                Login
-              </PrimaryButton>
+            <p className="mt-2 text-sm leading-7 text-slate-500">
+              Suivez-nous sur LinkedIn pour nos dernières mises à jour.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <a
+                href="https://www.linkedin.com"
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm font-semibold text-cyan-600 transition hover:text-cyan-800"
+              >
+                LinkedIn
+              </a>
+              <a
+                href="https://www.instagram.com"
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm font-semibold text-cyan-600 transition hover:text-cyan-800"
+              >
+                Instagram
+              </a>
             </div>
           </div>
-        </div>
-
-        <div className="border-t border-slate-200 py-5 text-center text-sm text-slate-500">
-          © 2025 MediCabinet. All rights reserved.
         </div>
       </footer>
     </div>
