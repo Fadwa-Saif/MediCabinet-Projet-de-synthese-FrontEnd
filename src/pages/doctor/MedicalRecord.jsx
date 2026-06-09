@@ -15,10 +15,7 @@ import {
   Calendar,
   AlertTriangle,
   Activity,
-<<<<<<< HEAD
   Stethoscope,
-=======
->>>>>>> 3ba0556f7f54fb626f93f3d1429ce63786760539
   ClipboardList,
   FlaskConical,
   Pill,
