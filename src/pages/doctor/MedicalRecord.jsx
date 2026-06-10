@@ -503,8 +503,15 @@ export function MedicalRecord() {
               (a, b) => new Date(b.date || 0) - new Date(a.date || 0),
             ),
           );
-          setAnalyses(safeArray(pd?.analyses));
-          setRadiologies(safeArray(pd?.radiologies));
+          setAnalyses(
+            safeArray(pd?.analyses).map((a) => ({ ...a, _type: "analyse" })),
+          );
+          setRadiologies(
+            safeArray(pd?.radiologies).map((r) => ({
+              ...r,
+              _type: "radiologie",
+            })),
+          );
           return;
         }
 
@@ -593,7 +600,14 @@ export function MedicalRecord() {
       setSavingSection(null);
     }
   };
-
+const handleDocClick = (doc) => {
+  if (!doc.consultation_id) return;
+  navigate(
+    isDoctorView
+      ? `/medecin/consultations/${doc.consultation_id}`
+      : `/patient/consultations/${doc.consultation_id}`,
+  );
+};
   // ─ Navigation
   const handleCardClick = (id) => {
     navigate(
@@ -2884,62 +2898,133 @@ export function MedicalRecord() {
                   {[...analyses, ...radiologies]
                     .sort(
                       (a, b) =>
-                        new Date(b.date_analyse || b.date_radiologie || 0) -
-                        new Date(a.date_analyse || a.date_radiologie || 0),
+                        new Date(
+                          b.date_analyse ||
+                            b.date_radiologie ||
+                            b.date ||
+                            b.created_at ||
+                            0,
+                        ) -
+                        new Date(
+                          a.date_analyse ||
+                            a.date_radiologie ||
+                            a.date ||
+                            a.created_at ||
+                            0,
+                        ),
                     )
                     .map((doc, idx) => {
-                      const isAnalyse = !!doc.date_analyse;
-                      const doctorName =
-                        `Dr. ${doc.medecin?.prenom || ""} ${doc.medecin?.nom || ""}`.trim();
+                      const isAnalyse = doc._type === "analyse";
+
+                      // date : essaie tous les champs possibles
+                      const docDate =
+                        doc.date_analyse ||
+                        doc.date_radiologie ||
+                        doc.date ||
+                        doc.created_at ||
+                        null;
+
+                      // médecin : essaie plusieurs chemins de relation
+                      const medecinObj =
+                        doc.medecin ||
+                        doc.admin?.user ||
+                        doc.consultation?.admin?.user ||
+                        null;
+
+                      const doctorName = medecinObj
+                        ? `Dr. ${medecinObj.prenom || ""} ${medecinObj.nom || ""}`.trim()
+                        : null;
+
+                      // titre : premier champ non vide
+                      const titre =
+                        doc.titre ||
+                        doc.type_analyse ||
+                        doc.type_radiologie ||
+                        doc.description ||
+                        (isAnalyse
+                          ? "Analyse biologique"
+                          : "Examen radiologique");
 
                       return (
                         <button
-                          key={idx}
-                          className="w-full text-left rounded-2xl border border-outline-variant/30 hover:border-primary/30 hover:shadow-md bg-surface-container-lowest transition-all duration-200 group"
-                        >
+                        key={idx}
+                        onClick={() => handleDocClick(doc)}
+                        className="w-full text-left rounded-2xl border border-outline-variant/30 hover:border-primary/30 hover:shadow-md bg-surface-container-lowest transition-all duration-200 group"
+>
                           <div className="p-5 flex items-start gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-surface-container-high group-hover:bg-primary group-hover:text-on-primary text-on-surface-variant flex items-center justify-center text-sm font-bold shrink-0 transition-colors">
-                              {isAnalyse ? "A" : "R"}
+                            {/* Icône */}
+                            <div
+                              className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 transition-colors
+              ${
+                isAnalyse
+                  ? "bg-secondary-container/40 text-secondary group-hover:bg-secondary group-hover:text-on-secondary"
+                  : "bg-tertiary-container/40 text-tertiary group-hover:bg-tertiary group-hover:text-on-tertiary"
+              }`}
+                            >
+                              {isAnalyse ? (
+                                <FlaskConical size={18} />
+                              ) : (
+                                <FileText size={18} />
+                              )}
                             </div>
 
                             <div className="flex-1 min-w-0">
-                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-1.5">
+                              {/* Ligne 1 : date + badge type */}
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1.5">
                                 <span className="flex items-center gap-1.5 text-sm font-semibold text-on-surface">
                                   <Calendar
                                     size={14}
                                     className="text-primary"
                                   />
-                                  {formatDate(
-                                    doc.date_analyse || doc.date_radiologie,
+                                  {docDate ? (
+                                    formatDate(docDate)
+                                  ) : (
+                                    <span className="text-outline italic text-xs font-normal">
+                                      Date non renseignée
+                                    </span>
                                   )}
                                 </span>
                                 <span
-                                  className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${
-                                    isAnalyse
-                                      ? "bg-secondary-container/40 text-secondary"
-                                      : "bg-tertiary-container/40 text-tertiary"
-                                  }`}
+                                  className={`text-xs font-semibold px-2 py-0.5 rounded-full
+                  ${
+                    isAnalyse
+                      ? "bg-secondary-container/40 text-secondary"
+                      : "bg-tertiary-container/40 text-tertiary"
+                  }`}
                                 >
                                   {isAnalyse ? "Analyse" : "Radiologie"}
                                 </span>
-                                {doctorName && (
-                                  <span className="flex items-center gap-1.5 text-sm text-on-surface-variant">
-                                    <User size={14} />
-                                    {doctorName}
-                                  </span>
-                                )}
                               </div>
 
-                              {(doc.titre || doc.description) && (
-                                <p className="text-on-surface font-medium text-sm leading-snug line-clamp-2">
-                                  {doc.titre || doc.description}
+                              {/* Titre */}
+                              <p className="text-on-surface font-medium text-sm leading-snug">
+                                {titre}
+                              </p>
+
+                              {/* Médecin */}
+                              {doctorName && doctorName !== "Dr." && (
+                                <p className="flex items-center gap-1.5 text-xs text-on-surface-variant mt-1.5">
+                                  <User size={12} />
+                                  {doctorName}
                                 </p>
+                              )}
+
+                              {/* Statut / résultat si disponible */}
+                              {doc.statut && (
+                                <span className="mt-2 inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant">
+                                  {doc.statut}
+                                </span>
                               )}
                             </div>
 
                             <ChevronRight
                               size={18}
-                              className="text-outline group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0 mt-1"
+                              className={`shrink-0 mt-1 transition-all
+                                ${
+                                  doc.consultation_id
+                                  ? "text-outline group-hover:text-primary group-hover:translate-x-1"
+                                  : "text-outline/30"
+                                }`}
                             />
                           </div>
                         </button>
