@@ -492,11 +492,11 @@ export default function LandingPage() {
             </div>
 
             <div className="mt-10 flex justify-center">
-              <div className="rounded-full bg-white/95 px-10 py-4 shadow-sm ring-1 ring-slate-200">
-                <div className="inline-flex rounded-full bg-slate-100 p-1.5">
+              <div className="rounded-full bg-white/95 px-8 py-3 shadow-sm ring-1 ring-slate-200">
+                <div className="inline-flex rounded-full bg-slate-100 p-1">
                   <button
                     onClick={() => setViewRole("patient")}
-                    className={`rounded-full px-10 py-4 text-lg font-semibold transition-all ${
+                    className={`rounded-full px-8 py-3 text-lg font-semibold transition-all ${
                       viewRole === "patient"
                         ? "bg-cyan-600 text-white shadow-md"
                         : "text-slate-700 hover:bg-slate-100"
@@ -506,7 +506,7 @@ export default function LandingPage() {
                   </button>
                   <button
                     onClick={() => setViewRole("medecin")}
-                    className={`rounded-full px-10 py-4 text-lg font-semibold transition-all ${
+                    className={`rounded-full px-8 py-3 text-lg font-semibold transition-all ${
                       viewRole === "medecin"
                         ? "bg-cyan-600 text-white shadow-md"
                         : "text-slate-700 hover:bg-slate-100"
