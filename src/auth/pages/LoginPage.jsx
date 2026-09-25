@@ -109,7 +109,7 @@ export function LoginPage() {
 
         {error && errorType === "error" && (
           <div className="mb-4 rounded-lg border-l-4 border-red-500 bg-red-50 p-4 text-sm text-red-800">
-            <div className="font-semibold mb-1">⚠️ Erreur de connexion</div>
+            <div className="font-semibold mb-1">Erreur de connexion</div>
             <div>{error}</div>
           </div>
         )}
