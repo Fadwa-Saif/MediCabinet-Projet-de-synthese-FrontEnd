@@ -1,4 +1,4 @@
-# 🏥 MediCabinet — Frontend
+# MediCabinet — Frontend
 
 React application for managing a medical cabinet, with separate interfaces for **patients**, **doctors** and **secretaries**: appointments, consultations, medical records, lab analyses and prescriptions.
 
@@ -9,7 +9,7 @@ Backend repository: [MediCabinet-Projet-de-synthese-BackEnd](https://github.com/
 
 ---
 
-## ✨ Features
+##  Features
 
 **Patients**
 - Browse doctors and book appointments
@@ -33,7 +33,7 @@ Backend repository: [MediCabinet-Projet-de-synthese-BackEnd](https://github.com/
 - PDF generation for reports and attestations
 - Responsive UI with accessible components
 
-## 🧰 Tech stack
+## Tech stack
 
 | | |
 |---|---|
@@ -43,7 +43,7 @@ Backend repository: [MediCabinet-Projet-de-synthese-BackEnd](https://github.com/
 | PDF | html2canvas, jsPDF |
 | Dates | React Day Picker |
 
-## 🚀 Getting started
+##  Getting started
 
 **Prerequisites:** Node.js and npm, and the [backend API](https://github.com/Fadwa-Saif/MediCabinet-Projet-de-synthese-BackEnd) running locally.
 
@@ -73,7 +73,7 @@ Make sure the frontend's origin is allowed in the backend's `config/cors.php`.
 | `npm run build` | Production build in `build/` |
 | `npm test` | Test runner |
 
-## 🔐 Authentication & roles
+##  Authentication & roles
 
 1. The user logs in through `authService`; the backend returns a JWT.
 2. The token is stored in `localStorage` and attached to every request by an Axios interceptor.
